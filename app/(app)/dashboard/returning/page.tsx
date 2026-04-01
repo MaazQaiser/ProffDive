@@ -1,8 +1,8 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ChevronRight, Mic, RotateCcw, MessageCircle, BookOpen, Zap, Target, Heart, X, Play, CheckCircle, TrendingUp } from "lucide-react";
+import { ArrowRight, Mic, BookOpen, Zap, Target, Heart } from "lucide-react";
 import { TRAININGS, unsplashUrl, PILLAR_COLORS } from "@/lib/trainings-data";
 import { useUser } from "@/lib/user-context";
 import { RecommendationBanner } from "@/components/recommendation-banner";
@@ -33,7 +33,6 @@ const PILLARS_LATEST = [
 const OVERALL_SCORE = parseFloat(
   (PILLARS_LATEST.reduce((s, p) => s + p.score, 0) / PILLARS_LATEST.length).toFixed(1)
 );
-const OVERALL_DELTA = +0.2;
 
 const IN_PROGRESS_SLUGS = [
   { slug: "interview-essentials",       done: 1, total: 2 },
@@ -57,12 +56,6 @@ const glassSquare: React.CSSProperties = {
 }
 
 // ── Helper Components ───────────────────────────────────────────────
-
-function formatDelta(delta: number) {
-  if (delta > 0) return `+${delta.toFixed(1)} ↑`;
-  if (delta < 0) return `${delta.toFixed(1)} ↓`;
-  return `0.0 -`;
-}
 
 function StatusBadge({ overall, minPillar }: { overall: number; minPillar: number }) {
   let text = "Keep Going";
@@ -90,7 +83,7 @@ function StatusBadge({ overall, minPillar }: { overall: number; minPillar: numbe
   }
 
   return (
-    <span className="text-[10px] font-bold px-2 py-0.5 rounded-[6px] uppercase tracking-wider" style={{ color: colorVar, backgroundColor: bgVar }}>
+    <span className="text-[12px] font-bold px-2 py-0.5 rounded-[6px] uppercase tracking-wider" style={{ color: colorVar, backgroundColor: bgVar }}>
       {text}
     </span>
   );
@@ -104,7 +97,7 @@ function OngoingCard({ slug, done, total }: { slug: string; done: number; total:
   
   return (
     <Link href={`/trainings/${t.slug}`}
-      className="group shrink-0 w-[380px] overflow-hidden rounded-[16px] transition-all hover:-translate-y-1 hover:shadow-lg flex items-stretch h-32 bg-white/40"
+      className="group w-full min-w-0 overflow-hidden rounded-[16px] transition-all hover:-translate-y-1 hover:shadow-lg flex items-stretch h-32 bg-white/40"
       style={{ ...glass }}>
       <div className="relative w-[120px] overflow-hidden shrink-0 border-r border-[#0F172A]/5">
         <Image src={unsplashUrl(t.unsplashId, 400)} alt={t.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
@@ -119,7 +112,7 @@ function OngoingCard({ slug, done, total }: { slug: string; done: number; total:
       <div className="p-4 flex-1 flex flex-col justify-center min-w-0">
         <p className="text-[14px] font-bold text-[#0F172A] line-clamp-2 leading-snug mb-2 group-hover:text-[#0087A8] transition-colors">{t.title}</p>
         <div className="mb-2">
-          <div className="flex justify-between text-[10px] mb-1.5 text-[#64748B]">
+          <div className="flex justify-between text-[12px] mb-1.5 text-[#64748B]">
             <span>Milestone {done} of {total} completed</span>
           </div>
           <div className="h-1 rounded-full bg-[#0F172A]/10 relative overflow-hidden">
@@ -137,11 +130,9 @@ function OngoingCard({ slug, done, total }: { slug: string; done: number; total:
 // ── Exported Page ──────────────────────────────────────
 export default function ReturningUserDashboard() {
   const { user } = useUser();
-  const [greetingIndex, setGreetingIndex] = useState(0);
-
-  useEffect(() => {
-    setGreetingIndex(new Date().getDay() % GREETING_COPIES.length);
-  }, []);
+  const [greetingIndex] = useState(
+    () => new Date().getDay() % GREETING_COPIES.length
+  );
 
   return (
     <div>
@@ -152,7 +143,7 @@ export default function ReturningUserDashboard() {
           <h1 className="text-[28px] md:text-[32px] font-semibold tracking-tight text-[#0F172A]">
             {GREETING_COPIES[greetingIndex](user.name)}
           </h1>
-          <p className="text-[14px] md:text-[15px] font-medium text-[#64748B]">
+          <p className="text-[14px] md:text-[16px] font-medium text-[#64748B]">
             Preparing for {user.role || "your next role"} · 4 sessions completed
           </p>
         </div>
@@ -164,7 +155,7 @@ export default function ReturningUserDashboard() {
              {/* Left: Overall */}
              <div className="flex flex-col gap-2 shrink-0 min-w-0 max-w-full md:max-w-lg">
                <div className="flex items-center gap-3">
-                 <h2 className="text-[15px] font-semibold text-[#0F172A] tracking-tight">Readiness Progress</h2>
+                 <h2 className="text-[16px] font-semibold text-[#0F172A] tracking-tight">Readiness Progress</h2>
                  <StatusBadge overall={OVERALL_SCORE} minPillar={Math.min(...PILLARS_LATEST.map(p => p.score))} />
                </div>
                <div className="flex flex-col gap-1.5 mt-1 min-w-0">
@@ -234,7 +225,7 @@ export default function ReturningUserDashboard() {
         {/* Row 3 — In-Progress Trainings */}
         <div>
           <h2 className="text-[16px] font-semibold text-[#0F172A] mb-4">Continue Learning</h2>
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide -mx-2 px-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {IN_PROGRESS_SLUGS.map(tr => (
               <OngoingCard key={tr.slug} slug={tr.slug} done={tr.done} total={tr.total} />
             ))}
@@ -265,9 +256,9 @@ export default function ReturningUserDashboard() {
             <div className="flex-1 relative mt-2 min-h-[200px] flex items-end ml-6 pr-4">
               {/* Gridlines */}
               <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-5">
-                <div className="border-t border-[#0F172A]/5 w-full relative"><span className="absolute -left-6 -top-2 text-[10px] text-[#94A3B8]">5.0</span></div>
-                <div className="border-t border-[#0F172A]/5 w-full relative"><span className="absolute -left-6 -top-2 text-[10px] text-[#94A3B8]">2.5</span></div>
-                <div className="border-t border-[#0F172A]/10 w-full relative"><span className="absolute -left-6 -top-2 text-[10px] text-[#94A3B8]">0</span></div>
+                <div className="border-t border-[#0F172A]/5 w-full relative"><span className="absolute -left-6 -top-2 text-[12px] text-[#94A3B8]">5.0</span></div>
+                <div className="border-t border-[#0F172A]/5 w-full relative"><span className="absolute -left-6 -top-2 text-[12px] text-[#94A3B8]">2.5</span></div>
+                <div className="border-t border-[#0F172A]/10 w-full relative"><span className="absolute -left-6 -top-2 text-[12px] text-[#94A3B8]">0</span></div>
               </div>
 
               {/* Chart container */}
@@ -313,13 +304,13 @@ export default function ReturningUserDashboard() {
                           
                           <div className="absolute w-[10px] h-[10px] rounded-full -ml-[5px] -mt-[5px] bg-[#0F172A] border-2 border-white pointer-events-auto hover:scale-125 transition-transform group" style={{ left: `${p.x}%`, top: `${p.overall}%` }}>
                             {/* Hover tooltip for overall */}
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#0F172A] text-white text-[12px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
                               {p.rawOverall.toFixed(2)}
                             </div>
                           </div>
                           
                           {/* X-axis label */}
-                          <div className="absolute bottom-[-24px] text-[10px] font-medium text-[#64748B] uppercase tracking-wider" style={{ left: `${p.x}%`, transform: 'translateX(-50%)' }}>
+                          <div className="absolute bottom-[-24px] text-[12px] font-medium text-[#64748B] uppercase tracking-wider" style={{ left: `${p.x}%`, transform: 'translateX(-50%)' }}>
                             {p.label}
                           </div>
                         </div>
@@ -350,7 +341,7 @@ export default function ReturningUserDashboard() {
               <div className="w-9 h-9 rounded-[8px] bg-[#F59E0B]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
                   <Mic size={18} className="text-[#F59E0B]" />
               </div>
-              <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">Mock Interview</h3>
+              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Mock Interview</h3>
               <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                   Take a practice interview and get scored feedback on your performance under pressure.
               </p>
@@ -364,7 +355,7 @@ export default function ReturningUserDashboard() {
               <div className="w-9 h-9 rounded-[8px] bg-[#10B981]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
                   <BookOpen size={18} className="text-[#10B981]" />
               </div>
-              <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">StoryBoard</h3>
+              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">StoryBoard</h3>
               <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                   Organize your experience into stronger, more reusable interview answers.
               </p>
@@ -378,7 +369,7 @@ export default function ReturningUserDashboard() {
               <div className="w-9 h-9 rounded-[8px] bg-[#0087A8]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
                   <Zap size={18} className="text-[#0087A8]" />
               </div>
-              <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">Essential Trainings</h3>
+              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Essential Trainings</h3>
               <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                   Learn the basics of strong interview structure, delivery, and response quality.
               </p>

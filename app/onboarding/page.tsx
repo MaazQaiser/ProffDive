@@ -2,11 +2,11 @@
 import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Briefcase, Target, CheckCircle, User as UserIcon } from "lucide-react";
 import { JdResumeInput } from "@/components/JdResumeInput";
+import { StepContainer } from "@/components/step-container";
 import { useUser } from "@/lib/user-context";
 
-type Step = 0 | 1 | 2;
+type Step = 1 | 2;
 type CareerChoice = "fresh-grad" | "undergrad" | "experienced" | "diploma-holder" | null;
 type ExpBracket = "1-5" | "5-10" | "10+" | null;
 
@@ -18,8 +18,7 @@ export default function OnboardingPage() {
   const { user, updateUser } = useUser();
   
   // State
-  const [activeStep, setActiveStep] = useState<Step>(user.name ? 1 : 0);
-  const [userName, setUserName] = useState(user.name || "");
+  const [activeStep, setActiveStep] = useState<Step>(1);
   const [career, setCareer] = useState<CareerChoice>(null);
   const [bracket, setBracket] = useState<ExpBracket>(null);
   const [role, setRole] = useState("");
@@ -30,7 +29,6 @@ export default function OnboardingPage() {
   const [showJD, setShowJD] = useState(false);
   const [jd, setJd] = useState("");
   const [resume, setResume] = useState("");
-  const [showResume, setShowResume] = useState(false);
   
   const roleRef = useRef<HTMLInputElement>(null);
   const sugg = ROLES.filter(r => r.toLowerCase().includes(query.toLowerCase()) && query.length > 0);
@@ -48,7 +46,7 @@ export default function OnboardingPage() {
 
   const handleFinish = () => {
     updateUser({
-      name: userName,
+      name: user.name ?? "",
       career,
       bracket,
       role,
@@ -59,19 +57,6 @@ export default function OnboardingPage() {
     });
     router.push("/consent");
   };
-
-  const StepContainer = ({ isActive, children, onClick }: { isActive: boolean; children: React.ReactNode; onClick?: () => void }) => (
-    <div 
-      onClick={!isActive ? onClick : undefined}
-      className={`w-full transition-all duration-300 ${
-        isActive 
-          ? "bg-white/70 backdrop-blur-[21px] rounded-[16px] border border-white/60 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" 
-          : "bg-white/40 backdrop-blur-[21px] rounded-[12px] border border-white/30 px-5 py-4 cursor-pointer hover:bg-white/50"
-      }`}
-    >
-      {children}
-    </div>
-  );
 
   const getCareerLabel = () => {
     if (career === "fresh-grad") return "Fresh Graduate";
@@ -94,9 +79,9 @@ export default function OnboardingPage() {
           </div>
 
           {/* New Personalization Header */}
-          <div className="w-full max-w-[580px] text-center mb-10 space-y-2">
-            <h1 className="text-[26px] font-semibold text-[#0F172A] leading-tight">
-              Welcome{userName ? `, ${userName}` : ""}! Let’s personalize your experience.
+          <div className="w-full max-w-[520px] text-center mb-10 space-y-2">
+            <h1 className="flex justify-center items-center w-full text-[24px] font-semibold text-[#0F172A] leading-tight">
+              Welcome{user.name ? `, ${user.name}` : ""}! Let’s personalize your experience.
             </h1>
             <p className="text-[14px] text-[#475569] leading-relaxed max-w-[420px] mx-auto">
               Share a few details to help us tailor your coaching and identify your best career path.
@@ -104,73 +89,9 @@ export default function OnboardingPage() {
           </div>
 
           <div className="w-full max-w-[480px] relative">
-            
-            {/* Vertical Line */}
-            <div className="absolute left-[31px] top-[40px] bottom-[40px] w-0.5 bg-slate-200 z-0" />
-
             <div className="flex flex-col gap-8 relative z-10">
-              
-              {/* Step 0: Name */}
-              {!user.name && (
-                <div className="flex gap-6">
-                  {/* Indicator */}
-                  <div className="flex flex-col items-center">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10 ${
-                      activeStep === 0 ? "border-[#0087A8] bg-white text-[#0087A8]" : 
-                      activeStep > 0 ? "border-[#10B981] bg-[#10B981] text-white" : 
-                      "border-slate-200 bg-slate-100 text-slate-400"
-                    }`}>
-                      {activeStep > 0 ? <CheckCircle size={16} /> : <div className="w-2.5 h-2.5 rounded-full bg-current" />}
-                    </div>
-                  </div>
-                  
-                  <StepContainer isActive={activeStep === 0} onClick={() => setActiveStep(0)}>
-                    {activeStep === 0 ? (
-                      <div className="flex flex-col gap-4">
-                        <div className="text-left space-y-1">
-                          <h2 className="text-[17px] font-bold text-[#0F172A]">What's your name?</h2>
-                          <p className="text-[12px] text-slate-500">We'll use this for your certificate and reports.</p>
-                        </div>
-                        <div className="flex flex-col gap-2 relative mt-1">
-                          <input 
-                            value={userName}
-                            onChange={e => setUserName(e.target.value)}
-                            className="w-full h-[46px] px-4 rounded-xl border border-slate-200 bg-white/60 outline-none text-[14px] text-[#0F172A] focus:border-[#0087A8] focus:bg-white transition-all shadow-sm"
-                            placeholder="e.g. Maaz"
-                            autoFocus
-                          />
-                        </div>
-                        <button 
-                          onClick={() => setActiveStep(1)}
-                          disabled={!userName.trim()}
-                          className={`w-full h-[46px] mt-2 rounded-xl font-bold text-[14px] transition-all shadow-lg ${userName.trim() ? 'bg-[#0087A8] text-white hover:bg-[#006E89] shadow-[#0087A8]/20' : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
-                        >
-                          Confirm name
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="h-full flex items-center">
-                         <span className="text-[15px] font-semibold text-[#0F172A]">{userName || "Your Name"}</span>
-                      </div>
-                    )}
-                  </StepContainer>
-                </div>
-              )}
-
               {/* Step 1: Career */}
-              <div className="flex gap-6">
-                {/* Indicator */}
-                <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10 ${
-                    activeStep === 1 ? "border-[#0087A8] bg-white text-[#0087A8]" : 
-                    activeStep > 1 ? "border-[#10B981] bg-[#10B981] text-white" : 
-                    "border-slate-200 bg-slate-100 text-slate-400"
-                  }`}>
-                    {activeStep > 1 ? <CheckCircle size={16} /> : <div className={`w-2.5 h-2.5 rounded-full ${activeStep === 1 ? 'bg-[#0087A8]' : 'bg-slate-300'}`} />}
-                  </div>
-                </div>
-
-                <StepContainer isActive={activeStep === 1} onClick={() => userName.trim() && setActiveStep(1)}>
+                <StepContainer isActive={activeStep === 1} onClick={() => setActiveStep(1)}>
                   {activeStep === 1 ? (
                     <div className="flex flex-col gap-5">
                       <div className="text-left space-y-1">
@@ -182,9 +103,10 @@ export default function OnboardingPage() {
                         {([
                           { id: "fresh-grad", label: "Fresh Graduate", sub: "No full-time experience yet" },
                           { id: "undergrad",  label: "Undergrad",      sub: "Currently studying" },
+                          { id: "diploma-holder", label: "Diploma Holder", sub: "Polytechnic or technical diploma" },
                           { id: "experienced",label: "Experienced",    sub: "Working professionally" },
                         ] as { id: CareerChoice; label: string; sub: string }[]).map((o) => (
-                          <button key={o.id!} onClick={() => { setCareer(o.id); if (o.id !== "experienced") setBracket(null); }}
+                          <button key={o.id!} onClick={() => { setCareer(o.id); if (o.id !== "experienced") { setBracket(null); setResume(""); } }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 text-left rounded-xl border transition-all ${career === o.id ? 'bg-[#E6F6F9] border-[#0087A8] shadow-sm' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
                           >
                             <div className={`w-4 h-4 shrink-0 rounded-full border-2 flex items-center justify-center ${career === o.id ? 'border-[#0087A8]' : 'border-slate-300'}`}>
@@ -212,6 +134,19 @@ export default function OnboardingPage() {
                               ))}
                             </div>
                           </div>
+
+                          {bracket !== null && (
+                            <div className="pt-2 border-t border-slate-100">
+                              <JdResumeInput
+                                label="Add Resume ( optional)"
+                                placeholder="Paste or upload your resume—we use it to tailor mock interviews and feedback."
+                                value={resume}
+                                onChange={setResume}
+                                onRemove={() => setResume("")}
+                                compact
+                              />
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -225,25 +160,12 @@ export default function OnboardingPage() {
                     </div>
                   ) : (
                     <div className="h-full flex items-center">
-                      <span className={`text-[15px] font-semibold ${career ? 'text-[#0F172A]' : 'text-slate-400'}`}>{career ? getCareerLabel() : "Career Stage"}</span>
+                      <span className={`text-[16px] font-semibold ${career ? 'text-[#0F172A]' : 'text-slate-400'}`}>{career ? getCareerLabel() : "Career Stage"}</span>
                     </div>
                   )}
                 </StepContainer>
-              </div>
 
               {/* Step 2: Role */}
-              <div className="flex gap-6">
-                {/* Indicator */}
-                <div className="flex flex-col items-center">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10 ${
-                    activeStep === 2 ? "border-[#0087A8] bg-white text-[#0087A8]" : 
-                    activeStep > 2 ? "border-[#10B981] bg-[#10B981] text-white" : 
-                    "border-slate-200 bg-slate-100 text-slate-400"
-                  }`}>
-                    {activeStep > 2 ? <CheckCircle size={16} /> : <div className={`w-2.5 h-2.5 rounded-full ${activeStep === 2 ? 'bg-[#0087A8]' : 'bg-slate-300'}`} />}
-                  </div>
-                </div>
-
                 <StepContainer isActive={activeStep === 2} onClick={() => canContinueCareer && setActiveStep(2)}>
                   {activeStep === 2 ? (
                     <div className="flex flex-col gap-4">
@@ -320,11 +242,10 @@ export default function OnboardingPage() {
                     </div>
                   ) : (
                     <div className="h-full flex items-center">
-                      <span className={`text-[15px] font-semibold ${role ? 'text-[#0F172A]' : 'text-slate-400'}`}>{role || "Target Role"}</span>
+                      <span className={`text-[16px] font-semibold ${role ? 'text-[#0F172A]' : 'text-slate-400'}`}>{role || "Target Role"}</span>
                     </div>
                   )}
                 </StepContainer>
-              </div>
 
             </div>
           </div>

@@ -51,7 +51,7 @@ export default function TestOnboarding() {
             <>
               {/* Header */}
               <div className="px-7 pt-7 pb-5" style={{ borderBottom: `1px solid ${DIV}` }}>
-                <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1.5" style={{ color: "rgba(15,15,15,0.35)" }}>Step 1 of 2</p>
+                <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-1.5" style={{ color: "rgba(15,15,15,0.35)" }}>Step 1 of 2</p>
                 <h1 className="text-xl font-bold tracking-tight" style={{ color: "#0F0F0F" }}>Where are you right now?</h1>
               </div>
 
@@ -60,6 +60,7 @@ export default function TestOnboarding() {
                 {([
                   { id: "fresh-grad",  label: "Fresh Graduate", sub: "Just graduated, no full-time work yet" },
                   { id: "undergrad",   label: "Undergrad",       sub: "Currently studying, internships ahead" },
+                  { id: "diploma-holder", label: "Diploma Holder", sub: "Polytechnic or technical diploma" },
                   { id: "experienced", label: "Experienced",     sub: "Working professionally" },
                 ] as const).map((o, i, arr) => (
                   <button key={o.id} onClick={() => { setCareer(o.id); if(o.id !== "experienced") setBracket(null); }}
@@ -82,7 +83,7 @@ export default function TestOnboarding() {
               {/* Experience bracket — inline if experienced selected */}
               {career === "experienced" && (
                 <div className="px-7 py-4" style={{ borderTop: `1px solid ${DIV}` }}>
-                  <p className="text-[10px] uppercase tracking-[0.16em] font-semibold mb-3" style={{ color: "rgba(15,15,15,0.35)" }}>Years of experience</p>
+                  <p className="text-[12px] uppercase tracking-[0.16em] font-semibold mb-3" style={{ color: "rgba(15,15,15,0.35)" }}>Years of experience</p>
                   <div className="flex gap-2">
                     {["1–5","5–10","10+"].map((b) => (
                       <button key={b} onClick={() => setBracket(b)}
@@ -113,7 +114,7 @@ export default function TestOnboarding() {
           {step === "role" && (
             <>
               <div className="px-7 pt-7 pb-5" style={{ borderBottom: `1px solid ${DIV}` }}>
-                <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1.5" style={{ color: "rgba(15,15,15,0.35)" }}>Step 2 of 2</p>
+                <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-1.5" style={{ color: "rgba(15,15,15,0.35)" }}>Step 2 of 2</p>
                 <h1 className="text-xl font-bold tracking-tight" style={{ color: "#0F0F0F" }}>What role are you targeting?</h1>
               </div>
 
@@ -158,7 +159,7 @@ export default function TestOnboarding() {
                   <button onClick={() => setShowIndustry(true)} className="w-full text-left text-[12px] flex items-center gap-2 transition-colors hover:opacity-60"
                     style={{ color: "rgba(15,15,15,0.35)" }}>
                     <span>+</span> Add industry vertical
-                    <span className="ml-auto text-[10px]">Optional</span>
+                    <span className="ml-auto text-[12px]">Optional</span>
                   </button>
                 ) : (
                   <select value={industry} onChange={(e) => setIndustry(e.target.value)}

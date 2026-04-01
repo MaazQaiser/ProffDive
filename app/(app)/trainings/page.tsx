@@ -83,7 +83,7 @@ function RecommendedCard({ t }: { t: Training }) {
           <p className="text-[11px] leading-relaxed line-clamp-2 text-[#64748B]">{t.impact}</p>
         </div>
         <div className="flex items-center justify-between mt-3">
-          <div className="flex items-center gap-3 text-[10px] text-[#94A3B8]">
+          <div className="flex items-center gap-3 text-[12px] text-[#94A3B8]">
             <span className="flex items-center gap-1"><Clock size={11} />{t.duration}</span>
             <span className="flex items-center gap-1"><Users size={11} />{fmt(t.enrolled)} enrolled</span>
           </div>
@@ -102,20 +102,20 @@ function OngoingCard({ t }: { t: Training }) {
   const pct = prog ? Math.round((prog.done / prog.total) * 100) : 0;
   return (
     <Link href={`/trainings/${t.slug}`}
-      className="group shrink-0 w-[420px] overflow-hidden rounded-[20px] transition-all hover:-translate-y-1 hover:shadow-lg flex items-stretch h-36 bg-white/40"
+      className="group w-full min-w-0 overflow-hidden rounded-[20px] transition-all hover:-translate-y-1 hover:shadow-lg flex items-stretch h-36 bg-white/40"
       style={{ ...glass }}>
       <div className="relative w-[140px] overflow-hidden shrink-0 border-r border-[#0F172A]/5">
         <Image src={unsplashUrl(t.unsplashId, 400)} alt={t.title} fill className="object-cover transition-transform duration-500 group-hover:scale-105" unoptimized />
         <div className="absolute inset-0 bg-slate-900/30 transition-colors group-hover:bg-slate-900/20" />
-        <span className="absolute top-3 left-3 text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-[6px] text-white shadow-lg" style={{ background: TEAL }}>
+        <span className="absolute top-3 left-3 text-[12px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-[6px] text-white shadow-lg" style={{ background: TEAL }}>
           {t.pillar}
         </span>
-        <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-bold text-white bg-black/50 backdrop-blur-md border border-white/20">
+        <div className="absolute bottom-3 right-3 w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold text-white bg-black/50 backdrop-blur-md border border-white/20">
           {pct}%
         </div>
       </div>
       <div className="p-5 flex-1 flex flex-col justify-center">
-        <p className="text-[15px] font-bold text-[#0F172A] line-clamp-2 leading-snug mb-3 group-hover:text-[#0087A8] transition-colors">{t.title}</p>
+        <p className="text-[16px] font-bold text-[#0F172A] line-clamp-2 leading-snug mb-3 group-hover:text-[#0087A8] transition-colors">{t.title}</p>
         <div className="mb-3">
           <div className="flex justify-between text-[11px] mb-2 text-[#64748B]">
             <span>Milestone {prog?.done} of {prog?.total} completed</span>
@@ -172,8 +172,8 @@ export default function TrainingsPage() {
       {/* ── Ongoing ── */}
       {ongoing.length > 0 && (
         <section className="animate-in slide-in-from-bottom-5 fade-in duration-1000">
-          <h2 className="text-[15px] font-semibold text-[#0F172A] mb-5 px-1">Continue where you left off</h2>
-          <div className="flex gap-5 overflow-x-auto pb-4 -mx-2 px-2 scrollbar-hide">
+          <h2 className="text-[16px] font-semibold text-[#0F172A] mb-5 px-1">Continue where you left off</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {ongoing.map((t) => <OngoingCard key={t.slug} t={t} />)}
           </div>
         </section>
@@ -182,7 +182,7 @@ export default function TrainingsPage() {
       {/* ── Recommended ── */}
       <section className="animate-in slide-in-from-bottom-6 fade-in duration-1000">
         <div className="flex items-center justify-between mb-5 px-1">
-          <h2 className="text-[15px] font-semibold text-[#0F172A]">Recommended for you</h2>
+          <h2 className="text-[16px] font-semibold text-[#0F172A]">Recommended for you</h2>
           <Link href="#all" className="text-[12px] font-bold text-[#0087A8] hover:opacity-70 transition-opacity">
             View all courses →
           </Link>
@@ -196,7 +196,7 @@ export default function TrainingsPage() {
       <section id="all" className="animate-in slide-in-from-bottom-7 fade-in duration-1000 space-y-6 pt-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
           <div className="space-y-1">
-             <h2 className="text-[15px] font-semibold text-[#0F172A]">All trainings</h2>
+             <h2 className="text-[16px] font-semibold text-[#0F172A]">All trainings</h2>
              <p className="text-[11px] text-[#64748B]">Filter courses by specific success drivers.</p>
           </div>
           {/* Filter pills */}
