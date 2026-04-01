@@ -1,0 +1,163 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════
+   ProofDive — Design System v2.1
+   Glassmorphism · Single-tone bg · Top nav
+   "Depth from material, not decoration"
+═══════════════════════════════════════════════ */
+
+:root {
+  /* ── Backgrounds ── */
+  --bg-app:        #FAFEFF;
+  --bg-gradient:   linear-gradient(to bottom, #FAFEFF, #CFDCE1);
+  --bg-surface:    #FFFFFF;
+  --bg-subtle:     rgba(0,0,0,0.03);
+  --bg-muted:      rgba(0,0,0,0.06);
+
+  /* ── Glass surfaces ── */
+  --glass-light:   rgba(255,255,255,0.60);
+  --glass-border:  rgba(255,255,255,0.72);
+  --glass-inset:   inset 0 1px 0 rgba(255,255,255,0.88);
+  --glass-shadow:  0 4px 24px rgba(0,0,0,0.07);
+
+  /* ── Brand — used ONLY for primary CTA ── */
+  --primary:        #0087A8;
+  --primary-hover:  #006E89;
+
+  /* ── Text ── */
+  --text-1:        #0F172A;
+  --text-2:        rgba(15,23,42,0.55);
+  --text-3:        rgba(15,23,42,0.32);
+
+  /* ── Borders / Dividers ── */
+  --border:        rgba(0,0,0,0.08);
+  --divider-glass: rgba(255,255,255,0.55);
+
+  /* ── Radius ── */
+  --r-card:    20px;
+  --r-inner:   12px;
+  --r-button:  10px;
+  --r-input:   10px;
+  --r-badge:   6px;
+  --r-pill:    999px;
+
+  /* ── Accent dots — micro use only ── */
+  --accent-success:  #34D399;
+  --accent-warning:  #FBBF24;
+  --accent-error:    #F87171;
+  --accent-info:     #A5B4FC;
+
+  /* ── Legacy / Status (not-ready etc) ── */
+  --not-ready-text:   #B91C1C;
+  --not-ready-fill:   rgba(239,68,68,0.08);
+  --borderline-text:  #B45309;
+  --borderline-fill:  rgba(245,158,11,0.08);
+  --ready-text:       #047857;
+  --ready-fill:       rgba(52,211,153,0.10);
+  --star-text:        #0891B2;
+  --star-fill:        rgba(165,180,252,0.15);
+
+  /* ── Tailwind aliases ── */
+  --background:   var(--bg-app);
+  --foreground:   var(--text-1);
+  --muted:        var(--text-2);
+  --divider:      var(--border);
+  --surface-alt:  var(--bg-surface);
+  --border-default: var(--border);
+  --border-strong:  rgba(0,0,0,0.14);
+  --primary-50:   rgba(0,135,168,0.08);
+  --primary-100:  rgba(0,135,168,0.15);
+  --border-focus: var(--primary);
+  --text-primary: var(--text-1);
+  --text-secondary: var(--text-2);
+  --text-tertiary: var(--text-3);
+  --text-disabled: var(--text-3);
+  --text-inverse: #FFFFFF;
+}
+
+/* ── Tailwind @theme ── */
+@theme inline {
+  --color-background:   var(--bg-app);
+  --color-surface:      var(--bg-surface);
+  --color-surface-alt:  var(--bg-surface);
+  --color-subtle:       var(--bg-subtle);
+  --color-foreground:   var(--text-1);
+  --color-muted:        var(--text-2);
+  --color-divider:      var(--border);
+  --color-border:       var(--border);
+  --color-border-strong:var(--border-strong);
+  --color-primary:      var(--primary);
+  --color-primary-hover:var(--primary-hover);
+  --color-primary-pressed: var(--primary-hover);
+  --color-primary-subtle: var(--primary-50);
+  --color-not-ready:    var(--not-ready-text);
+  --color-not-ready-fill: var(--not-ready-fill);
+  --color-borderline:   var(--borderline-text);
+  --color-borderline-fill: var(--borderline-fill);
+  --color-ready:        var(--ready-text);
+  --color-ready-fill:   var(--ready-fill);
+  --color-star:         var(--star-text);
+  --color-star-fill:    var(--star-fill);
+  --color-success:      var(--ready-text);
+  --color-warning:      var(--borderline-text);
+  --color-error:        var(--not-ready-text);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Base ── */
+html, body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-1);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Global input/button radii ── */
+@layer base {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="number"],
+  textarea,
+  select {
+    border-radius: var(--r-input) !important;
+    background: rgba(0,0,0,0.04) !important;
+    border: 1px solid rgba(0,0,0,0.07) !important;
+    color: var(--text-1) !important;
+  }
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    border-color: rgba(0,135,168,0.40) !important;
+    box-shadow: 0 0 0 3px rgba(0,135,168,0.10) !important;
+    background: rgba(0,0,0,0.05) !important;
+  }
+  button {
+    border-radius: var(--r-button) !important;
+  }
+  a.btn {
+    border-radius: var(--r-button);
+  }
+}
+
+/* ── Reusable glass card utility ── */
+.card {
+  background: var(--glass-light);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-card);
+  box-shadow: var(--glass-shadow), var(--glass-inset);
+}
+
+/* ── Status dot helpers ── */
+.dot-success { width: 7px; height: 7px; border-radius: 999px; background: var(--accent-success); display: inline-block; flex-shrink: 0; }
+.dot-warning { width: 7px; height: 7px; border-radius: 999px; background: var(--accent-warning); display: inline-block; flex-shrink: 0; }
+.dot-error   { width: 7px; height: 7px; border-radius: 999px; background: var(--accent-error);   display: inline-block; flex-shrink: 0; }
+.dot-info    { width: 7px; height: 7px; border-radius: 999px; background: var(--accent-info);    display: inline-block; flex-shrink: 0; }
+
+/* ── Selection ── */
+::selection {
+  background: rgba(0,135,168,0.15);
+  color: var(--text-1);
+}
