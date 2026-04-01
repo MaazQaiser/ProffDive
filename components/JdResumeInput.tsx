@@ -187,7 +187,7 @@ export function JdResumeInput({
                 <p style={{ fontSize: compact ? 11 : 12, fontWeight: 600, color: "#0F0F0F", marginBottom: 2 }}>
                   Drop file here or <span style={{ color: accentColor }}>browse</span>
                 </p>
-                <p style={{ fontSize: 10, color: "rgba(15,15,15,0.38)" }}>.txt, .pdf, .doc, .docx</p>
+                <p style={{ fontSize: 12, color: "rgba(15,15,15,0.38)" }}>.txt, .pdf, .doc, .docx</p>
               </>
             )}
           </div>

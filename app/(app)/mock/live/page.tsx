@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Mic, MicOff, Video, VideoOff, PhoneOff } from "lucide-react";
 import { useUser } from "@/lib/user-context";
@@ -38,13 +38,41 @@ export default function LiveInterviewPage() {
   const [camOn,    setCamOn]    = useState(true);
   const [ending,   setEnding]   = useState(false);
 
-  const dynamicQuestions: Question[] = [
-    { text:`Tell me about yourself and your experience as a ${user.role || 'professional'}.`, driver:"Introduction", driverDot:"#94A3B8", idealSec:120 },
-    { text:"Tell me about a time you had to solve a complex problem under pressure.", driver:"Thinking", driverDot:"#FBBF24", idealSec:180 },
-    { text:"Describe a situation where you took initiative on something no one asked you to do.", driver:"Action", driverDot:"#F87171", idealSec:180 },
-    { text:"Give me an example of how you handled a conflict with a senior stakeholder.", driver:"People", driverDot:"#34D399", idealSec:180 },
-    { text:"What's the most technically complex work you've delivered, and what did it teach you?", driver:"Mastery", driverDot:"#FBBF24", idealSec:180 },
-  ];
+  const dynamicQuestions: Question[] = useMemo(
+    () => [
+      {
+        text: `Tell me about yourself and your experience as a ${user.role || "professional"}.`,
+        driver: "Introduction",
+        driverDot: "#94A3B8",
+        idealSec: 120,
+      },
+      {
+        text: "Tell me about a time you had to solve a complex problem under pressure.",
+        driver: "Thinking",
+        driverDot: "#FBBF24",
+        idealSec: 180,
+      },
+      {
+        text: "Describe a situation where you took initiative on something no one asked you to do.",
+        driver: "Action",
+        driverDot: "#F87171",
+        idealSec: 180,
+      },
+      {
+        text: "Give me an example of how you handled a conflict with a senior stakeholder.",
+        driver: "People",
+        driverDot: "#34D399",
+        idealSec: 180,
+      },
+      {
+        text: "What's the most technically complex work you've delivered, and what did it teach you?",
+        driver: "Mastery",
+        driverDot: "#FBBF24",
+        idealSec: 180,
+      },
+    ],
+    [user.role]
+  );
 
   const q = dynamicQuestions[qIndex];
   const remaining = TOTAL_SEC - elapsed; // overall countdown
@@ -58,15 +86,16 @@ export default function LiveInterviewPage() {
     return () => clearInterval(t);
   }, []);
 
-  const nextQuestion = useCallback(() => {
-    if (qIndex < dynamicQuestions.length - 1) {
-      setQIndex(i => i + 1);
+  const qCount = dynamicQuestions.length;
+  function nextQuestion() {
+    if (qIndex < qCount - 1) {
+      setQIndex((i) => i + 1);
       setQElapsed(0);
     } else {
       setEnding(true);
       setTimeout(() => router.push("/mock/processing"), 1800);
     }
-  }, [qIndex, dynamicQuestions.length, router]);
+  }
 
   // ── Progress ──────────────────────────────────────
   const qPct    = Math.min(100, (qElapsed / q.idealSec) * 100);
@@ -93,13 +122,13 @@ export default function LiveInterviewPage() {
         {/* Center: Q counter + overall time */}
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color:"rgba(255,255,255,0.28)" }}>Question</span>
+            <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color:"rgba(255,255,255,0.28)" }}>Question</span>
             <span className="text-[13px] font-bold font-mono" style={{ color:"#FFF" }}>{qIndex+1} / {QUESTIONS.length}</span>
           </div>
           <div style={{ width:1,height:16,background:"rgba(255,255,255,0.10)",display:"inline-block" }} />
           {/* Overall timer — counts down */}
           <div className="flex items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color:"rgba(255,255,255,0.28)" }}>Remaining</span>
+            <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color:"rgba(255,255,255,0.28)" }}>Remaining</span>
             <span className="text-[13px] font-bold font-mono" style={{ color: remaining < 300 ? "#F87171" : "#FFF" }}>
               {fmt(Math.max(0, remaining))}
             </span>
@@ -109,13 +138,46 @@ export default function LiveInterviewPage() {
         {/* Right: driver tag */}
         <div className="flex items-center gap-2">
           <span style={{ width:6,height:6,borderRadius:99,background:q.driverDot,display:"inline-block" }} />
-          <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color:"rgba(255,255,255,0.40)" }}>{q.driver}</span>
+          <span className="text-[12px] font-bold uppercase tracking-widest" style={{ color:"rgba(255,255,255,0.40)" }}>{q.driver}</span>
         </div>
       </div>
 
       {/* ── OVERALL PROGRESS BAR ─────────────────────── */}
       <div style={{ height:2, flexShrink:0, background:"rgba(255,255,255,0.06)" }}>
         <div style={{ height:"100%", width:`${totalPct}%`, background:"#0087A8", transition:"width 1s linear" }} />
+      </div>
+
+      {/* ── Q TIMER + CURRENT QUESTION (top) ─────────── */}
+      <div className="shrink-0 flex flex-col items-center z-20"
+        style={{ paddingTop:8, paddingBottom:12 }}>
+        {/* Question time bar */}
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color: overTime?"#F87171":"rgba(255,255,255,0.30)" }}>
+            {overTime ? "Over time —" : "Q timer"}
+          </span>
+          <span className="text-[13px] font-bold font-mono" style={{ color: overTime?"#F87171":"#FFF" }}>{fmt(qElapsed)}</span>
+          <span className="text-[12px]" style={{ color:"rgba(255,255,255,0.22)" }}>/ {fmt(q.idealSec)} ideal</span>
+          {/* mini progress */}
+          <div style={{ width:80,height:2,borderRadius:99,background:"rgba(255,255,255,0.10)" }}>
+            <div style={{ height:"100%",borderRadius:99,width:`${qPct}%`,background: overTime?"#F87171":"#0087A8",transition:"width 1s linear" }} />
+          </div>
+        </div>
+
+        {/* Subtitle card — current question */}
+        <div className="max-w-2xl w-full mx-auto px-8"
+          style={{ padding:"14px 24px", borderRadius:12,
+            background:"rgba(255,255,255,0.06)", backdropFilter:"blur(16px)",
+            border:"1px solid rgba(255,255,255,0.10)",
+            boxShadow:"0 4px 32px rgba(0,0,0,0.30)" }}>
+          <p className="text-[9px] uppercase tracking-[0.18em] font-bold mb-2 text-center" style={{ color:"rgba(255,255,255,0.30)" }}>
+            Question {qIndex+1} — {q.driver}
+          </p>
+          <p className="text-[16px] font-semibold text-center leading-relaxed" style={{ color:"rgba(255,255,255,0.90)" }}>
+            <span aria-hidden>&ldquo;</span>
+            {q.text}
+            <span aria-hidden>&rdquo;</span>
+          </p>
+        </div>
       </div>
 
       {/* ── MAIN AREA: Interviewer video call ────────── */}
@@ -160,7 +222,7 @@ export default function LiveInterviewPage() {
           <div className="absolute top-4 left-4 flex items-center gap-1.5"
             style={{ padding:"3px 10px", borderRadius:6, background:"rgba(0,0,0,0.45)" }}>
             <span style={{ width:5,height:5,borderRadius:99,background:"#34D399",display:"inline-block" }} />
-            <span className="text-[10px] font-semibold" style={{ color:"#FFF" }}>AI Interviewer</span>
+            <span className="text-[12px] font-semibold" style={{ color:"#FFF" }}>AI Interviewer</span>
           </div>
         </div>
 
@@ -189,37 +251,6 @@ export default function LiveInterviewPage() {
             }
             <span className="text-[9px] font-semibold" style={{ color:"rgba(255,255,255,0.55)" }}>You</span>
           </div>
-        </div>
-      </div>
-
-      {/* ── SUBTITLES — bottom center ─────────────────── */}
-      <div className="shrink-0 flex flex-col items-center z-20"
-        style={{ paddingBottom:8 }}>
-        {/* Question time bar */}
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: overTime?"#F87171":"rgba(255,255,255,0.30)" }}>
-            {overTime ? "Over time —" : "Q timer"}
-          </span>
-          <span className="text-[13px] font-bold font-mono" style={{ color: overTime?"#F87171":"#FFF" }}>{fmt(qElapsed)}</span>
-          <span className="text-[10px]" style={{ color:"rgba(255,255,255,0.22)" }}>/ {fmt(q.idealSec)} ideal</span>
-          {/* mini progress */}
-          <div style={{ width:80,height:2,borderRadius:99,background:"rgba(255,255,255,0.10)" }}>
-            <div style={{ height:"100%",borderRadius:99,width:`${qPct}%`,background: overTime?"#F87171":"#0087A8",transition:"width 1s linear" }} />
-          </div>
-        </div>
-
-        {/* Subtitle card — current question */}
-        <div className="max-w-2xl w-full mx-auto px-8"
-          style={{ padding:"14px 24px", borderRadius:12,
-            background:"rgba(255,255,255,0.06)", backdropFilter:"blur(16px)",
-            border:"1px solid rgba(255,255,255,0.10)",
-            boxShadow:"0 4px 32px rgba(0,0,0,0.30)" }}>
-          <p className="text-[9px] uppercase tracking-[0.18em] font-bold mb-2 text-center" style={{ color:"rgba(255,255,255,0.30)" }}>
-            Question {qIndex+1} — {q.driver}
-          </p>
-          <p className="text-[15px] font-semibold text-center leading-relaxed" style={{ color:"rgba(255,255,255,0.90)" }}>
-            "{q.text}"
-          </p>
         </div>
       </div>
 

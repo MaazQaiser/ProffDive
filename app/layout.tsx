@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/lib/user-context";
+import { ProofyChatDockGate } from "@/components/proofy/ProofyChatDockGate";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -23,6 +24,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className="min-h-full flex flex-col tracking-tight bg-background text-foreground">
         <UserProvider>
           {children}
+          <ProofyChatDockGate />
         </UserProvider>
       </body>
     </html>

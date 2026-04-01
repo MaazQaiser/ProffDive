@@ -15,8 +15,8 @@ export default function StoryBoardMockDetail() {
             <Link href="/storyboard" className="text-xs uppercase tracking-widest text-muted hover:text-foreground mb-8 inline-block">← Back to MyStoryBoard</Link>
             
             <div className="flex items-center gap-4 mb-4">
-              <span className="text-[10px] uppercase tracking-widest bg-divider text-muted px-2 py-1">Manual Entry</span>
-              <span className="text-[10px] uppercase tracking-widest bg-status-ready/10 text-status-ready px-2 py-1">Draft</span>
+              <span className="text-[12px] uppercase tracking-widest bg-divider text-muted px-2 py-1">Manual Entry</span>
+              <span className="text-[12px] uppercase tracking-widest bg-status-ready/10 text-status-ready px-2 py-1">Draft</span>
             </div>
             
             <input 
@@ -49,8 +49,8 @@ export default function StoryBoardMockDetail() {
                 placeholder="The platform was losing 40% of users during onboarding..."
               />
               <div className="flex gap-4">
-                <button className="text-[10px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Make clearer</button>
-                <button className="text-[10px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Add missing detail</button>
+                <button className="text-[12px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Make clearer</button>
+                <button className="text-[12px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Add missing detail</button>
               </div>
             </section>
 
@@ -65,8 +65,8 @@ export default function StoryBoardMockDetail() {
                 placeholder="I audited the UX, interviewed 10 drop-off users, and restructured the required form fields..."
               />
               <div className="flex gap-4">
-                <button className="text-[10px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Focus on my role</button>
-                <button className="text-[10px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Break into steps</button>
+                <button className="text-[12px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Focus on my role</button>
+                <button className="text-[12px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Break into steps</button>
               </div>
             </section>
 
@@ -81,17 +81,17 @@ export default function StoryBoardMockDetail() {
                 defaultValue="We launched the new flow and people liked it a lot more."
               />
               <div className="flex gap-4">
-                 <button className="text-[10px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Strengthen impact</button>
-                 <button className="text-[10px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Add measurable outcome</button>
+                 <button className="text-[12px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Strengthen impact</button>
+                 <button className="text-[12px] tracking-widest uppercase text-primary hover:underline flex items-center gap-1">✨ Add measurable outcome</button>
               </div>
             </section>
 
             {/* GLOBAL ACTIONS */}
             <div className="pt-12 border-t border-divider grid grid-cols-2 md:grid-cols-4 gap-4">
-              <button className="h-10 border border-primary text-primary text-[10px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Improve Answer</button>
-              <button className="h-10 border border-primary text-primary text-[10px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Make Interview-Ready</button>
-              <button className="h-10 border border-primary text-primary text-[10px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Shorten</button>
-              <button className="h-10 border border-primary text-primary text-[10px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Clean Structure</button>
+              <button className="h-10 border border-primary text-primary text-[12px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Improve Answer</button>
+              <button className="h-10 border border-primary text-primary text-[12px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Make Interview-Ready</button>
+              <button className="h-10 border border-primary text-primary text-[12px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Shorten</button>
+              <button className="h-10 border border-primary text-primary text-[12px] uppercase tracking-widest hover:bg-surface-alt transition-colors">✨ Clean Structure</button>
             </div>
          </div>
       </div>
@@ -117,7 +117,7 @@ export default function StoryBoardMockDetail() {
           {/* Usage Hints */}
           <div className="space-y-4">
              <h3 className="text-xs uppercase tracking-widest text-foreground font-medium border-b border-divider pb-2">Usage Hints</h3>
-             <p className="text-[10px] uppercase tracking-widest text-muted">This example can be used for:</p>
+             <p className="text-[12px] uppercase tracking-widest text-muted">This example can be used for:</p>
              <ul className="space-y-3 pt-2 text-sm text-muted list-disc pl-4 marker:text-divider">
                 <li>Tell me about a challenge</li>
                 <li>Describe a cross-functional project</li>
@@ -130,7 +130,7 @@ export default function StoryBoardMockDetail() {
              <div className="absolute top-0 right-0 p-4"><span className="w-2 h-2 rounded-none inline-block bg-status-not-ready animate-pulse" /></div>
              <h3 className="text-xs uppercase tracking-widest text-foreground font-medium border-b border-status-not-ready/30 pb-2">Improvement Tip</h3>
              <p className="text-sm text-foreground leading-relaxed pt-2">
-               Add a measurable result to strengthen the final block. Convert "people liked it a lot more" into specific retention metrics or conversion lift.
+               Add a measurable result to strengthen the final block. Convert &ldquo;people liked it a lot more&rdquo; into specific retention metrics or conversion lift.
              </p>
           </div>
 

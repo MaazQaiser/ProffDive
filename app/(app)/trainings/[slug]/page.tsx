@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { use, useState } from "react";
 import { getTraining, unsplashUrl } from "@/lib/trainings-data";
-import { ChevronDown, ChevronRight, Clock, Users, CheckCircle, Lock, PlayCircle, BookOpen, HelpCircle, Code2, ArrowRight, Target } from "lucide-react";
+import { ChevronDown, ChevronRight, Clock, Users, CheckCircle, Lock, PlayCircle, BookOpen, HelpCircle, Code2, ArrowRight } from "lucide-react";
 
 // ─── Tokens ──────────────────────────────────────────────────────────────────
 const TEAL = "#0087A8";
@@ -73,10 +73,10 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
 
           <div className="flex flex-col items-center space-y-5 animate-in slide-in-from-bottom-4 duration-1000">
              <div className="flex items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 bg-[#0087A8] text-white rounded-full">
+                <span className="text-[12px] font-bold uppercase tracking-[0.2em] px-3 py-1 bg-[#0087A8] text-white rounded-full">
                   {training.pillar}
                 </span>
-                <span className="text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 bg-white/10 backdrop-blur-md text-white/80 rounded-full border border-white/10">
+                <span className="text-[12px] font-bold uppercase tracking-[0.2em] px-3 py-1 bg-white/10 backdrop-blur-md text-white/80 rounded-full border border-white/10">
                   {training.difficulty}
                 </span>
              </div>
@@ -135,17 +135,14 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
             { label: "Practice Quizzes", value: `${quizMins} min` },
           ].map((s) => (
             <div key={s.label} className="p-6 text-center bg-white/60">
-              <p className="text-[10px] uppercase tracking-widest font-bold mb-1 text-[#64748B]">{s.label}</p>
+              <p className="text-[12px] uppercase tracking-widest font-bold mb-1 text-[#64748B]">{s.label}</p>
               <p className="text-[18px] font-bold text-[#0F172A]">{s.value}</p>
             </div>
           ))}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          
-          {/* Syllabus (Primary) */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Syllabus */}
+        <div className="space-y-6">
             <div className="flex items-center justify-between px-1">
                <h2 className="text-[18px] font-bold text-[#0F172A]">Course Syllabus</h2>
                <p className="text-[12px] font-semibold text-[#64748B]">{totalMilestones} Milestones</p>
@@ -181,7 +178,7 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-[10px] uppercase tracking-widest font-bold text-[#94A3B8]">
+                          <span className="text-[12px] uppercase tracking-widest font-bold text-[#94A3B8]">
                             Milestone {idx + 1}
                           </span>
                           {isActive && (
@@ -190,7 +187,7 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
                             </span>
                           )}
                         </div>
-                        <p className={`text-[15px] font-bold ${isLocked ? 'text-[#64748B]' : 'text-[#0F172A]'}`}>
+                        <p className={`text-[16px] font-bold ${isLocked ? 'text-[#64748B]' : 'text-[#0F172A]'}`}>
                           {milestone.title}
                         </p>
                       </div>
@@ -214,7 +211,7 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
                                </div>
                                <div className="flex-1">
                                  <p className="text-[13px] font-medium text-[#0F172A]">{step.title}</p>
-                                 <p className="text-[10px] text-[#94A3B8] uppercase tracking-wider font-bold mt-0.5">{step.type} · {step.duration}</p>
+                                 <p className="text-[12px] text-[#94A3B8] uppercase tracking-wider font-bold mt-0.5">{step.type} · {step.duration}</p>
                                </div>
                                {isCompleted && <CheckCircle size={12} className="text-emerald-500" />}
                                {isLocked && <Lock size={10} className="text-slate-300" />}
@@ -246,47 +243,10 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
                 );
               })}
             </div>
-          </div>
-
-          {/* Sidebar Info */}
-          <div className="space-y-8">
-             {/* Course Stats */}
-             <div style={{ ...glass, borderRadius: 16 }} className="p-6 shadow-xl shadow-slate-900/5">
-                <p className="text-[10px] uppercase tracking-widest font-bold text-[#64748B] mb-4">Course Statistics</p>
-                <div className="flex justify-around items-center">
-                   <div className="text-center">
-                      <p className="text-[20px] font-black text-[#0F172A]">{fmt(training.enrolled)}</p>
-                      <p className="text-[10px] uppercase tracking-widest font-bold text-[#94A3B8] mt-1">Enrolled</p>
-                   </div>
-                   <div className="w-px h-10 bg-slate-200"></div>
-                   <div className="text-center">
-                      <p className="text-[20px] font-black text-emerald-600">{fmt(training.completions)}</p>
-                      <p className="text-[10px] uppercase tracking-widest font-bold text-[#94A3B8] mt-1">Completed</p>
-                   </div>
-                </div>
-             </div>
-
-             {/* Outcome */}
-             <div className="px-2 space-y-3">
-                <div className="flex items-center gap-2 text-[#0087A8]">
-                   <Target size={16} />
-                   <h3 className="text-[13px] font-bold uppercase tracking-widest">Key Outcome</h3>
-                </div>
-                <p className="text-[14px] text-[#475569] leading-relaxed italic">
-                  "{training.impact}"
-                </p>
-             </div>
-          </div>
-
         </div>
 
       </div>
     </div>
   );
-}
-
-
-function fmt(n: number) {
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
 }
 

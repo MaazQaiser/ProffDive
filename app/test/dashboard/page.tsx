@@ -60,8 +60,8 @@ export default function TestDashboard() {
       {/* Sidebar — glass rail */}
       <aside style={{ ...G, borderRadius: 0, border: "none", borderRight: `1px solid ${DIV}`, width: 200, flexShrink: 0, display: "flex", flexDirection: "column", paddingTop: 36 }}>
         <div className="px-5 mb-7">
-          <p className="text-[15px] font-bold tracking-tight" style={{ color: "#0F0F0F" }}>ProofDive</p>
-          <p className="text-[10px] mt-0.5" style={{ color: "rgba(15,15,15,0.35)" }}>Readiness Hub</p>
+          <p className="text-[16px] font-bold tracking-tight" style={{ color: "#0F0F0F" }}>ProofDive</p>
+          <p className="text-[12px] mt-0.5" style={{ color: "rgba(15,15,15,0.35)" }}>Readiness Hub</p>
         </div>
         {nav.map(n => (
           <Link key={n.label} href={n.href} className="flex items-center gap-3 mx-3 px-3 py-2.5 text-[12px] transition-all mb-0.5"
@@ -91,7 +91,7 @@ export default function TestDashboard() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold" style={{ color: "rgba(15,15,15,0.35)" }}>Monday, 30 March</p>
+            <p className="text-[12px] uppercase tracking-[0.18em] font-semibold" style={{ color: "rgba(15,15,15,0.35)" }}>Monday, 30 March</p>
             <h1 className="text-xl font-bold tracking-tight mt-0.5" style={{ color: "#0F0F0F" }}>Good afternoon, Alex.</h1>
           </div>
           <Link href="/test/session" className="h-9 px-5 text-[12px] font-bold text-white flex items-center"
@@ -108,7 +108,7 @@ export default function TestDashboard() {
             <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${DIV}` }}>
               <div>
                 <p className="text-[13px] font-bold" style={{ color: "#0F0F0F" }}>Success Drivers</p>
-                <p className="text-[10px] mt-0.5" style={{ color: "rgba(15,15,15,0.38)" }}>4 pillars · 3 sessions</p>
+                <p className="text-[12px] mt-0.5" style={{ color: "rgba(15,15,15,0.38)" }}>4 pillars · 3 sessions</p>
               </div>
               <Link href="#" className="text-[11px]" style={{ color: "rgba(15,15,15,0.28)" }}>Report ›</Link>
             </div>
@@ -137,7 +137,7 @@ export default function TestDashboard() {
           <div style={{ ...GD, borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div className="px-5 py-4" style={{ borderBottom: `1px solid ${DIVd}` }}>
               <p className="text-[13px] font-bold" style={{ color: "#FFF" }}>Your Journey</p>
-              <p className="text-[10px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Step 3 of 5</p>
+              <p className="text-[12px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Step 3 of 5</p>
             </div>
             <div className="flex-1 flex flex-col justify-center px-5 gap-4 py-5">
               {journey.map((j, i) => (
@@ -193,7 +193,7 @@ export default function TestDashboard() {
                 <p className="text-[12px] font-semibold" style={{ color: "#0F0F0F" }}>{s.title}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-[9px] uppercase px-1.5 py-px font-bold" style={{ borderRadius: 4, background: "rgba(0,0,0,0.05)", color: "rgba(15,15,15,0.45)" }}>{s.tag}</span>
-                  <span className="text-[10px]" style={{ color: "rgba(15,15,15,0.25)" }}>{s.updated}</span>
+                  <span className="text-[12px]" style={{ color: "rgba(15,15,15,0.25)" }}>{s.updated}</span>
                 </div>
               </div>
             ))}

@@ -52,7 +52,7 @@ function ConsentModal({ onAccept, onClose }: { onAccept: () => void; onClose: ()
         {/* Header */}
         <div className="flex items-center justify-between px-7 pt-6 pb-5" style={{ borderBottom: SD }}>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Before we begin</p>
+            <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Before we begin</p>
             <h2 className="text-[18px] font-bold tracking-tight" style={{ color: "#0F0F0F" }}>Interview Consent</h2>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center transition-colors hover:bg-gray-100"
@@ -77,7 +77,7 @@ function ConsentModal({ onAccept, onClose }: { onAccept: () => void; onClose: ()
 
         {/* Optional overrides */}
         <div className="px-7 py-4 space-y-3" style={{ borderBottom: SD, background: "#FAFAFA" }}>
-          <p className="text-[10px] uppercase tracking-[0.16em] font-bold" style={{ color: "rgba(15,15,15,0.30)" }}>Session options</p>
+          <p className="text-[12px] uppercase tracking-[0.16em] font-bold" style={{ color: "rgba(15,15,15,0.30)" }}>Session options</p>
 
           {/* Cancel recording toggle */}
           <button onClick={() => setNoRecord(!noRecord)}
@@ -165,7 +165,12 @@ export default function MockSetup() {
 
   function toggleP(id: P) {
     if (pillars.has(id) && pillars.size === 1) return;
-    setPillars(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setPillars((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
   }
 
   return (
@@ -182,8 +187,8 @@ export default function MockSetup() {
         
         {/* ① Page Header */}
         <div className="mb-10">
-          <p className="text-[10px] uppercase tracking-[0.18em] font-bold mb-2" style={{ color: "rgba(15,15,15,0.35)" }}>Practice Session</p>
-          <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F] mb-2">You're almost ready.</h1>
+          <p className="text-[12px] uppercase tracking-[0.18em] font-bold mb-2" style={{ color: "rgba(15,15,15,0.35)" }}>Practice Session</p>
+          <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F] mb-2">You&apos;re almost ready.</h1>
           <p className="text-[14px] leading-relaxed text-black/50 max-w-sm">
             Your storyboard is attached. Pick your focus, select optional settings, and go.
           </p>
@@ -208,7 +213,7 @@ export default function MockSetup() {
                     </p>
                     <button 
                       onClick={() => setIsEditingStory(true)} 
-                      className="ml-1 text-[#0087A8] hover:text-[#006E89] bg-[#0087A8]/10 hover:bg-[#0087A8]/20 px-2 py-0.5 rounded-[6px] text-[10px] font-bold flex items-center gap-1 transition-colors border-none cursor-pointer">
+                      className="ml-1 text-[#0087A8] hover:text-[#006E89] bg-[#0087A8]/10 hover:bg-[#0087A8]/20 px-2 py-0.5 rounded-[6px] text-[12px] font-bold flex items-center gap-1 transition-colors border-none cursor-pointer">
                       <Pencil size={10} /> Edit
                     </button>
                   </div>
@@ -234,9 +239,9 @@ export default function MockSetup() {
                      className={`w-full text-left px-4 py-3 rounded-xl transition-colors flex flex-col gap-1 ${s.id === story ? 'bg-[#0087A8]/5 border border-[#0087A8]/20' : 'hover:bg-white/60 border border-transparent'}`}>
                      <div className="flex items-center justify-between">
                        <span className="text-[13px] font-bold text-[#0F0F0F]">{s.title}</span>
-                       {s.id === story && <span className="text-[10px] font-bold text-[#0087A8]">✓ Selected</span>}
+                       {s.id === story && <span className="text-[12px] font-bold text-[#0087A8]">✓ Selected</span>}
                      </div>
-                     <span className="text-[10px] uppercase font-bold tracking-widest text-[#0087A8]/60 inline-block">{s.tag}</span>
+                     <span className="text-[12px] uppercase font-bold tracking-widest text-[#0087A8]/60 inline-block">{s.tag}</span>
                    </button>
                 ))}
               </div>
@@ -252,7 +257,7 @@ export default function MockSetup() {
         {/* ③ Interview Focus */}
         <div style={G} className="overflow-hidden mb-8">
           <div className="px-6 pt-6 pb-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 mb-5">Pillar Overview</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-400 mb-5">Pillar Overview</p>
             
             <div className="space-y-1">
               {PILLARS.map(p => {
@@ -292,13 +297,13 @@ export default function MockSetup() {
 
             <div className="h-px bg-slate-900/[0.04] my-6" />
 
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400 mb-4">What interviewers test here</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-400 mb-4">What interviewers test here</p>
             <p className="text-[13px] text-slate-600 leading-relaxed mb-6 max-w-[95%]">
               Hiring managers probe this area to see if you diagnose before prescribing. They want evidence you use data, not instinct, to frame problems and identify root causes.
             </p>
 
             <div className="space-y-3">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 block">Frequently asked at</span>
+              <span className="text-[12px] font-bold uppercase tracking-widest text-slate-400 block">Frequently asked at</span>
               <div className="flex flex-wrap gap-2.5">
                 <span className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> Google
@@ -319,7 +324,7 @@ export default function MockSetup() {
                 <span className="text-[13px] font-bold text-[#0F0F0F]">~{total} min total setup time</span>
              </div>
              {all ? (
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#0087A8]">Full Interview</span>
+                <span className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8]">Full Interview</span>
              ) : (
                 <button 
                   onClick={() => setPillars(new Set(PILLARS.map(p => p.id)))}

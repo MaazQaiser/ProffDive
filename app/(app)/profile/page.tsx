@@ -24,7 +24,7 @@ export default function ProfilePage() {
                </div>
                <div>
                  <label className="text-xs text-muted">Email</label>
-                 <div className="text-sm font-medium mt-1">jane@example.com <span className="text-[10px] ml-2 tracking-widest uppercase px-2 py-0.5 bg-divider text-muted rounded-full">Google Auth</span></div>
+                 <div className="text-sm font-medium mt-1">jane@example.com <span className="text-[12px] ml-2 tracking-widest uppercase px-2 py-0.5 bg-divider text-muted rounded-full">Google Auth</span></div>
                </div>
             </div>
           </section>

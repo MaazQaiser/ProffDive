@@ -28,7 +28,7 @@ export default function ProgressPage() {
       {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Insights</p>
+          <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Insights</p>
           <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#0F0F0F" }}>Your Progress</h1>
           <p className="text-sm mt-1" style={{ color: "rgba(15,15,15,0.45)" }}>Performance across all mock simulations and checkpoints.</p>
         </div>
@@ -60,14 +60,14 @@ export default function ProgressPage() {
               </div>
               {/* Before bar */}
               <div className="mb-1.5">
-                <p className="text-[10px] mb-1 uppercase tracking-widest font-semibold" style={{ color: "rgba(15,15,15,0.28)" }}>Before</p>
+                <p className="text-[12px] mb-1 uppercase tracking-widest font-semibold" style={{ color: "rgba(15,15,15,0.28)" }}>Before</p>
                 <div style={{ height: 4, borderRadius: 99, background: "rgba(0,0,0,0.07)" }}>
                   <div style={{ height: "100%", borderRadius: 99, width: `${(d.before/5)*100}%`, background: "rgba(0,0,0,0.18)" }} />
                 </div>
               </div>
               {/* After bar */}
               <div>
-                <p className="text-[10px] mb-1 uppercase tracking-widest font-semibold" style={{ color: "rgba(15,15,15,0.28)" }}>Now</p>
+                <p className="text-[12px] mb-1 uppercase tracking-widest font-semibold" style={{ color: "rgba(15,15,15,0.28)" }}>Now</p>
                 <div style={{ height: 4, borderRadius: 99, background: "rgba(0,0,0,0.07)" }}>
                   <div style={{ height: "100%", borderRadius: 99, width: `${(d.after/5)*100}%`, background: d.dot }} />
                 </div>
@@ -90,9 +90,9 @@ export default function ProgressPage() {
                   <span style={{ width: 6, height: 6, borderRadius: 99, background: m.dot, display: "inline-block", flexShrink: 0 }} />
                   <p className="text-[12px] font-semibold truncate" style={{ color: "#0F0F0F" }}>{m.role}</p>
                 </div>
-                <p className="text-[10px] pl-4" style={{ color: "rgba(15,15,15,0.30)" }}>{m.date}</p>
+                <p className="text-[12px] pl-4" style={{ color: "rgba(15,15,15,0.30)" }}>{m.date}</p>
               </div>
-              <span className="text-[15px] font-bold font-mono shrink-0" style={{ color: "#0F0F0F" }}>{m.score}<span style={{ fontSize: 10, color: "rgba(15,15,15,0.30)", fontWeight: 400 }}>/5</span></span>
+              <span className="text-[16px] font-bold font-mono shrink-0" style={{ color: "#0F0F0F" }}>{m.score}<span style={{ fontSize: 12, color: "rgba(15,15,15,0.30)", fontWeight: 400 }}>/5</span></span>
             </Link>
           ))}
           <div className="px-5 py-4">

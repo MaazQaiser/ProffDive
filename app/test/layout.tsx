@@ -31,7 +31,7 @@ export default function TestLayout({ children }: { children: ReactNode }) {
         WebkitBackdropFilter: "blur(16px)",
         borderBottom: "1px solid rgba(255,255,255,0.07)"
       }}>
-        <span className="text-[10px] tracking-[0.2em] uppercase font-mono text-white/30">TEST</span>
+        <span className="text-[12px] tracking-[0.2em] uppercase font-mono text-white/30">TEST</span>
         {[
           { label: "Hub",        href: "/test" },
           { label: "Onboarding", href: "/test/onboarding" },

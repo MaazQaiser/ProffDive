@@ -63,7 +63,7 @@ export default function StoryBoardPage() {
           </div>
           <h2 className="text-xl font-bold mb-3 text-[#0F172A]">No stories yet</h2>
           <p className="text-[14px] max-w-[400px] mb-8 leading-relaxed text-slate-500">
-            We'll guide you through extracting your best professional experiences and shaping them for peak impact.
+            We&apos;ll guide you through extracting your best professional experiences and shaping them for peak impact.
           </p>
           <Link href="/storyboard/new"
             className="h-11 px-8 text-[14px] font-bold text-white flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-xl shadow-teal-900/20"
@@ -80,7 +80,7 @@ export default function StoryBoardPage() {
                  <h2 className="text-[18px] font-bold text-[#0F172A] group-hover:text-[#0087A8] transition-colors mb-2">
                     {s.role}
                  </h2>
-                 <p className="text-[15px] text-slate-500 leading-relaxed line-clamp-2 pr-32">
+                 <p className="text-[14px] text-slate-500 leading-relaxed line-clamp-2 pr-32">
                     {s.summary}
                  </p>
                  
@@ -132,7 +132,7 @@ export default function StoryBoardPage() {
 
             <div className="p-10">
               <h3 className="text-2xl font-bold mb-4 text-[#0F172A]">The CAR Framework</h3>
-              <p className="text-[15px] leading-relaxed mb-8 text-slate-500">
+              <p className="text-[16px] leading-relaxed mb-8 text-slate-500">
                 A Story Board organizes your past experiences into structural frameworks that interviewers look for. By breaking down your experience into <strong>Context</strong>, <strong>Action</strong>, and <strong>Result</strong>, you guarantee a structured answer every time.
               </p>
               <div className="grid grid-cols-3 gap-6 mt-8">

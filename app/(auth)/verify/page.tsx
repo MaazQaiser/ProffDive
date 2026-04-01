@@ -35,13 +35,13 @@ export default function VerifyEmailPage() {
             </div>
             <h1 className="text-2xl font-bold tracking-tight mb-2" style={{ color: "#0F0F0F" }}>Verify your email</h1>
             <p className="text-[14px] leading-relaxed mx-auto max-w-[280px]" style={{ color: "rgba(15,15,15,0.6)" }}>
-              We've sent a verification link to <strong className="font-semibold text-gray-900">alex@example.com</strong>.
+              We&apos;ve sent a verification link to <strong className="font-semibold text-gray-900">alex@example.com</strong>.
             </p>
           </div>
 
           <div className="px-7 py-6" style={{ borderBottom: D }}>
             <p className="text-[13px] leading-relaxed text-left mb-5" style={{ color: "rgba(15,15,15,0.7)" }}>
-              Please check your inbox and click the secure link to verify your address. This helps us ensure the security of your account and gives you full access to ProofDive's features.
+              Please check your inbox and click the secure link to verify your address. This helps us ensure the security of your account and gives you full access to ProofDive&apos;s features.
             </p>
             
             {/* Ghost Click for Demo purposes */}
@@ -61,7 +61,7 @@ export default function VerifyEmailPage() {
           {/* Resend / Help */}
           <div className="px-7 py-5 bg-white/20">
             <p className="text-[12px]" style={{ color: "rgba(15,15,15,0.45)" }}>
-              Didn't receive the email?{" "}
+              Didn&apos;t receive the email?{" "}
               <button className="font-semibold transition-colors hover:text-[#0087A8]" style={{ color: "#0F0F0F" }}>
                 Click to resend
               </button>

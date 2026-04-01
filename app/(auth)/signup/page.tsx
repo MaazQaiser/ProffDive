@@ -2,8 +2,9 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Smile, Mail, Key, CheckCircle, Eye, EyeOff } from "lucide-react";
+import { Smile, Mail, Key, Eye, EyeOff } from "lucide-react";
 import { useUser } from "@/lib/user-context";
+import { StepContainer } from "@/components/step-container";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -12,19 +13,6 @@ export default function SignupPage() {
   const [firstName, setFirstName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  const StepContainer = ({ isActive, children, onClick }: { isActive: boolean; children: React.ReactNode; onClick?: () => void }) => (
-    <div 
-      onClick={!isActive ? onClick : undefined}
-      className={`w-full transition-all duration-300 ${
-        isActive 
-          ? "bg-white/70 backdrop-blur-[21px] rounded-[16px] border border-white/60 p-6 shadow-[0_4px_24px_rgba(0,0,0,0.04)]" 
-          : "bg-white/40 backdrop-blur-[21px] rounded-[12px] border border-white/30 px-5 py-4 cursor-pointer hover:bg-white/50"
-      }`}
-    >
-      {children}
-    </div>
-  );
 
   return (
     <div className="min-h-screen flex w-full font-['Inter',sans-serif]">
@@ -77,7 +65,7 @@ export default function SignupPage() {
               ) : (
                 <div className="flex items-center gap-3 text-[#475569]">
                   <Smile className="w-[18px] h-[18px]" strokeWidth={2} />
-                  <span className="text-[15px] font-medium">Hello, {firstName || "Ayaan"}</span>
+                  <span className="text-[16px] font-medium">Hello, {firstName || "Ayaan"}</span>
                 </div>
               )}
             </StepContainer>
@@ -107,7 +95,7 @@ export default function SignupPage() {
               ) : (
                 <div className="flex items-center gap-3 text-[#475569]">
                   <Mail className="w-[18px] h-[18px]" strokeWidth={2} />
-                  <span className="text-[15px] font-medium">Email</span>
+                  <span className="text-[16px] font-medium">Email</span>
                 </div>
               )}
             </StepContainer>
@@ -167,7 +155,7 @@ export default function SignupPage() {
               ) : (
                 <div className="flex items-center gap-3 text-[#475569]">
                   <Key className="w-[18px] h-[18px]" strokeWidth={2} />
-                  <span className="text-[15px] font-medium">Create Password</span>
+                  <span className="text-[16px] font-medium">Create Password</span>
                 </div>
               )}
             </StepContainer>

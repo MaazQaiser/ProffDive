@@ -1,6 +1,12 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  startTransition,
+} from "react";
 
 interface UserState {
   name: string;
@@ -36,17 +42,18 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserState>(defaultUser);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount (deferred so SSR + first paint stay aligned)
   useEffect(() => {
     const saved = localStorage.getItem("proofdive_user");
     if (saved) {
       try {
-        setUser(JSON.parse(saved));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
+        const parsed = JSON.parse(saved) as UserState;
+        startTransition(() => setUser(parsed));
+      } catch {
+        /* ignore corrupt storage */
       }
     }
-    setIsLoaded(true);
+    startTransition(() => setIsLoaded(true));
   }, []);
 
   // Save to localStorage whenever user changes

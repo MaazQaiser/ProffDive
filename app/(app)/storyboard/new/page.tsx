@@ -3,6 +3,11 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronRight, Zap, Info, Lightbulb, Brain, Users, Target, Mic } from "lucide-react";
+import {
+  getSpeechRecognition,
+  type WebSpeechRecognition,
+  type WebSpeechResultEvent,
+} from "@/lib/proofy-speech";
 
 // ── Tokens ───────────────────────────────────────────────────────────
 const TEAL = "#0087A8";
@@ -72,7 +77,7 @@ export default function NewStoryBoardFlow() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [showSample, setShowSample] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<WebSpeechRecognition | null>(null);
 
   const q = QUESTIONS[currentStep];
   const isLast = currentStep === QUESTIONS.length - 1;
@@ -182,7 +187,7 @@ export default function NewStoryBoardFlow() {
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                 maxLength={CHAR_LIMIT + 50}
                 placeholder="Start typing your experience here..."
-                className="w-full min-h-[200px] px-6 pt-5 pb-3 text-[15px] leading-relaxed bg-transparent outline-none resize-none placeholder:text-slate-400"
+                className="w-full min-h-[200px] px-6 pt-5 pb-3 text-[16px] leading-relaxed bg-transparent outline-none resize-none placeholder:text-slate-400"
                 style={{ color: "#0F172A" }}
               />
               {/* Footer: mic + count */}
@@ -190,14 +195,14 @@ export default function NewStoryBoardFlow() {
                 <button type="button"
                   onClick={() => {
                     if (isRecording) { recognitionRef.current?.stop(); setIsRecording(false); return; }
-                    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+                    const SR = getSpeechRecognition();
                     if (!SR) { alert("Voice input is not supported in this browser."); return; }
-                    const recognition = new SR();
+                    const recognition = new SR() as WebSpeechRecognition;
                     recognition.continuous = true;
                     recognition.interimResults = true;
                     recognition.lang = "en-US";
                     const base = answers[q.id] || "";
-                    recognition.onresult = (event: any) => {
+                    recognition.onresult = (event: WebSpeechResultEvent) => {
                       let interim = "", final = "";
                       for (let i = event.resultIndex; i < event.results.length; i++) {
                         if (event.results[i].isFinal) final += event.results[i][0].transcript;
@@ -340,7 +345,7 @@ export default function NewStoryBoardFlow() {
 
               {/* What interviewers test — merged into same card */}
               <div className="px-6 py-5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-3">What Interviewers Test</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-3">What Interviewers Test</p>
                 <div className="flex items-center gap-2 mb-2">
                   <PillarIcon size={14} style={{ color: meta.color }} />
                   <span className="text-[13px] font-bold text-slate-900">{q.pillar}</span>

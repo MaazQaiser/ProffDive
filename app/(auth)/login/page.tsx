@@ -3,6 +3,20 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+function postEmailSignInPath(): string {
+  if (typeof window === "undefined") return "/onboarding";
+  try {
+    const saved = localStorage.getItem("proofdive_user");
+    if (saved) {
+      const parsed = JSON.parse(saved) as { onboarded?: boolean };
+      if (parsed.onboarded) return "/dashboard/returning";
+    }
+  } catch {
+    /* ignore corrupt storage */
+  }
+  return "/onboarding";
+}
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -65,7 +79,7 @@ export default function LoginPage() {
             {/* Email Login */}
             <button
               onClick={() => {
-                router.push("/onboarding");
+                router.push(postEmailSignInPath());
               }}
               className="w-full flex flex-col items-start gap-[12px] p-[20px] border-t border-[#CBD5E1] hover:bg-white/10 transition-colors group"
             >
@@ -87,6 +101,17 @@ export default function LoginPage() {
               <span className="text-[16px] font-medium text-[#19173D]">
                 Sign In with Email
               </span>
+            </button>
+          </div>
+
+          {/* Ghost entry — AI-native Proofy flow (does not change default sign-in) */}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={() => router.push("/onboarding/ai")}
+              className="text-[13px] text-[#64748B] hover:text-[#0087A8] transition-colors underline-offset-4 decoration-slate-300/80 hover:decoration-[#0087A8]/50 underline"
+            >
+              Experience AI-native onboarding with Proofy
             </button>
           </div>
 

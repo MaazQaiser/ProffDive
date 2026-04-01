@@ -24,7 +24,7 @@ function ScoreBadge({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-1.5">
       <span style={{ width:6,height:6,borderRadius:99,background:c.dot,display:"inline-block" }} />
-      <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5"
+      <span className="text-[12px] font-bold uppercase tracking-wide px-2 py-0.5"
         style={{ borderRadius:6, background:c.bg, color:c.text }}>{c.label}</span>
     </div>
   );
@@ -94,8 +94,8 @@ export default function PracticePage() {
                    <Target size={24} className="text-white" />
                 </div>
                 <h2 className="text-[22px] font-medium text-white mb-2 leading-tight">Ready for your first practice session?</h2>
-                <p className="text-[15px] text-[#CBD5E1]/90 mb-8 max-w-md mx-auto leading-relaxed">
-                   Take a full mock interview or focus on a specific pillar. You'll get detailed feedback and a personalized action plan.
+                <p className="text-[16px] text-[#CBD5E1]/90 mb-8 max-w-md mx-auto leading-relaxed">
+                   Take a full mock interview or focus on a specific pillar. You&apos;ll get detailed feedback and a personalized action plan.
                 </p>
                 <Link href="/mock/setup" className="h-10 px-6 rounded-lg inline-flex items-center justify-center bg-white text-[#0F172A] text-[13px] font-medium hover:bg-[#F8FAFC] transition-colors shadow-sm mx-auto">
                    Start my first interview
@@ -117,7 +117,7 @@ export default function PracticePage() {
 
       {/* ── Start a session Grid (Sleek 2-Card) ── */}
       <div className="animate-in slide-in-from-bottom-5 fade-in duration-1000">
-        <h2 className="text-[15px] font-semibold text-[#0F172A] mb-4">Start a session</h2>
+        <h2 className="text-[16px] font-semibold text-[#0F172A] mb-4">Start a session</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {SESSION_TYPES.map((s) => {
             const Icon = s.icon;
@@ -129,7 +129,7 @@ export default function PracticePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     {s.ai && (
-                       <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 bg-gradient-to-r from-[#F59E0B]/10 to-[#F59E0B]/5 text-[#D97706] rounded-[6px] border border-[#F59E0B]/20">
+                       <span className="text-[12px] font-bold uppercase tracking-wider px-2 py-1 bg-gradient-to-r from-[#F59E0B]/10 to-[#F59E0B]/5 text-[#D97706] rounded-[6px] border border-[#F59E0B]/20">
                          AI Pick
                        </span>
                     )}
@@ -140,7 +140,7 @@ export default function PracticePage() {
                   </div>
                 </div>
 
-                <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">{s.label}</h3>
+                <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">{s.label}</h3>
                 <p className="text-[12px] text-[#475569] leading-relaxed mb-6 flex-1 pr-6">
                   {s.desc}
                 </p>
@@ -158,7 +158,7 @@ export default function PracticePage() {
       {/* ── Past Sessions Table (Sleek) ── */}
       {hasSessions && (
         <div className="animate-in slide-in-from-bottom-6 fade-in duration-1000 space-y-4">
-          <h2 className="text-[15px] font-semibold text-[#0F172A]">Past mock interviews</h2>
+          <h2 className="text-[16px] font-semibold text-[#0F172A]">Past mock interviews</h2>
           
           <div style={{ ...glass, borderRadius: 12 }} className="bg-white/60 border border-white/40 overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
@@ -211,7 +211,7 @@ export default function PracticePage() {
                       </td>
                       <td className="py-4 px-5 align-top">
                         <div className="flex items-center justify-end mt-0.5">
-                          <Link href={`/mock/session/${session.id}`} className="h-8 px-4 rounded-[6px] flex items-center justify-center bg-[#0087A8] text-white text-[12px] font-medium hover:bg-[#006E89] transition-colors gap-2 whitespace-nowrap shadow-sm">
+                          <Link href={`/report/${session.id}`} className="h-8 px-4 rounded-[6px] flex items-center justify-center bg-[#0087A8] text-white text-[12px] font-medium hover:bg-[#006E89] transition-colors gap-2 whitespace-nowrap shadow-sm">
                             View details
                             <ArrowRight size={14} className="opacity-80" />
                           </Link>

@@ -23,7 +23,7 @@ export default function ProcessingPage() {
           className="w-16 h-16 border border-divider border-t-foreground"
         />
         <div className="text-center space-y-4">
-          <h1 className="text-2xl font-medium tracking-tight">We're preparing your starting snapshot</h1>
+          <h1 className="text-2xl font-medium tracking-tight">We&apos;re preparing your starting snapshot</h1>
           <p className="text-sm text-muted">Organizing your answers into a personalized practice plan.</p>
         </div>
       </div>

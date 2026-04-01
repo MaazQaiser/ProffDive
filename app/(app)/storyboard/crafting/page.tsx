@@ -44,40 +44,39 @@ export default function CraftingPage() {
   const [comment, setComment] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
 
-  // Animate through the stages
+  // Reset animation state when user requests regenerate (deferred to avoid sync setState in effect)
   useEffect(() => {
-    const executeSequence = async () => {
-      // Very fast for dev/demo purposes, but feels sequential
-      
-      // Stage 0 -> 1
-      await new Promise(r => setTimeout(r, 1200));
-      setActiveStage(1);
-      
-      // Stage 1 -> 2 (reveal para 1 & 2)
-      await new Promise(r => setTimeout(r, 1000));
-      setParagraphsRevealed(2);
-      setActiveStage(2);
-      
-      // Stage 2 -> 3 (reveal para 3 & 4)
-      await new Promise(r => setTimeout(r, 1500));
-      setParagraphsRevealed(4);
-      setActiveStage(3);
-
-      // Finish (reveal remaining paragraphs 5 & 6)
-      await new Promise(r => setTimeout(r, 1500));
-      setParagraphsRevealed(6);
-      setIsComplete(true);
-    };
-
-    if (!isRegenerating) {
-      executeSequence();
-    } else {
-      // If user hit regenerate, reset and run again
+    if (!isRegenerating) return;
+    queueMicrotask(() => {
       setActiveStage(0);
       setParagraphsRevealed(0);
       setIsComplete(false);
       setIsRegenerating(false);
-    }
+    });
+  }, [isRegenerating]);
+
+  // Animate through the stages
+  useEffect(() => {
+    if (isRegenerating) return;
+
+    const executeSequence = async () => {
+      await new Promise((r) => setTimeout(r, 1200));
+      setActiveStage(1);
+
+      await new Promise((r) => setTimeout(r, 1000));
+      setParagraphsRevealed(2);
+      setActiveStage(2);
+
+      await new Promise((r) => setTimeout(r, 1500));
+      setParagraphsRevealed(4);
+      setActiveStage(3);
+
+      await new Promise((r) => setTimeout(r, 1500));
+      setParagraphsRevealed(6);
+      setIsComplete(true);
+    };
+
+    void executeSequence();
   }, [isRegenerating]);
 
   return (
@@ -133,14 +132,14 @@ export default function CraftingPage() {
 
         {/* Streamed Story Container */}
         <div style={G} className="w-full flex-1 p-8 md:p-10 mb-8 max-h-[600px] overflow-y-auto custom-scrollbar">
-          <p className="text-[10px] uppercase font-bold tracking-widest mb-6" style={{ color: "rgba(15,23,42,0.3)" }}>
+          <p className="text-[12px] uppercase font-bold tracking-widest mb-6" style={{ color: "rgba(15,23,42,0.3)" }}>
             Draft 1
           </p>
           <div className="space-y-6">
             {MOCK_STORY_PARAGRAPHS.map((text, idx) => (
               <p 
                 key={idx} 
-                className={`text-[15px] leading-[1.8] transition-all duration-1000 transform ${idx < paragraphsRevealed ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+                className={`text-[16px] leading-[1.8] transition-all duration-1000 transform ${idx < paragraphsRevealed ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
                 style={{ color: "rgba(15,23,42,0.85)" }}
               >
                 {text}

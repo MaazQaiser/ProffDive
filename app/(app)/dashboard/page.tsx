@@ -68,9 +68,9 @@ export default function NewUserDashboard() {
           <div className="flex items-center justify-between gap-6">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-1.5">
-                <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-white/60">Profile readiness</span>
+                <span className="text-[12px] uppercase tracking-[0.18em] font-bold text-white/60">Profile readiness</span>
                 <span className="text-[11px] font-bold text-white">{PROFILE_PCT}% complete</span>
-                <span className="text-[10px] text-white/50">· {user.role ? `Preparing for ${user.role}` : 'Complete your StoryBoard to improve this'}</span>
+                <span className="text-[12px] text-white/50">· {user.role ? `Preparing for ${user.role}` : 'Complete your StoryBoard to improve this'}</span>
               </div>
               <div style={{ height: 3, background: "rgba(255,255,255,0.20)", borderRadius: 0 }}>
                 <div style={{ height: "100%", width: `${PROFILE_PCT}%`, background: "rgba(255,255,255,0.90)", transition: "width 0.8s ease" }} />
@@ -94,7 +94,7 @@ export default function NewUserDashboard() {
           <h1 className="text-[36px] font-semibold tracking-tight text-[#0F172A] leading-tight">
             Let’s get {user.name} interview-ready
           </h1>
-          <p className="text-[15px] text-[#475569] mt-4">
+          <p className="text-[16px] text-[#475569] mt-4">
             Start with the guided path or jump into the part you want to work on first.
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function NewUserDashboard() {
                    <div className="w-9 h-9 rounded-[8px] bg-[#F59E0B]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
                       <Mic size={18} className="text-[#F59E0B]" />
                    </div>
-                   <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">Mock Interview</h3>
+                   <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Mock Interview</h3>
                    <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                       Take a practice interview and get scored feedback on your performance under pressure.
                    </p>
@@ -132,7 +132,7 @@ export default function NewUserDashboard() {
                    <div className="w-9 h-9 rounded-[8px] bg-[#10B981]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
                       <BookOpen size={18} className="text-[#10B981]" />
                    </div>
-                   <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">StoryBoard</h3>
+                   <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">StoryBoard</h3>
                    <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                       Organize your experience into stronger, more reusable interview answers.
                    </p>
@@ -146,7 +146,7 @@ export default function NewUserDashboard() {
                    <div className="w-9 h-9 rounded-[8px] bg-[#0087A8]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
                       <Zap size={18} className="text-[#0087A8]" />
                    </div>
-                   <h3 className="text-[15px] font-semibold text-[#0F172A] mb-1.5">Essential Trainings</h3>
+                   <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Essential Trainings</h3>
                    <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                       Learn the basics of strong interview structure, delivery, and response quality.
                    </p>

@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { use, useState, useEffect } from "react";
-import { getTraining, unsplashUrl } from "@/lib/trainings-data";
+import { getTraining, unsplashUrl, type Step } from "@/lib/trainings-data";
+import type { LucideIcon } from "lucide-react";
 import {
-  CheckCircle, ChevronLeft, ChevronRight, Play, BookOpen,
-  HelpCircle, Code2, RotateCcw, Lock, Clock, ArrowLeft,
+  CheckCircle, ChevronLeft, Play, BookOpen,
+  HelpCircle, Code2, ArrowLeft,
   Target, Trophy, Menu, X, ArrowRight, PlayCircle
 } from "lucide-react";
 
@@ -33,7 +34,7 @@ const navGlass: React.CSSProperties = {
 type StepKey = "reading" | "video" | "quiz" | "exercise";
 const STEP_ORDER: StepKey[] = ["reading", "video", "quiz", "exercise"];
 
-const STEP_META: Record<StepKey, { label: string; icon: any }> = {
+const STEP_META: Record<StepKey, { label: string; icon: LucideIcon }> = {
   reading:  { label: "Reading", icon: BookOpen },
   video:    { label: "Video", icon: PlayCircle },
   quiz:     { label: "Quiz", icon: HelpCircle },
@@ -42,11 +43,11 @@ const STEP_META: Record<StepKey, { label: string; icon: any }> = {
 
 // ─── Sub-Components ──────────────────────────────────────────────────────────
 
-function ReadingStep({ step }: { step: any }) {
+function ReadingStep({ step }: { step: Step }) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#0087A8]">
+        <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.2em] text-[#0087A8]">
            <BookOpen size={14} /> <span>Course Material · {step.duration}</span>
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-[#0F172A] leading-[1.2]">{step.title}</h1>
@@ -55,7 +56,11 @@ function ReadingStep({ step }: { step: any }) {
       {step.pullQuote && (
         <div className="relative pl-8 py-2">
            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#0087A8] rounded-full opacity-40" />
-           <p className="text-[20px] font-medium text-[#475569] italic leading-relaxed">"{step.pullQuote}"</p>
+           <p className="text-[20px] font-medium text-[#475569] italic leading-relaxed">
+             <span aria-hidden>&ldquo;</span>
+             {step.pullQuote}
+             <span aria-hidden>&rdquo;</span>
+           </p>
         </div>
       )}
 
@@ -80,12 +85,12 @@ function ReadingStep({ step }: { step: any }) {
   );
 }
 
-function VideoStep({ step, trainingUnsplashId }: { step: any; trainingUnsplashId: string }) {
+function VideoStep({ step, trainingUnsplashId }: { step: Step; trainingUnsplashId: string }) {
   const [playing, setPlaying] = useState(false);
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#0087A8]">
+        <div className="flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.2em] text-[#0087A8]">
            <PlayCircle size={14} /> <span>Video Lecture · {step.duration}</span>
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-[#0F172A] leading-[1.2]">{step.title}</h1>
@@ -165,7 +170,7 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
         </div>
         <div className="space-y-3">
           <h1 className="text-4xl font-bold text-[#0F172A]">Milestone Complete</h1>
-          <p className="text-[16px] text-slate-500 max-w-sm mx-auto">You've mastered the concepts in <strong>{milestoneData.title}</strong>. Ready for what's next?</p>
+          <p className="text-[16px] text-slate-500 max-w-sm mx-auto">You&apos;ve mastered the concepts in <strong>{milestoneData.title}</strong>. Ready for what&apos;s next?</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-4 pt-4">
            {nextMilestone ? (
@@ -195,14 +200,14 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
       >
         <div className="p-8 space-y-10 overflow-y-auto flex-1 custom-scrollbar">
            <div className="space-y-2">
-              <Link href={`/trainings/${slug}`} className="text-[10px] font-bold uppercase tracking-widest text-[#0087A8] flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
+              <Link href={`/trainings/${slug}`} className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8] flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity">
                  <ArrowLeft size={12} /> {training.title}
               </Link>
               <h3 className="text-[18px] font-bold text-[#0F172A] leading-tight">{milestoneData.title}</h3>
            </div>
 
            <div className="space-y-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4">Milestone Progress</p>
+              <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4">Milestone Progress</p>
               {STEP_ORDER.map((key, i) => {
                 const Icon = STEP_META[key].icon;
                 const isActive = currentStepIdx === i;
@@ -218,7 +223,7 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
                     </div>
                     <div>
                        <p className={`text-[13px] font-bold ${isActive ? 'text-[#0F172A]' : 'text-slate-500'}`}>{STEP_META[key].label}</p>
-                       <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Step {i+1}</p>
+                       <p className="text-[12px] font-medium text-slate-400 uppercase tracking-wider">Step {i+1}</p>
                     </div>
                   </button>
                 );
@@ -259,7 +264,7 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
                     </div>
                     <div className="space-y-2">
                        <h2 className="text-2xl font-bold">Quick Check-in</h2>
-                       <p className="text-slate-500 text-[14px]">Let's verify your understanding before the workshop.</p>
+                       <p className="text-slate-500 text-[14px]">Let&apos;s verify your understanding before the workshop.</p>
                     </div>
                     <button onClick={() => setCurrentStepIdx(3)} className="px-8 py-3 bg-[#0087A8] text-white rounded-full text-[13px] font-bold hover:bg-[#006E89] transition-all shadow-lg shadow-teal-900/20">
                        Launch Quiz
@@ -294,7 +299,7 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
             </button>
 
             <div className="hidden md:flex flex-col items-center">
-               <p className="text-[10px] font-bold uppercase tracking-widest text-[#0087A8] mb-0.5">Currently Studying</p>
+               <p className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8] mb-0.5">Currently Studying</p>
                <p className="text-[14px] font-black text-[#0F172A]">{currentStep?.title || "Overview"}</p>
             </div>
 
@@ -310,13 +315,6 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
          </div>
 
       </main>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #CBD5E1; }
-      `}</style>
     </div>
   );
 }

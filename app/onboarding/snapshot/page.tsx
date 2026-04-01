@@ -6,7 +6,7 @@ export default function SnapshotPage() {
       <div className="max-w-4xl mx-auto space-y-16">
         <header className="space-y-4">
           <div className="flex gap-4 items-center">
-            <span className="text-[10px] uppercase tracking-widest bg-status-borderline text-background px-3 py-1 font-medium">Borderline</span>
+            <span className="text-[12px] uppercase tracking-widest bg-status-borderline text-background px-3 py-1 font-medium">Borderline</span>
             <span className="text-sm text-muted">Baseline Preparedness</span>
           </div>
           <h1 className="text-5xl font-medium tracking-tight">Your Snapshot</h1>
@@ -44,8 +44,8 @@ export default function SnapshotPage() {
             </div>
             {/* AI Training suggestion inside weakness */}
             <div className="mt-8 border-t border-divider pt-6 flex justify-between items-center">
-              <span className="text-[10px] tracking-widest text-status-ready uppercase">Training recommended</span>
-              <Link href="/trainings" className="text-xs text-foreground font-medium hover:underline">Start 'CAR Methods'</Link>
+              <span className="text-[12px] tracking-widest text-status-ready uppercase">Training recommended</span>
+              <Link href="/trainings" className="text-xs text-foreground font-medium hover:underline">Start &apos;CAR Methods&apos;</Link>
             </div>
           </div>
         </div>

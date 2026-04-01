@@ -156,6 +156,21 @@ html, body {
 .dot-error   { width: 7px; height: 7px; border-radius: 999px; background: var(--accent-error);   display: inline-block; flex-shrink: 0; }
 .dot-info    { width: 7px; height: 7px; border-radius: 999px; background: var(--accent-info);    display: inline-block; flex-shrink: 0; }
 
+/* ── Thin scrollbars (WebKit) — used by .custom-scrollbar ── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
 /* ── Selection ── */
 ::selection {
   background: rgba(0,135,168,0.15);

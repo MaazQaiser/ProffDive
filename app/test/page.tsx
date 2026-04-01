@@ -22,7 +22,7 @@ export default function TestHub() {
     <div className="min-h-screen flex items-center justify-center p-12">
       <div className="w-full max-w-md">
         <div className="mb-8">
-          <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-2" style={{ color: "rgba(15,15,15,0.35)" }}>Design System v2.1</p>
+          <p className="text-[12px] uppercase tracking-[0.2em] font-semibold mb-2" style={{ color: "rgba(15,15,15,0.35)" }}>Design System v2.1</p>
           <h1 className="text-4xl font-bold tracking-tight" style={{ color: "#0F0F0F" }}>ProofDive</h1>
           <p className="text-sm mt-1.5" style={{ color: "rgba(15,15,15,0.45)" }}>Select a screen to preview.</p>
         </div>
@@ -33,7 +33,7 @@ export default function TestHub() {
             <Link key={s.href} href={s.href}
               className="group flex items-center gap-5 px-6 py-5 hover:bg-white/40 transition-colors"
               style={{ borderBottom: i < screens.length - 1 ? `1px solid ${D.borderColor}` : undefined }}>
-              <span className="text-[10px] font-mono font-bold w-6 shrink-0" style={{ color: "rgba(15,15,15,0.25)" }}>{s.n}</span>
+              <span className="text-[12px] font-mono font-bold w-6 shrink-0" style={{ color: "rgba(15,15,15,0.25)" }}>{s.n}</span>
               <div className="flex-1">
                 <p className="text-[13px] font-bold" style={{ color: "#0F0F0F" }}>{s.label}</p>
                 <p className="text-[11px] mt-0.5" style={{ color: "rgba(15,15,15,0.40)" }}>{s.desc}</p>

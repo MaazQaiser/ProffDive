@@ -28,7 +28,7 @@ export function ProgressTasksCard() {
                 <Check size={12} strokeWidth={3} className="text-white" />
               </div>
               <div className="flex-1 flex justify-between items-center">
-                 <span className="text-[15px] font-bold text-[#0F172A]">Learn the essentials</span>
+                 <span className="text-[16px] font-bold text-[#0F172A]">Learn the essentials</span>
                  <CheckCircle2 size={16} className="text-slate-300" />
               </div>
             </div>
@@ -43,7 +43,7 @@ export function ProgressTasksCard() {
               </div>
               <div className="flex-1 w-full">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-[15px] font-bold text-[#0F172A]">Craft your story</span>
+                  <span className="text-[16px] font-bold text-[#0F172A]">Craft your story</span>
                 </div>
                 
                 {/* Sub-items */}
@@ -78,7 +78,7 @@ export function ProgressTasksCard() {
 
           <div className="flex items-center gap-4">
             <div className="w-5 h-5 rounded-full border-[2px] border-slate-200 mt-0.5 shrink-0" />
-            <span className="text-[15px] font-bold text-[#0F172A]">Test it in a mock</span>
+            <span className="text-[16px] font-bold text-[#0F172A]">Test it in a mock</span>
           </div>
         </div>
 

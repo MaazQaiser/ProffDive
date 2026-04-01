@@ -22,13 +22,13 @@ export default function QuickSetupPage() {
       <div className="w-full max-w-md border border-divider p-8 md:p-12">
         <div className="space-y-4 mb-10">
           <h1 className="text-2xl font-medium tracking-tight">Tell us about yourself</h1>
-          <p className="text-sm text-muted">We'll use this to personalize your workspace.</p>
+          <p className="text-sm text-muted">We&apos;ll use this to personalize your workspace.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="space-y-6">
             <label className="block space-y-2">
-              <span className="text-xs uppercase tracking-widest text-muted">What's your name?</span>
+              <span className="text-xs uppercase tracking-widest text-muted">What&apos;s your name?</span>
               <input
                 required
                 type="text"

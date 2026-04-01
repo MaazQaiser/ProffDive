@@ -167,7 +167,7 @@ export default function FinalStoryboardView() {
                     </div>
                   </div>
                 ) : (
-                  <p className="text-[15px] leading-relaxed text-slate-600">
+                  <p className="text-[16px] leading-relaxed text-slate-600">
                     {section.content}
                   </p>
                 )}
@@ -197,7 +197,7 @@ export default function FinalStoryboardView() {
                   <div className="space-y-3">
                      <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Context</p>
+                        <p className="text-[12px] font-bold uppercase tracking-widest text-slate-400">Context</p>
                      </div>
                     <p className="text-[13px] leading-relaxed text-slate-600">{section.car.context}</p>
                   </div>
@@ -206,7 +206,7 @@ export default function FinalStoryboardView() {
                   <div className="space-y-3 md:border-l md:pl-8 border-slate-200">
                      <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#0087A8]" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-[#0087A8]">Action</p>
+                        <p className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8]">Action</p>
                      </div>
                     <p className="text-[13px] leading-relaxed text-slate-600">{section.car.action}</p>
                   </div>
@@ -215,7 +215,7 @@ export default function FinalStoryboardView() {
                   <div className="space-y-3 md:border-l md:pl-8 border-slate-200">
                      <div className="flex items-center gap-2">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Result</p>
+                        <p className="text-[12px] font-bold uppercase tracking-widest text-emerald-600">Result</p>
                      </div>
                     <p className="text-[13px] leading-relaxed font-medium text-emerald-700">{section.car.result}</p>
                   </div>

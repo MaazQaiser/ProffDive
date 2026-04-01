@@ -52,7 +52,7 @@ export default function TestSession() {
 
       {/* Page header */}
       <div className="max-w-5xl mx-auto w-full mb-8">
-        <p className="text-[10px] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Mock Interview</p>
+        <p className="text-[12px] uppercase tracking-[0.2em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Mock Interview</p>
         <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#0F0F0F" }}>Set up your session</h1>
       </div>
 
@@ -93,12 +93,12 @@ export default function TestSession() {
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span style={{ fontSize: 15 }}>{p.icon}</span>
+                      <span style={{ fontSize: 16 }}>{p.icon}</span>
                       <span className="text-[13px] font-bold" style={{ color: "#0F0F0F" }}>{p.label}</span>
                     </div>
                     <p className="text-[11px] mt-0.5" style={{ color: "rgba(15,15,15,0.40)" }}>{p.desc}</p>
                   </div>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "rgba(15,15,15,0.22)" }}>{p.time}</span>
+                  <span className="text-[12px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "rgba(15,15,15,0.22)" }}>{p.time}</span>
                 </button>
               );
             })}
@@ -110,13 +110,13 @@ export default function TestSession() {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <span style={{ fontSize: 15 }}>📋</span>
+                  <span style={{ fontSize: 16 }}>📋</span>
                   <span className="text-[13px] font-bold" style={{ color: "#0F0F0F" }}>Introduction</span>
                   <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-px" style={{ borderRadius: 4, background: "#0F0F0F", color: "#FFF" }}>Required</span>
                 </div>
                 <p className="text-[11px] mt-0.5" style={{ color: "rgba(15,15,15,0.40)" }}>Tell me about yourself — always the opening</p>
               </div>
-              <span className="text-[10px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "rgba(15,15,15,0.22)" }}>~6 min</span>
+              <span className="text-[12px] font-semibold uppercase tracking-widest shrink-0" style={{ color: "rgba(15,15,15,0.22)" }}>~6 min</span>
             </div>
           </div>
 
@@ -124,7 +124,7 @@ export default function TestSession() {
           <div className="px-8 py-4 flex items-center gap-3" style={{ borderTop: `1px solid ${DIV}`, background: "rgba(0,0,0,0.02)" }}>
             <span style={{ color: "rgba(15,15,15,0.35)", fontSize: 14 }}>⏱</span>
             <span className="text-[13px] font-bold" style={{ color: "#0F0F0F" }}>~{total} min total</span>
-            {all && <span className="ml-auto text-[10px] font-bold uppercase tracking-widest" style={{ color: "#0087A8" }}>Recommended</span>}
+            {all && <span className="ml-auto text-[12px] font-bold uppercase tracking-widest" style={{ color: "#0087A8" }}>Recommended</span>}
           </div>
         </div>
 
@@ -133,7 +133,7 @@ export default function TestSession() {
 
           {/* Role */}
           <div className="px-6 py-5" style={{ borderBottom: `1px solid ${DIV}` }}>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: "rgba(15,15,15,0.35)" }}>Target Role</p>
+            <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: "rgba(15,15,15,0.35)" }}>Target Role</p>
             <div className="flex items-center gap-3 h-10 px-3" style={{ borderRadius: 10, background: "rgba(0,0,0,0.04)" }}>
               <span style={{ width: 6, height: 6, borderRadius: 2, background: "#0F0F0F", flexShrink: 0 }} />
               <span className="text-[13px] font-semibold flex-1" style={{ color: "#0F0F0F" }}>Product Manager</span>
@@ -143,7 +143,7 @@ export default function TestSession() {
 
           {/* StoryBoard */}
           <div className="px-6 py-5" style={{ borderBottom: `1px solid ${DIV}` }}>
-            <p className="text-[10px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: "rgba(15,15,15,0.35)" }}>
+            <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: "rgba(15,15,15,0.35)" }}>
               StoryBoard <span className="normal-case font-normal" style={{ color: "rgba(15,15,15,0.22)" }}>optional</span>
             </p>
             {!chosen ? (
@@ -181,7 +181,7 @@ export default function TestSession() {
               <button onClick={() => setShowJD(true)}
                 className="w-full text-left text-[12px] flex items-center gap-2 transition-opacity hover:opacity-60"
                 style={{ color: "rgba(15,15,15,0.35)" }}>
-                <span>+</span> Add job description <span className="ml-auto text-[10px]">Optional</span>
+                <span>+</span> Add job description <span className="ml-auto text-[12px]">Optional</span>
               </button>
             ) : (
               <JdResumeInput
@@ -201,7 +201,7 @@ export default function TestSession() {
               <button onClick={() => setShowResume(true)}
                 className="w-full text-left text-[12px] flex items-center gap-2 transition-opacity hover:opacity-60"
                 style={{ color: "rgba(15,15,15,0.35)" }}>
-                <span>+</span> Add resume <span className="ml-auto text-[10px]">Optional</span>
+                <span>+</span> Add resume <span className="ml-auto text-[12px]">Optional</span>
               </button>
             ) : (
               <JdResumeInput
@@ -223,7 +223,7 @@ export default function TestSession() {
               <span style={{ fontSize: 16 }}>🎥</span>
               <div className="flex-1 text-left">
                 <p className="text-[13px] font-semibold" style={{ color: "#0F0F0F" }}>{camera ? "Camera on" : "Enable camera"}</p>
-                <p className="text-[10px]" style={{ color: "rgba(15,15,15,0.38)" }}>Unlocks gesture & body analysis</p>
+                <p className="text-[12px]" style={{ color: "rgba(15,15,15,0.38)" }}>Unlocks gesture & body analysis</p>
               </div>
               <div style={{ width: 36, height: 20, borderRadius: 99, background: camera ? "#0F0F0F" : "rgba(0,0,0,0.12)", display: "flex", alignItems: "center", padding: "0 2px", transition: "background 200ms", flexShrink: 0 }}>
                 <div style={{ width: 16, height: 16, borderRadius: 99, background: "#FFF", transform: camera ? "translateX(16px)" : "translateX(0)", transition: "transform 200ms", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />

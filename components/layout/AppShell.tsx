@@ -42,7 +42,7 @@ function TopNav() {
     >
       <Link href="/dashboard" className="flex items-center gap-2.5 shrink-0 group">
         <span className="w-1.5 h-5 inline-block transition-colors group-hover:bg-[#0087A8]" style={{ background: "#0F172A", borderRadius: 2 }} />
-        <span className="text-[15px] font-bold tracking-tight" style={{ color: "#0F172A" }}>ProofDive</span>
+        <span className="text-[16px] font-bold tracking-tight" style={{ color: "#0F172A" }}>ProofDive</span>
       </Link>
 
       <nav className="hidden md:flex items-center gap-0.5">
