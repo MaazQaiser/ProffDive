@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-export function TypewriterLine({
+function TypewriterLineInner({
   text,
   speed = 40,
   onComplete,
@@ -16,11 +16,12 @@ export function TypewriterLine({
   const [shown, setShown] = useState("");
   const [done, setDone] = useState(false);
   const completeRef = useRef(onComplete);
-  completeRef.current = onComplete;
 
   useEffect(() => {
-    setShown("");
-    setDone(false);
+    completeRef.current = onComplete;
+  }, [onComplete]);
+
+  useEffect(() => {
     let i = 0;
     const id = window.setInterval(() => {
       i += 1;
@@ -44,4 +45,14 @@ export function TypewriterLine({
       )}
     </p>
   );
+}
+
+/** Remounts when `text` or `speed` changes so typewriter state resets without effect-driven setState. */
+export function TypewriterLine(props: {
+  text: string;
+  speed?: number;
+  onComplete?: () => void;
+  className?: string;
+}) {
+  return <TypewriterLineInner key={`${props.text}\0${props.speed ?? 40}`} {...props} />;
 }

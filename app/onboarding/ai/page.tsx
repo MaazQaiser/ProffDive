@@ -150,13 +150,14 @@ export default function ProofyOnboardingPage() {
   const onTtsStart = useCallback(() => setTtsSpeaking(true), []);
   const onTtsEnd = useCallback(() => setTtsSpeaking(false), []);
 
-  useEffect(() => {
-    ensureVoicesLoaded(() => {});
+  const goPhase = useCallback((next: ProofyPhase) => {
+    setVoiceTranscript("");
+    setPhase(next);
   }, []);
 
   useEffect(() => {
-    setVoiceTranscript("");
-  }, [phase]);
+    ensureVoicesLoaded(() => {});
+  }, []);
 
   const micChoicePhase = useMemo(
     () => ["intro", "qualification", "experience_years", "resume", "journey"] as ProofyPhase[],
@@ -228,8 +229,8 @@ export default function ProofyOnboardingPage() {
   const handleIntroYes = useCallback(() => {
     cancelProofySpeech();
     setTtsSpeaking(false);
-    setPhase("qualification");
-  }, []);
+    goPhase("qualification");
+  }, [goPhase]);
 
   useEffect(() => {
     if (phase !== "intro" || !introReady) return;
@@ -243,29 +244,29 @@ export default function ProofyOnboardingPage() {
   const handleQualificationVoice = useCallback((id: string) => {
     setQualification(id as QualificationId);
     setSpeechHint(null);
-    if (id === "experienced") setPhase("experience_years");
+    if (id === "experienced") goPhase("experience_years");
     else {
       setBracket(null);
-      setPhase("target_role");
+      goPhase("target_role");
     }
-  }, []);
+  }, [goPhase]);
 
   const handleExpVoice = useCallback((id: string) => {
     setBracket(id as ExpBracket);
-    setPhase("target_role");
-  }, []);
+    goPhase("target_role");
+  }, [goPhase]);
 
   const handleResumeVoice = useCallback((id: string) => {
     if (id === "skip") {
       setResume("");
       setJd("");
-      setPhase("guidance");
+      goPhase("guidance");
       setGuidanceLine(0);
       setGuidanceReady(false);
     } else {
       setSpeechHint("Paste or upload in the boxes above, then tap Continue.");
     }
-  }, []);
+  }, [goPhase]);
 
   const saveOnboardingProfile = useCallback(() => {
     if (!qualification) return;
@@ -358,7 +359,7 @@ export default function ProofyOnboardingPage() {
           if (roleAdvanceTimerRef.current) clearTimeout(roleAdvanceTimerRef.current);
           roleAdvanceTimerRef.current = setTimeout(() => {
             roleAdvanceTimerRef.current = null;
-            if (next.trim().length >= 2) setPhase("resume");
+            if (next.trim().length >= 2) goPhase("resume");
           }, 1500);
           return next;
         });
@@ -372,7 +373,7 @@ export default function ProofyOnboardingPage() {
       }
       stop();
     };
-  }, [phase]);
+  }, [phase, goPhase]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#F0FBFD] via-[#E8F4F8] to-[#CFDCE1] font-['Inter',sans-serif]">
@@ -434,7 +435,7 @@ export default function ProofyOnboardingPage() {
                   onClick={() => {
                     cancelProofySpeech();
                     setTtsSpeaking(false);
-                    setPhase("intro");
+                    goPhase("intro");
                     setIntroLine(0);
                     setIntroReady(false);
                   }}
@@ -475,7 +476,7 @@ export default function ProofyOnboardingPage() {
                     onClick={() => {
                       cancelProofySpeech();
                       setTtsSpeaking(false);
-                      setPhase("qualification");
+                      goPhase("qualification");
                     }}
                     className="h-14 px-12 rounded-xl text-lg font-bold text-white"
                     style={{ background: TEAL }}
@@ -550,7 +551,7 @@ export default function ProofyOnboardingPage() {
               <button
                 type="button"
                 disabled={!role.trim()}
-                onClick={() => setPhase("resume")}
+                onClick={() => goPhase("resume")}
                 className="w-full h-12 rounded-xl text-lg font-bold text-white disabled:opacity-40"
                 style={{ background: TEAL }}
               >
@@ -589,7 +590,7 @@ export default function ProofyOnboardingPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setPhase("guidance");
+                    goPhase("guidance");
                     setGuidanceLine(0);
                     setGuidanceReady(false);
                   }}
@@ -630,7 +631,7 @@ export default function ProofyOnboardingPage() {
                     onClick={() => {
                       cancelProofySpeech();
                       setTtsSpeaking(false);
-                      setPhase("journey");
+                      goPhase("journey");
                     }}
                     className="h-14 px-10 rounded-xl text-lg font-bold text-white"
                     style={{ background: TEAL }}

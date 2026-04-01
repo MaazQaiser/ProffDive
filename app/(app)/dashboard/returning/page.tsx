@@ -232,10 +232,54 @@ export default function ReturningUserDashboard() {
           </div>
         </div>
 
-        {/* Row 4 — Split Layout: Trend Chart + AI Coaching */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left ~55% */}
-          <div className="lg:w-[55%] flex flex-col" style={{ ...glass, padding: 24 }}>
+        {/* Row 4 — Action Cards (Mock Interview, StoryBoard, Trainings) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
+              <div className="w-9 h-9 rounded-[8px] bg-[#F59E0B]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
+                  <Mic size={18} className="text-[#F59E0B]" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Mock Interview</h3>
+              <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
+                  Take a practice interview and get scored feedback on your performance under pressure.
+              </p>
+              <Link href="/mock/setup" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
+                  Start interview
+                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+
+            <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
+              <div className="w-9 h-9 rounded-[8px] bg-[#10B981]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
+                  <BookOpen size={18} className="text-[#10B981]" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">StoryBoard</h3>
+              <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
+                  Organize your experience into stronger, more reusable interview answers.
+              </p>
+              <Link href="/storyboard" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
+                  Open StoryBoard
+                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+
+            <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
+              <div className="w-9 h-9 rounded-[8px] bg-[#0087A8]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
+                  <Zap size={18} className="text-[#0087A8]" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Essential Trainings</h3>
+              <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
+                  Learn the basics of strong interview structure, delivery, and response quality.
+              </p>
+              <Link href="/trainings" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
+                  Open trainings
+                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+        </div>
+
+        {/* Row 5 — Performance chart + recommendation (stacked, full width) */}
+        <div className="flex flex-col gap-6">
+          <div className="w-full flex flex-col" style={{ ...glass, padding: 24 }}>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-[16px] font-semibold text-[#0F172A]">Performance Over Time</h2>
               <div className="flex items-center gap-3 flex-wrap">
@@ -322,8 +366,7 @@ export default function ReturningUserDashboard() {
             </div>
           </div>
 
-          {/* Right ~45% */}
-          <div className="lg:w-[45%] flex flex-col justify-center">
+          <div className="w-full flex flex-col">
             <RecommendationBanner 
               label="Next logical driver"
               title="Master the Action Driver"
@@ -333,51 +376,6 @@ export default function ReturningUserDashboard() {
               statusColor="#F59E0B"
             />
           </div>
-        </div>
-
-        {/* Row 5 — Action Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
-              <div className="w-9 h-9 rounded-[8px] bg-[#F59E0B]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
-                  <Mic size={18} className="text-[#F59E0B]" />
-              </div>
-              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Mock Interview</h3>
-              <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
-                  Take a practice interview and get scored feedback on your performance under pressure.
-              </p>
-              <Link href="/mock/setup" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
-                  Start interview
-                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-
-            <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
-              <div className="w-9 h-9 rounded-[8px] bg-[#10B981]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
-                  <BookOpen size={18} className="text-[#10B981]" />
-              </div>
-              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">StoryBoard</h3>
-              <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
-                  Organize your experience into stronger, more reusable interview answers.
-              </p>
-              <Link href="/storyboard" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
-                  Open StoryBoard
-                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
-
-            <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
-              <div className="w-9 h-9 rounded-[8px] bg-[#0087A8]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
-                  <Zap size={18} className="text-[#0087A8]" />
-              </div>
-              <h3 className="text-[16px] font-semibold text-[#0F172A] mb-1.5">Essential Trainings</h3>
-              <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
-                  Learn the basics of strong interview structure, delivery, and response quality.
-              </p>
-              <Link href="/trainings" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
-                  Open trainings
-                  <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
-              </Link>
-            </div>
         </div>
         
         <div className="h-10" />

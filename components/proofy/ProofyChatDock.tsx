@@ -22,7 +22,11 @@ export function ProofyChatDock() {
   const inputRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<WebSpeechRecognition | null>(null);
-  const baseRef = useRef("");
+  /** Text in the field when dictation started */
+  const dictationPrefixRef = useRef("");
+  /** Finalized speech segments since mic on (Web Speech fires incrementally) */
+  const dictationCommittedRef = useRef("");
+  const listeningRef = useRef(false);
 
   useEffect(() => {
     if (!open) return;
@@ -30,47 +34,70 @@ export function ProofyChatDock() {
     return () => window.clearTimeout(t);
   }, [open]);
 
+  const stopListening = useCallback(() => {
+    listeningRef.current = false;
+    try {
+      recRef.current?.abort();
+    } catch {
+      try {
+        recRef.current?.stop();
+      } catch {
+        /* noop */
+      }
+    }
+    recRef.current = null;
+    setListening(false);
+  }, []);
+
+  const buildDictationMessage = useCallback((interim: string) => {
+    const prefix = dictationPrefixRef.current;
+    const committed = dictationCommittedRef.current;
+    const tail = `${committed}${interim}`;
+    if (!prefix) return tail.trimStart();
+    if (!tail) return prefix;
+    const gap = prefix.endsWith(" ") || tail.startsWith(" ") ? "" : " ";
+    return `${prefix}${gap}${tail}`;
+  }, []);
+
+  const closeDock = useCallback(() => {
+    stopListening();
+    setOpen(false);
+  }, [stopListening]);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeDock();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+  }, [open, closeDock]);
 
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (e: PointerEvent) => {
       const el = dockRef.current;
-      if (el && !el.contains(e.target as Node)) setOpen(false);
+      if (el && !el.contains(e.target as Node)) closeDock();
     };
     document.addEventListener("pointerdown", onPointerDown, true);
     return () => document.removeEventListener("pointerdown", onPointerDown, true);
-  }, [open]);
-
-  const stopListening = useCallback(() => {
-    try {
-      recRef.current?.stop();
-    } catch {
-      /* noop */
-    }
-    recRef.current = null;
-    setListening(false);
-  }, []);
+  }, [open, closeDock]);
 
   useEffect(() => {
     return () => stopListening();
   }, [stopListening]);
 
   const toggleVoice = useCallback(() => {
-    if (listening) {
+    if (listeningRef.current) {
       stopListening();
       return;
     }
     const SR = getSpeechRecognition();
     if (!SR) return;
-    baseRef.current = message;
+
+    dictationPrefixRef.current = message;
+    dictationCommittedRef.current = "";
+
     const rec = new SR();
     rec.continuous = true;
     rec.interimResults = true;
@@ -79,30 +106,55 @@ export function ProofyChatDock() {
 
     rec.onresult = (event: WebSpeechResultEvent) => {
       let interim = "";
-      let finals = "";
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const r = event.results[i];
         const piece = r[0]?.transcript ?? "";
-        if (r.isFinal) finals += piece;
+        if (r.isFinal) dictationCommittedRef.current += piece;
         else interim += piece;
       }
-      const base = baseRef.current;
-      const merged = `${base}${finals}${interim}`.replace(/\s{2,}/g, " ");
-      setMessage(merged);
-      if (finals) baseRef.current = `${base}${finals}`.replace(/\s{2,}/g, " ");
+      setMessage(buildDictationMessage(interim));
     };
 
-    rec.onerror = () => setListening(false);
-    rec.onend = () => setListening(false);
+    rec.onerror = (ev: Event) => {
+      const err = (ev as { error?: string }).error ?? "unknown";
+      if (err === "aborted") return;
+      if (err === "not-allowed") {
+        listeningRef.current = false;
+        setListening(false);
+        recRef.current = null;
+        return;
+      }
+      if (err === "no-speech" && listeningRef.current) {
+        try {
+          rec.start();
+        } catch {
+          /* already running */
+        }
+      }
+    };
+
+    rec.onend = () => {
+      if (!listeningRef.current || recRef.current !== rec) return;
+      window.setTimeout(() => {
+        if (!listeningRef.current || recRef.current !== rec) return;
+        try {
+          rec.start();
+        } catch {
+          /* InvalidStateError */
+        }
+      }, 120);
+    };
 
     try {
       rec.start();
       recRef.current = rec;
+      listeningRef.current = true;
       setListening(true);
     } catch {
+      listeningRef.current = false;
       setListening(false);
     }
-  }, [listening, message, stopListening]);
+  }, [message, stopListening, buildDictationMessage]);
 
   const send = useCallback(() => {
     const trimmed = message.trim();
@@ -166,6 +218,18 @@ export function ProofyChatDock() {
                     send();
                   }}
                 >
+                  <input
+                    ref={inputRef}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    readOnly={listening}
+                    placeholder="Ask me anything..."
+                    aria-label="Message to Proofy"
+                    className="min-w-0 flex-1 border-0 bg-transparent py-1 pl-1 text-[16px] leading-snug outline-none placeholder:text-[#64748B] read-only:opacity-95"
+                    style={{ color: "#0F172A" }}
+                  />
+
+                  <div className="relative flex shrink-0 items-center justify-center gap-0.5 pr-1">
                   {speechSupported && (
                     <motion.button
                       type="button"
@@ -186,18 +250,6 @@ export function ProofyChatDock() {
                       />
                     </motion.button>
                   )}
-
-                  <input
-                    ref={inputRef}
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Ask me anything..."
-                    aria-label="Message to Proofy"
-                    className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[16px] leading-snug outline-none placeholder:text-[#64748B]"
-                    style={{ color: "#0F172A" }}
-                  />
-
-                  <div className="relative flex shrink-0 items-center justify-center pr-1">
                     <motion.span
                       className="pointer-events-none absolute -right-0.5 -top-2 flex gap-0.5"
                       aria-hidden
