@@ -1,37 +1,30 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Brain, Zap, Users, Target,
-  Play, Clock, BookOpen, Timer, ChevronDown,
+  Play, Clock, BookOpen, Timer, ChevronDown, ChevronRight, ArrowLeft
 } from "lucide-react";
 import { useUser } from "@/lib/user-context";
-import { useEffect, useState as useReactState } from "react";
 
-// ── Design-system status map ──────────────────────────
-// Threshold:  score >= 3.5 → Ready | score >= 3.4 → Borderline | below → Not Ready (red)
-function getStatus(score: number): "ready" | "borderline" | "not-ready" {
-  if (score >= 3.5) return "ready";
-  if (score >= 3.4) return "borderline";
-  return "not-ready";
-}
-
-const STATUS_MAP = {
-  "ready":      { label: "Ready",      dot: "#6EE7B7", bg: "#ECFDF5", border: "#6EE7B7", text: "#047857" },
-  "borderline": { label: "Borderline", dot: "#FCD34D", bg: "#FFFBEB", border: "#FCD34D", text: "#B45309" },
-  "not-ready":  { label: "Borderline", dot: "#FCD34D", bg: "#FFFBEB", border: "#FCD34D", text: "#B45309" },
+// ── V2.1 Design Tokens (Matching Dashboard/Globals) ────────
+const glassCard: React.CSSProperties = {
+  background: "rgba(255,255,255,0.58)",
+  backdropFilter: "blur(20px)",
+  WebkitBackdropFilter: "blur(20px)",
+  border: "1px solid rgba(255,255,255,0.72)",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.90)",
+  borderRadius: 20,
 };
 
-// Scores strictly < 3.4 show red text per design-system rule
-function scoreColor(score: number): string {
+const internalDivider = "1px solid rgba(0,0,0,0.06)";
+
+// Score logic: strictly below 3.4 = RED. Anything below 3.4 also gets "Borderline" badge.
+function getScoreColor(score: number): string {
   return score < 3.4 ? "#B91C1C" : "#0F172A";
 }
 
-// ── Inline border / colour tokens ────────────────────
-const DIVIDER = "1px solid #E5E7EB";
-const SUBTLE  = "#F1F5F9";
-
-// ── Data ─────────────────────────────────────────────
+// ── Data ───────────────────────────────────────────────────
 const SESSION = {
   interviewName: "Role-Based Mock",
   role: "Business Analyst", exp: "3 yrs · L3+",
@@ -48,9 +41,9 @@ const DRIVERS = [
 ];
 
 const CAR_ROWS = [
-  { label: "Context", status: "Strong",  dot: "#6EE7B7", note: "Clear background and situation explained well by candidate" },
-  { label: "Action",  status: "Partial", dot: "#FCD34D", note: "Good detail but personal role wasn't always fully articulated" },
-  { label: "Result",  status: "Weak",    dot: "#FECACA", note: "Outcomes were vague, non-numeric across most answers" },
+  { label: "Context", status: "Strong",  dot: "#10B981", note: "Clear background and situation explained well by candidate" },
+  { label: "Action",  status: "Partial", dot: "#F59E0B", note: "Good detail but personal role wasn't always fully articulated" },
+  { label: "Result",  status: "Weak",    dot: "#EF4444", note: "Outcomes were vague, non-numeric across most answers" },
 ];
 
 interface Q {
@@ -123,14 +116,6 @@ const QUESTIONS: Q[] = [
   },
 ];
 
-const AI_SUMMARY = `Sarah demonstrates strong interpersonal ability and execution instinct, but consistently struggles to quantify outcomes and state individual contribution clearly. The biggest gaps are in the Action and Mastery drivers — both lack specificity and measurable results. People driver is a real strength worth leading with.`;
-
-const AI_PATTERNS = [
-  "Answers consistently under time (avg 2m 32s vs 3–4 min ideal) — leaving value on the table.",
-  "CAR applied inconsistently — Context is strong, but Result is almost always vague.",
-  "Strong empathy and clarity in People-tagged answers — use this as an opener.",
-];
-
 const COACHING = [
   { n: "01", title: "Use CAR Consistently",  tips: ["Context: what was the situation?", "Action: what did YOU specifically do?", "Result: what was the measurable outcome?"] },
   { n: "02", title: "Quantify Every Answer", tips: ["Add % improvement, time saved, revenue impact", "Avoid 'it went well' — say 'improved by X%'"] },
@@ -139,151 +124,146 @@ const COACHING = [
 
 const REC_TRAINING = {
   title:    "Behavioural Answer Structure (CAR Method)",
-  driver:   "Action", dot: "#FECACA", duration: "18 min",
+  driver:   "Action", dot: "#0087A8", duration: "18 min",
   desc:     "Turn raw experience into sharp, memorable interview answers using a proven structured framework.",
   href:     "/trainings",
 };
 
-// ── Status Badge (design-system pattern) ────────────
+// ── Components ─────────────────────────────────────────────
+
 function StatusBadge({ score }: { score: number }) {
-  const key   = getStatus(score);
-  const token = STATUS_MAP[key];
+  const isBorderline = score < 3.5;
+  const isReady = score >= 3.5;
+  
+  if (isReady) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[11px] font-bold">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+        READY
+      </span>
+    );
+  }
+  
   return (
-    <span
-      className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest px-2.5 py-1 border rounded-sm"
-      style={{ background: token.bg, borderColor: token.border, color: token.text }}
-    >
-      <span className="w-1.5 h-1.5 block" style={{ background: token.dot }} />
-      {token.label}
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-[11px] font-bold">
+      <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
+      BORDERLINE
     </span>
   );
 }
 
-// ── Question row (accordion) ──────────────────────────
 function QuestionRow({ q, qi }: { q: Q; qi: number }) {
   const [open, setOpen] = useState(!!q.showAI);
-  const sc = scoreColor(q.score);
+  const sc = getScoreColor(q.score);
 
   return (
-    <div style={{ borderBottom: DIVIDER }}>
-      {/* Collapsed header */}
-      <div className="flex items-center gap-4" style={{ padding: "14px 20px" }}>
-        {/* Index */}
-        <span
-          className="shrink-0 w-7 h-7 flex items-center justify-center text-[10px] font-bold"
-          style={{ background: SUBTLE, borderRadius: 4, color: "#64748B" }}
-        >
+    <div style={{ ...glassCard, borderRadius: 16 }} className="mb-4 overflow-hidden border border-white/40 hover:border-[#0087A8]/30 transition-all">
+      {/* Collapsed Header */}
+      <div 
+        className="flex items-center gap-6 p-5 cursor-pointer"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="shrink-0 w-8 h-8 flex items-center justify-center text-[12px] font-bold bg-[#0F172A]/5 rounded-[10px] text-[#0F172A]/40">
           {qi + 1}
         </span>
 
-        {/* Question text */}
-        <p className="flex-1 text-[13px] font-semibold leading-snug text-foreground">
+        <p className="flex-1 text-[15px] font-bold text-[#0F172A] mb-0">
           &ldquo;{q.q}&rdquo;
         </p>
 
-        {/* Driver pill */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span style={{ width: 6, height: 6, borderRadius: 99, background: q.driverAccent, display: "inline-block" }} />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">{q.driver}</span>
+        <div className="flex items-center gap-2 shrink-0">
+          <span style={{ width: 6, height: 6, borderRadius: 99, background: q.driverAccent }} />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-[#475569]/60">{q.driver}</span>
         </div>
 
-        {/* Score + badge */}
-        <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[20px] font-bold font-mono tabular-nums" style={{ color: sc }}>
-            {q.score}<span className="text-[11px] font-normal text-muted">/5</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-[22px] font-bold font-mono tabular-nums leading-none" style={{ color: sc }}>
+            {q.score}<span className="text-[12px] font-medium text-[#475569]/30">/5</span>
           </span>
           <StatusBadge score={q.score} />
         </div>
 
-        {/* Timing */}
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Timer size={11} className="text-muted" />
-          <span className="text-[11px] text-muted">{q.taken}</span>
-          <span className="text-[10px]" style={{ color: "#94A3B8" }}>/ {q.ideal}</span>
+        <div className="flex items-center gap-1.5 shrink-0 ml-4">
+          <Timer size={14} className="text-[#475569]/30" />
+          <span className="text-[12px] font-medium text-[#475569]/60">{q.taken}</span>
         </div>
 
-        {/* Toggle */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="flex items-center gap-1.5 text-[11px] font-bold shrink-0 hover:opacity-80 transition-opacity"
-          style={{
-            borderRadius: 6,
-            padding: "5px 11px",
-            background: open ? "#0087A8" : SUBTLE,
-            color: open ? "#FFF" : "#475569",
-            border: "none",
-            cursor: "pointer",
-          }}
+        <button 
+          className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0F172A]/5 hover:bg-[#0F172A]/10 transition-colors"
         >
-          {open ? "Close" : "View Insight"}
-          <ChevronDown size={11} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 160ms" }} />
+          <ChevronDown size={16} className={`text-[#0F172A]/40 transition-transform ${open ? 'rotate-180' : ''}`} />
         </button>
       </div>
 
-      {/* Expanded panel */}
+      {/* Expanded Content */}
       {open && (
-        <div style={{ borderTop: DIVIDER, background: "#FAFBFC" }}>
+        <div className="border-t border-black/[0.04] bg-white/[0.02]">
           {/* CAR */}
-          <div className="flex items-start gap-6" style={{ padding: "14px 20px", borderBottom: DIVIDER }}>
-            <p className="text-[9px] uppercase tracking-[0.16em] font-bold shrink-0 mt-1 text-muted">CAR</p>
-            <div className="flex flex-wrap gap-5">
+          <div className="p-6 border-b border-black/[0.04]">
+            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">COMPETENCY ANALYSIS</p>
+            <div className="flex flex-wrap gap-8 items-start">
               {q.car.map(c => (
-                <div key={c.label} className="flex items-start gap-2">
-                  <span style={{
-                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                    width: 15, height: 15, borderRadius: 4, flexShrink: 0, marginTop: 1,
-                    fontSize: 8, fontWeight: 800,
-                    background: c.ok ? "#ECFDF5" : "#FEF2F2",
-                    color: c.ok ? "#047857" : "#B91C1C",
-                  }}>{c.ok ? "✓" : "✕"}</span>
-                  <p className="text-[11px] text-muted">
-                    <strong className="text-foreground">{c.label}</strong> — {c.note}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Areas to improve */}
-          <div style={{ padding: "14px 20px", borderBottom: q.showAI ? DIVIDER : undefined }}>
-            <p className="text-[9px] uppercase tracking-[0.16em] font-bold mb-2.5 text-muted">Areas to improve</p>
-            <div className="grid grid-cols-2 gap-x-8 gap-y-2">
-              {q.improve.map(imp => (
-                <div key={imp.heading} className="flex items-start gap-2">
-                  <span style={{ width: 5, height: 5, borderRadius: 99, background: "#FCD34D", flexShrink: 0, marginTop: 5, display: "inline-block" }} />
-                  <p className="text-[12px] text-muted">
-                    <strong className="text-foreground">{imp.heading}</strong> — {imp.detail}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* AI rewrite */}
-          {q.showAI && (
-            <>
-              <div style={{ padding: "9px 20px", background: "rgba(0,135,168,0.04)", borderTop: DIVIDER, borderBottom: DIVIDER }}>
-                <p className="text-[9px] uppercase tracking-[0.16em] font-bold" style={{ color: "#0087A8" }}>✦ AI Suggested Rewrite — lowest scoring answer</p>
-              </div>
-              <div className="grid grid-cols-2">
-                <div style={{ padding: 24, borderRight: DIVIDER }}>
-                  <p className="text-[9px] uppercase tracking-[0.16em] font-bold mb-3 text-muted">What you said</p>
-                  <p className="text-[12px] leading-relaxed italic text-muted" style={{ borderLeft: "2px solid #E5E7EB", paddingLeft: 12 }}>{q.youSaid}</p>
-                </div>
-                <div style={{ padding: 24, background: "rgba(0,135,168,0.02)" }}>
-                  <p className="text-[9px] uppercase tracking-[0.16em] font-bold mb-3" style={{ color: "#0087A8" }}>AI — A stronger version</p>
-                  <p className="text-[12px] leading-relaxed italic text-foreground" style={{ borderLeft: "2px solid #0087A8", paddingLeft: 12 }}>{q.aiSaid}</p>
-                  <div className="mt-4 space-y-1.5">
-                    {q.aiTips?.map(t => (
-                      <div key={t} className="flex items-center gap-2">
-                        <span style={{ width: 5, height: 5, borderRadius: 99, background: "#6EE7B7", flexShrink: 0, display: "inline-block" }} />
-                        <p className="text-[11px]" style={{ color: "#047857" }}>{t}</p>
-                      </div>
-                    ))}
+                <div key={c.label} className="flex items-start gap-3">
+                  <div className={`w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0 mt-0.5 ${c.ok ? 'bg-[#10B981]/10 text-[#10B981]' : 'bg-[#EF4444]/10 text-[#EF4444]'}`}>
+                    {c.ok ? '✓' : '✕'}
                   </div>
+                  <p className="text-[13px] text-[#475569] leading-relaxed">
+                    <strong className="text-[#0F172A]">{c.label}</strong> — {c.note}
+                  </p>
                 </div>
-              </div>
-            </>
+              ))}
+            </div>
+          </div>
+
+          {/* Improve */}
+          <div className={`p-6 ${q.showAI ? 'border-b border-black/[0.04]' : ''}`}>
+            <p className="text-[10px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">AREAS FOR IMPROVEMENT</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
+              {q.improve.map(imp => (
+                <div key={imp.heading} className="flex items-start gap-2.5">
+                   <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] mt-[7px] shrink-0" />
+                   <p className="text-[13px] text-[#475569] leading-relaxed">
+                     <strong className="text-[#0F172A]">{imp.heading}</strong> — {imp.detail}
+                   </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* AI Helper section (if present) */}
+          {q.showAI && (
+            <div className="p-6 bg-[#0087A8]/[0.03]">
+               <div className="flex items-center gap-2 mb-6">
+                 <div className="w-6 h-6 rounded-full bg-[#0087A8] flex items-center justify-center">
+                    <Zap size={12} fill="white" color="white" />
+                 </div>
+                 <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#0087A8]">AI Performance Coaching</p>
+               </div>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-[#475569]/40 mb-3 ml-4">YOUR ANSWER</p>
+                    <div className="p-4 rounded-[12px] bg-white/40 border border-black/[0.04] italic text-[13px] text-[#475569]/80 leading-relaxed">
+                      &ldquo;{q.youSaid}&rdquo;
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-[#0087A8] mb-3 ml-4">BETTER VERSION</p>
+                    <div className="p-4 rounded-[12px] bg-[#0087A8]/5 border border-[#0087A8]/10 italic text-[13px] text-[#0F172A] leading-relaxed relative">
+                       <span className="absolute left-0 top-4 bottom-4 w-[3px] bg-[#0087A8] rounded-r-full" />
+                       &ldquo;{q.aiSaid}&rdquo;
+                       <div className="mt-4 flex flex-wrap gap-3">
+                          {q.aiTips?.map(t => (
+                            <div key={t} className="flex items-center gap-1.5">
+                               <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
+                               <span className="text-[11px] font-bold text-[#10B981]">{t}</span>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                  </div>
+               </div>
+            </div>
           )}
         </div>
       )}
@@ -291,10 +271,10 @@ function QuestionRow({ q, qi }: { q: Q; qi: number }) {
   );
 }
 
-// ── Page ─────────────────────────────────────────────
+// ── Exported Page ──────────────────────────────────────────────
 export default function ReportPage() {
   const { user } = useUser();
-  const [mounted, setMounted] = useReactState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -303,254 +283,238 @@ export default function ReportPage() {
   const overall = parseFloat(
     (DRIVERS.reduce((s, d) => s + d.score, 0) / DRIVERS.length).toFixed(1)
   );
-  
-  const dynamicSession = { ...SESSION, role: (mounted && user.role) ? user.role : SESSION.role };
-  const dynamicSummary = AI_SUMMARY.replace("Sarah", (mounted && user.name) ? user.name : "The candidate");
+
+  const dynamicSession = { 
+    ...SESSION, 
+    role: (mounted && user.role) ? user.role : SESSION.role 
+  };
+  const dynamicSummary = `The candidate demonstrates strong interpersonal ability and execution instinct, but consistently struggles to quantify outcomes and state individual contribution clearly. The biggest gaps are in the Action and Mastery drivers — both lack specificity and measurable results. People driver is a real strength worth leading with.`.replace("Sarah", (mounted && user.name) ? user.name : "The candidate");
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-[1240px] mx-auto px-6 md:px-10 lg:px-14 py-12 space-y-5">
+    <div className="min-h-screen">
+      <div className="max-w-[1240px] mx-auto px-6 md:px-10 lg:px-14 py-12 space-y-12">
 
-        {/* ── PAGE HEADER ── */}
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="text-[12px] font-semibold mb-0.5 text-muted">
-              Your <span className="text-foreground">{dynamicSession.interviewName}</span> Report
-            </p>
-            <div className="flex items-center gap-3">
-              <span className="text-[11px] text-muted">{dynamicSession.duration}</span>
-              <span style={{ width: 3, height: 3, borderRadius: 99, background: "#CBD5E1", display: "inline-block" }} />
-              <span className="text-[11px] text-muted">{dynamicSession.date}</span>
-              <span style={{ width: 3, height: 3, borderRadius: 99, background: "#CBD5E1", display: "inline-block" }} />
-              <span className="text-[11px] text-muted">{dynamicSession.questionCount} questions</span>
-            </div>
+        {/* ── HEADER ── */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-4">
+             <Link href="/mock" className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity">
+               <ArrowLeft size={16} /> Back to Sessions
+             </Link>
+             <div>
+               <div className="flex items-center gap-3 mb-1">
+                 <h1 className="text-[36px] font-bold tracking-tight text-[#0F172A] leading-tight">
+                   Performance Report
+                 </h1>
+                 <div className="px-3 py-1 rounded-full bg-[#0F172A]/5 text-[#475569] text-[11px] font-bold mt-2">
+                   V1.2
+                 </div>
+               </div>
+               <div className="flex items-center gap-3 text-[#475569]/60 text-[14px]">
+                 <span>{dynamicSession.interviewName}</span>
+                 <span>·</span>
+                 <span>{dynamicSession.date}</span>
+                 <span>·</span>
+                 <span>{dynamicSession.duration} Duration</span>
+               </div>
+             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/mock"
-              className="h-9 px-4 text-[12px] font-medium flex items-center transition-opacity hover:opacity-70 border border-divider bg-surface text-muted"
-              style={{ borderRadius: 6 }}
-            >
-              All sessions
-            </Link>
-            <Link
-              href="/mock/setup"
-              className="h-9 px-4 text-[12px] font-bold text-white flex items-center gap-1.5 transition-opacity hover:opacity-85"
-              style={{ borderRadius: 6, background: "#0087A8" }}
-            >
-              Retake interview →
-            </Link>
+          
+          <div className="flex items-center gap-3">
+             <button className="h-11 px-6 rounded-[10px] border border-[#0F172A]/10 text-[14px] font-bold text-[#0F172A] hover:bg-[#0F172A]/5 transition-all">
+                Download PDF
+             </button>
+             <Link href="/mock/setup" className="h-11 px-8 rounded-[10px] bg-[#0087A8] text-white text-[14px] font-bold hover:opacity-90 transition-all flex items-center gap-2">
+                Retake Session <ChevronRight size={16} />
+             </Link>
           </div>
         </div>
 
-        {/* ── 1. OVERALL SCORE — flat panel ── */}
-        <div className="bg-surface border border-divider" style={{ borderRadius: 0 }}>
-          <div className="flex items-center gap-10" style={{ padding: 28 }}>
-            {/* Score */}
-            <div className="shrink-0">
-              <p
-                className="text-[60px] font-bold font-mono leading-none tabular-nums"
-                style={{ color: scoreColor(overall) }}
-              >
+        {/* ── SECTION 1: OVERALL SCORE GLASS ── */}
+        <div style={glassCard} className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 md:gap-20 relative overflow-hidden">
+           {/* Decorative background element */}
+           <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[140%] bg-white/50 blur-[100px] rounded-full pointer-events-none" />
+           
+           <div className="text-center md:text-left shrink-0">
+              <p className="text-[80px] font-black font-mono leading-none tabular-nums tracking-tighter" style={{ color: getScoreColor(overall) }}>
                 {overall.toFixed(1)}
               </p>
-              <p className="text-[10px] uppercase tracking-widest font-semibold mt-1 text-muted">out of 5.0</p>
-            </div>
-
-            <div style={{ width: 1, height: 72, background: "#E5E7EB" }} />
-
-            {/* Verdict */}
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                <StatusBadge score={overall} />
+              <p className="text-[12px] uppercase tracking-[0.25em] font-black text-[#0F172A]/20 mt-2">OUT OF 5.0</p>
+           </div>
+           
+           <div className="flex-1 space-y-4">
+              <div className="flex items-center justify-center md:justify-start gap-3">
+                 <StatusBadge score={overall} />
+                 <span className="text-[11px] font-bold text-[#475569]/40 uppercase tracking-[0.15em]">Overall Verdict</span>
               </div>
-              <h1 className="text-[22px] font-bold text-foreground">Overall Performance</h1>
-              <p className="text-[13px] mt-1.5 leading-relaxed max-w-lg text-muted">
-                Strong ownership and execution. Core gaps in quantifying outcomes and articulating individual contribution — addressable with focused practice.
+              <h2 className="text-[28px] md:text-[32px] font-bold text-[#0F172A] leading-tight max-w-xl">
+                 You are demonstrating strong readiness in high-impact areas.
+              </h2>
+              <p className="text-[15px] text-[#475569] leading-relaxed max-w-2xl">
+                 Your ability to navigate complex stakeholder discussions is exceptional. Focus on tightening your Action delivery and adding quantifiable outcomes to your technical Mastery answers for a Role Model performance.
               </p>
-            </div>
+           </div>
+           
+           <div className="shrink-0 p-6 rounded-[16px] bg-[#0F172A]/[0.03] border border-black/[0.04] w-full md:w-auto">
+              <p className="text-[10px] uppercase tracking-[0.16em] font-bold text-[#475569]/60 mb-3">CONSOLIDATED PROFILE</p>
+              <div className="space-y-4">
+                 <div>
+                    <p className="text-[15px] font-bold text-[#0F172A]">{dynamicSession.role}</p>
+                    <p className="text-[12px] text-[#475569]/60">{dynamicSession.exp}</p>
+                 </div>
+                 <div className="flex flex-wrap gap-2 pt-1">
+                    {dynamicSession.pillars.map(p => (
+                      <span key={p} className="px-2.5 py-1 bg-white border border-black/[0.05] rounded-[6px] text-[10px] font-bold text-[#475569]">
+                        {p}
+                      </span>
+                    ))}
+                 </div>
+              </div>
+           </div>
+        </div>
 
-            {/* Role + pillars */}
-            <div className="shrink-0 space-y-3">
+        {/* ── SECTION 2: DRIVER SCORING ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+           {DRIVERS.map(d => {
+              const Icon = d.icon;
+              const sc = getScoreColor(d.score);
+              return (
+                <div key={d.id} style={glassCard} className="p-6 flex flex-col gap-5 border border-white/40 hover:translate-y-[-4px] transition-transform duration-300">
+                   <div className="flex items-center justify-between">
+                      <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0" style={{ background: `${d.accent}10` }}>
+                         <Icon size={20} style={{ color: d.accent }} />
+                      </div>
+                      <StatusBadge score={d.score} />
+                   </div>
+                   
+                   <div>
+                      <h3 className="text-[15px] font-bold text-[#0F172A] mb-1">{d.title} Performance</h3>
+                      <div className="flex items-baseline gap-2">
+                         <span className="text-[32px] font-bold font-mono tabular-nums leading-none" style={{ color: sc }}>{d.score.toFixed(1)}</span>
+                         <span className="text-[13px] font-medium text-[#475569]/30">/ 5.0</span>
+                      </div>
+                   </div>
+                   
+                   <div className="space-y-2 mt-auto">
+                      <div className="h-[6px] w-full bg-[#0F172A]/5 rounded-full overflow-hidden">
+                         <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${d.pct}%`, background: d.accent }} />
+                      </div>
+                      <p className="text-[11px] font-bold text-[#475569]/40 tracking-wide uppercase">
+                        Efficiency: {d.pct}%
+                      </p>
+                   </div>
+                </div>
+              );
+           })}
+        </div>
+
+        {/* ── SECTION 3: CAR ANALYSIS ── */}
+        <div style={glassCard} className="overflow-hidden border border-white/40">
+           <div className="p-6 md:px-8 border-b border-black/[0.06] bg-black/[0.02] flex items-center justify-between">
               <div>
-                <p className="text-[10px] uppercase tracking-widest font-bold mb-1 text-muted">Role assessed</p>
-                <p className="text-[13px] font-bold text-foreground">{dynamicSession.role}</p>
-                <p className="text-[11px] text-muted">{dynamicSession.exp}</p>
+                 <h3 className="text-[16px] font-bold text-[#0F172A]">Cross-Answer Consistency (CAR)</h3>
+                 <p className="text-[12px] text-[#475569]/60">How consistently you structure your narrative across the entire session.</p>
               </div>
-              <div>
-                <p className="text-[10px] uppercase tracking-widest font-bold mb-1.5 text-muted">Pillars</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {dynamicSession.pillars.map(p => (
-                    <span
-                      key={p}
-                      className="text-[10px] font-semibold px-2 py-1 border border-divider text-muted bg-subtle"
-                      style={{ borderRadius: 4 }}
-                    >
-                      {p}
-                    </span>
-                  ))}
-                </div>
+              <div className="hidden md:flex gap-4">
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#10B981]" /> <span className="text-[11px] font-bold text-[#475569]">STRONG</span></div>
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> <span className="text-[11px] font-bold text-[#475569]">PARTIAL</span></div>
+                 <div className="flex items-center gap-1.5"><div className="w-2 h-2 rounded-full bg-[#EF4444]" /> <span className="text-[11px] font-bold text-[#475569]">WEAK</span></div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── 2. DRIVER CARDS — flat gap-px grid ── */}
-        <div className="grid grid-cols-4 gap-px bg-[#E2E8F0] border border-[#E2E8F0]">
-          {DRIVERS.map(d => {
-            const Icon   = d.icon;
-            const st     = getStatus(d.score);
-            const token  = STATUS_MAP[st];
-            return (
-              <div key={d.id} className="bg-surface p-6">
-                {/* Pillar header */}
-                <div className="flex items-center gap-2 mb-4">
-                  <Icon size={14} style={{ color: d.accent }} />
-                  <span className="text-[12px] font-bold flex-1 text-foreground">{d.title}</span>
-                </div>
-
-                {/* Score */}
-                <p className="text-[32px] font-bold font-mono leading-none mb-0.5 tabular-nums" style={{ color: scoreColor(d.score) }}>
-                  {d.score}
-                </p>
-                <p className="text-[10px] text-muted">out of 5.0</p>
-
-                {/* Progress bar */}
-                <div style={{ height: 3, background: SUBTLE, margin: "12px 0 8px" }}>
-                  <div style={{ height: "100%", width: `${d.pct}%`, background: token.dot }} />
-                </div>
-
-                {/* Badge */}
-                <StatusBadge score={d.score} />
-              </div>
-            );
-          })}
-        </div>
-
-        {/* ── 3. CAR ANALYSIS — flat panel ── */}
-        <div className="bg-surface border border-divider">
-          {/* Section label */}
-          <div className="border-b border-divider" style={{ padding: "12px 24px", background: SUBTLE }}>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-foreground">CAR Analysis</p>
-            <p className="text-[10px] mt-0.5 text-muted">Context · Action · Result — consistency across all answers</p>
-          </div>
-          <div className="grid grid-cols-3 gap-px bg-[#E2E8F0]">
-            {CAR_ROWS.map(c => (
-              <div key={c.label} className="bg-surface" style={{ padding: 24 }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span style={{ width: 8, height: 8, borderRadius: 99, background: c.dot, display: "inline-block" }} />
-                  <span className="text-[13px] font-bold text-foreground">{c.label}</span>
-                  <span className="ml-auto text-[10px] font-bold uppercase tracking-widest" style={{ color: c.dot === "#6EE7B7" ? "#047857" : c.dot === "#FCD34D" ? "#B45309" : "#B91C1C" }}>
-                    {c.status}
-                  </span>
-                </div>
-                <p className="text-[12px] leading-relaxed text-muted">{c.note}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── 4. QUESTION-LEVEL INSIGHTS — accordion (no section header card) ── */}
-        <div>
-          {/* Section label */}
-          <p className="text-[10px] uppercase tracking-widest text-muted font-bold border-b border-divider pb-3 mb-0">
-            {`QUESTION-LEVEL INSIGHTS · ${dynamicSession.questionCount} ASKED · TAP "VIEW INSIGHT" TO EXPAND`}
-          </p>
-          <div className="bg-surface border border-t-0 border-divider">
-            {QUESTIONS.map((q, qi) => (
-              <QuestionRow key={qi} q={q} qi={qi} />
-            ))}
-          </div>
-        </div>
-
-        {/* ── 5. AI OVERALL SUMMARY ── */}
-        <div className="bg-surface border border-divider">
-          <div className="border-b border-divider" style={{ padding: "12px 24px", background: SUBTLE }}>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-muted">AI Overall Summary</p>
-          </div>
-          <div style={{ padding: 24, borderBottom: DIVIDER }}>
-            <p className="text-[13px] leading-relaxed max-w-3xl" style={{ color: "#374151" }}>{dynamicSummary}</p>
-          </div>
-          <div style={{ padding: 24 }}>
-            <p className="text-[10px] uppercase tracking-widest font-bold mb-3 text-muted">Key patterns observed</p>
-            <div className="grid grid-cols-3 gap-6">
-              {AI_PATTERNS.map((pat, i) => (
-                <div key={i} className="flex items-start gap-2.5">
-                  <span style={{ width: 6, height: 6, borderRadius: 99, background: "#FCD34D", flexShrink: 0, marginTop: 5, display: "inline-block" }} />
-                  <p className="text-[12px] leading-relaxed text-muted">{pat}</p>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black/[0.06]">
+              {CAR_ROWS.map(c => (
+                <div key={c.label} className="p-8 space-y-3">
+                   <div className="flex items-center justify-between">
+                      <span className="text-[16px] font-black text-[#0F172A] tracking-tight italic" style={{ opacity: 0.1 }}>{c.label.toUpperCase()}</span>
+                      <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: `${c.dot}15`, color: c.dot }}>{c.status.toUpperCase()}</span>
+                   </div>
+                   <h4 className="text-[15px] font-bold text-[#0F172A]">{c.label} Quality</h4>
+                   <p className="text-[13px] text-[#475569] leading-relaxed">{c.note}</p>
                 </div>
               ))}
-            </div>
-          </div>
+           </div>
         </div>
 
-        {/* ── 6. AI COACHING ── */}
-        <div className="bg-surface border border-divider">
-          <div className="border-b border-divider" style={{ padding: "12px 24px", background: SUBTLE }}>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-muted">AI Coaching Recommendations</p>
-          </div>
-          <div className="grid grid-cols-3 gap-px bg-[#E2E8F0]">
-            {COACHING.map(c => (
-              <div key={c.n} className="bg-surface" style={{ padding: 24 }}>
-                <p className="text-[24px] font-light font-mono mb-2" style={{ color: "rgba(15,15,15,0.10)" }}>{c.n}</p>
-                <p className="text-[13px] font-bold mb-3 text-foreground">{c.title}</p>
-                {c.tips.map(t => (
-                  <div key={t} className="flex items-start gap-2 mb-1.5">
-                    <span style={{ width: 4, height: 4, borderRadius: 99, background: "#CBD5E1", flexShrink: 0, marginTop: 5, display: "inline-block" }} />
-                    <p className="text-[12px] text-muted">{t}</p>
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
+        {/* ── SECTION 4: DETAILED QUESTIONS ── */}
+        <div className="pt-4">
+           <div className="mb-8">
+              <h2 className="text-[24px] font-bold text-[#0F172A]">Detailed Session Breakdown</h2>
+              <p className="text-[14px] text-[#475569]/60 mt-1">AI-augmented performance analysis for each question asked.</p>
+           </div>
+           
+           <div className="flex flex-col">
+              {QUESTIONS.map((q, qi) => (
+                <QuestionRow key={qi} q={q} qi={qi} />
+              ))}
+           </div>
         </div>
 
-        {/* ── 7. RECOMMENDED TRAINING ── */}
-        <div className="bg-surface border border-divider flex items-stretch">
-          {/* Thumbnail */}
-          <div
-            className="relative flex items-center justify-center shrink-0"
-            style={{ width: 200, background: "linear-gradient(145deg, #1C3B4A 0%, #2D5668 55%, #1E4456 100%)" }}
-          >
-            <BookOpen size={36} style={{ color: "rgba(255,255,255,0.18)" }} />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div style={{
-                width: 48, height: 48, borderRadius: 999,
-                background: "rgba(255,255,255,0.12)",
-                border: "1.5px solid rgba(255,255,255,0.22)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                <Play size={17} style={{ color: "#FFF", marginLeft: 2 }} />
-              </div>
-            </div>
-          </div>
+        {/* ── SECTION 5: COACHING & RECOMMENDATIONS ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-10">
+           
+           {/* Coaching Cards */}
+           <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+              {COACHING.map(c => (
+                <div key={c.n} style={glassCard} className="p-8 border border-white/40">
+                   <p className="text-[48px] font-black text-[#0F172A]/05 font-mono italic leading-none mb-4">{c.n}</p>
+                   <h3 className="text-[18px] font-bold text-[#0F172A] mb-4">{c.title}</h3>
+                   <ul className="space-y-3">
+                      {c.tips.map(t => (
+                        <li key={t} className="flex items-start gap-2.5 text-[13px] text-[#475569] leading-relaxed">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#0087A8] mt-2 shrink-0" />
+                           {t}
+                        </li>
+                      ))}
+                   </ul>
+                </div>
+              ))}
+           </div>
 
-          {/* Info */}
-          <div className="flex-1 flex items-center border-l border-divider" style={{ padding: 24 }}>
-            <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span style={{ width: 6, height: 6, borderRadius: 99, background: "#FECACA", display: "inline-block" }} />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">
-                  Recommended · {REC_TRAINING.driver} Driver
-                </span>
+           {/* Recommended Training Card */}
+           <div className="lg:col-span-4">
+              <div 
+                style={{ background: "linear-gradient(145deg, #1C3B4A 0%, #2D5668 100%)", borderRadius: 24 }} 
+                className="p-8 h-full flex flex-col justify-between border border-white/10 shadow-2xl relative overflow-hidden group"
+              >
+                 <div className="absolute bottom-[-10%] right-[-10%] w-40 h-40 bg-white/5 blur-[40px] rounded-full" />
+                 
+                 <div>
+                    <div className="flex items-center gap-2 mb-4">
+                       <Zap size={14} className="text-[#0087A8]" fill="#0087A8" />
+                       <span className="text-[10px] font-black tracking-[0.2em] text-[#94A3B8]">RECOMMENDED TRAINING</span>
+                    </div>
+                    <h3 className="text-[20px] font-bold text-white mb-3">{REC_TRAINING.title}</h3>
+                    <p className="text-[13px] text-[#CBD5E1] leading-relaxed mb-8">
+                       {REC_TRAINING.desc}
+                    </p>
+                    
+                    <div className="relative w-full aspect-video rounded-[16px] overflow-hidden mb-8 border border-white/10">
+                       <img 
+                          src="https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&q=80&w=400" 
+                          alt="Thumbnail" 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                       />
+                       <div className="absolute inset-0 bg-[#0F172A]/30" />
+                       <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white">
+                             <Play fill="white" size={20} className="ml-1" />
+                          </div>
+                       </div>
+                    </div>
+                 </div>
+
+                 <Link 
+                    href={REC_TRAINING.href} 
+                    className="h-[52px] bg-white rounded-[12px] flex items-center justify-center text-[#0087A8] font-bold text-[14px] hover:shadow-lg transition-all"
+                 >
+                    Start Training Module
+                 </Link>
               </div>
-              <p className="text-[15px] font-bold text-foreground">{REC_TRAINING.title}</p>
-              <p className="text-[12px] mt-1 max-w-md leading-relaxed text-muted">{REC_TRAINING.desc}</p>
-              <div className="flex items-center gap-1.5 mt-2.5">
-                <Clock size={11} className="text-muted" />
-                <span className="text-[11px] text-muted">{REC_TRAINING.duration}</span>
-              </div>
-            </div>
-            <Link
-              href={REC_TRAINING.href}
-              className="h-10 px-5 text-[12px] font-bold text-white flex items-center gap-2 shrink-0 transition-opacity hover:opacity-85"
-              style={{ borderRadius: 6, background: "#0087A8" }}
-            >
-              <Play size={11} /> Start module
-            </Link>
-          </div>
+           </div>
+
         </div>
 
+        <div className="h-20" />
       </div>
     </div>
   );
