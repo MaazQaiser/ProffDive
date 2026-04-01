@@ -157,7 +157,7 @@ export default function SignupPage() {
                   </div>
                   <button 
                     onClick={() => {
-                      router.push("/dashboard");
+                      router.push("/onboarding");
                     }}
                     className="w-full h-[44px] mt-2 bg-[#0087A8] text-white rounded-[6px] font-medium text-[14px] hover:bg-[#006E89] transition-colors shadow-lg shadow-[#0087A8]/20"
                   >

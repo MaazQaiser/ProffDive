@@ -33,7 +33,7 @@ export default function LoginPage() {
             {/* Google Login */}
             <button
               onClick={() => {
-                router.push("/dashboard");
+                router.push("/onboarding");
               }}
               className="w-full flex flex-col items-start gap-[7px] p-[20px] hover:bg-white/10 transition-colors group"
             >
@@ -65,7 +65,7 @@ export default function LoginPage() {
             {/* Email Login */}
             <button
               onClick={() => {
-                router.push("/dashboard/returning");
+                router.push("/onboarding");
               }}
               className="w-full flex flex-col items-start gap-[12px] p-[20px] border-t border-[#CBD5E1] hover:bg-white/10 transition-colors group"
             >
