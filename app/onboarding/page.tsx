@@ -20,6 +20,7 @@ export default function OnboardingPage() {
   const [activeStep, setActiveStep] = useState<Step>(1);
   const [career, setCareer] = useState<CareerChoice>(null);
   const [bracket, setBracket] = useState<ExpBracket>(null);
+  const [educationBackground, setEducationBackground] = useState("");
   const [role, setRole] = useState("");
   const [query, setQuery] = useState("");
   const [showSugg, setShowSugg] = useState(false);
@@ -48,6 +49,7 @@ export default function OnboardingPage() {
       name: user.name ?? "",
       career,
       bracket,
+      educationBackground,
       role,
       industry,
       jd,
@@ -105,7 +107,17 @@ export default function OnboardingPage() {
                           { id: "diploma-holder", label: "Diploma Holder", sub: "Polytechnic or technical diploma" },
                           { id: "experienced",label: "Experienced",    sub: "Working professionally" },
                         ] as { id: CareerChoice; label: string; sub: string }[]).map((o) => (
-                          <button key={o.id!} onClick={() => { setCareer(o.id); if (o.id !== "experienced") { setBracket(null); setResume(""); } }}
+                          <button
+                            key={o.id!}
+                            onClick={() => {
+                              setCareer(o.id);
+                              if (o.id !== "experienced") {
+                                setBracket(null);
+                                setResume("");
+                              } else {
+                                setEducationBackground("");
+                              }
+                            }}
                             className={`w-full flex items-center gap-4 px-4 py-3.5 text-left rounded-xl border transition-all ${career === o.id ? 'bg-[#E6F6F9] border-[#0087A8] shadow-sm' : 'bg-white border-slate-100 hover:bg-slate-50'}`}
                           >
                             <div className={`w-4 h-4 shrink-0 rounded-full border-2 flex items-center justify-center ${career === o.id ? 'border-[#0087A8]' : 'border-slate-300'}`}>
@@ -118,6 +130,22 @@ export default function OnboardingPage() {
                           </button>
                         ))}
                       </div>
+
+                      {(career === "fresh-grad" || career === "undergrad" || career === "diploma-holder") && (
+                        <div className="pt-3 border-t border-slate-100 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Education background</p>
+                            <span className="text-[11px] font-bold text-slate-400">Optional</span>
+                          </div>
+                          <textarea
+                            value={educationBackground}
+                            onChange={(e) => setEducationBackground(e.target.value)}
+                            rows={3}
+                            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/60 outline-none text-[13px] text-[#0F172A] focus:border-[#0087A8] focus:bg-white transition-all shadow-sm resize-none"
+                            placeholder="e.g. University name, degree, major, graduation year, CGPA, relevant coursework…"
+                          />
+                        </div>
+                      )}
 
                       {career === "experienced" && (
                         <div className="pt-3 border-t border-slate-100 space-y-4">

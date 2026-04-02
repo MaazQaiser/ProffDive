@@ -12,6 +12,7 @@ interface UserState {
   name: string;
   career: string | null;
   bracket: string | null;
+  educationBackground: string;
   role: string;
   industry: string;
   jd: string;
@@ -29,6 +30,7 @@ const defaultUser: UserState = {
   name: "", // Default to empty
   career: null,
   bracket: null,
+  educationBackground: "",
   role: "",
   industry: "",
   jd: "",

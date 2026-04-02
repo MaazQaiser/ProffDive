@@ -56,7 +56,7 @@ export const MOCK_SESSION_META: SessionMeta = {
   role: "Business Analyst",
   exp: "3 yrs · L3+",
   date: "Oct 24, 2024",
-  duration: "31 min",
+  duration: "30 min",
   pillars: ["Thinking", "Action", "People", "Mastery"],
   questionCount: 8,
 };

@@ -58,7 +58,7 @@ const SESSION_TYPES = [
 const RECENT_SESSIONS = [
   {
     id:"1", title:"Role-Based Mock", role: "Product Manager", type:"Full Practice",
-    date:"Oct 24, 2024", duration:"31 min", qCount:4, score:3.4,
+    date:"Oct 24, 2024", duration:"30 min", qCount:4, score:3.4,
     feedback: "Structured thinking was solid, but action steps felt slightly vague in execution.",
   },
   {
