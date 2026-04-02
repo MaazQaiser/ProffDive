@@ -39,7 +39,7 @@ export default function ConsentPage() {
               <div className="p-5 pb-0 flex-1 flex flex-col justify-end">
                 <div className="bg-[#F8FAFC] rounded-t-[14px] p-6 pb-8 border border-b-0 border-[#E2E8F0]/50 shadow-[0_-2px_12px_rgba(0,0,0,0.02)] translate-y-2">
                   <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-[14.5px] font-semibold text-[#1E293B]">Term & Services</h3>
+                    <h3 className="text-[14.5px] font-semibold text-[#1E293B]">Terms of Service</h3>
                     <ArrowUpRight className="w-[18px] h-[18px] text-[#64748B]" />
                   </div>
                   <div className="space-y-3">
@@ -60,7 +60,7 @@ export default function ConsentPage() {
                     {agreedTerms && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                   </div>
                   <span className="text-[13px] text-[#64748B] flex gap-1">
-                    I agree to the <span className="font-medium text-[#1E293B]">Term & Services</span>
+                    I agree to the <span className="font-medium text-[#1E293B]">Terms of Service</span>
                   </span>
                 </label>
               </div>
@@ -72,7 +72,7 @@ export default function ConsentPage() {
               <div className="p-5 pb-0 flex-1 flex flex-col justify-end">
                 <div className="bg-[#F8FAFC] rounded-t-[14px] p-6 pb-8 border border-b-0 border-[#E2E8F0]/50 shadow-[0_-2px_12px_rgba(0,0,0,0.02)] translate-y-2">
                   <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-[14.5px] font-semibold text-[#1E293B]">Term & Services</h3>
+                    <h3 className="text-[14.5px] font-semibold text-[#1E293B]">Privacy Policy</h3>
                     <ArrowUpRight className="w-[18px] h-[18px] text-[#64748B]" />
                   </div>
                   <div className="space-y-3">
@@ -93,7 +93,7 @@ export default function ConsentPage() {
                     {agreedPrivacy && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
                   </div>
                   <span className="text-[13px] text-[#64748B] flex gap-1">
-                    I agree to the <span className="font-medium text-[#1E293B]">Privacy policy</span>
+                    I agree to the <span className="font-medium text-[#1E293B]">Privacy Policy</span>
                   </span>
                 </label>
               </div>
