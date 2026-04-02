@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { ArrowLeft, BookOpen, Clock, Download, Edit3, ChevronDown, Save } from "lucide-react";
 
 // --- Tokens ---
@@ -72,6 +73,7 @@ const INITIAL_STORY = {
 };
 
 export default function FinalStoryboardView() {
+  const params = useParams<{ id: string }>();
   const [openInsightId, setOpenInsightId] = useState<string | null>(null);
   const [story, setStory] = useState(INITIAL_STORY);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -96,6 +98,35 @@ export default function FinalStoryboardView() {
     setEditingId(null);
   };
 
+  const downloadResume = () => {
+    const storyboardId = params?.id ? String(params.id) : "storyboard";
+    const content = [
+      `ProofDive Resume Export`,
+      `Storyboard ID: ${storyboardId}`,
+      ``,
+      ...story.sections.flatMap((s) => [
+        `## ${s.title}`,
+        s.content,
+        ``,
+        `CAR Breakdown`,
+        `- Context: ${s.car.context}`,
+        `- Action: ${s.car.action}`,
+        `- Result: ${s.car.result}`,
+        ``,
+      ]),
+    ].join("\n");
+
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `proofdive-resume-storyboard-${storyboardId}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="max-w-[760px] mx-auto px-6 py-10 pb-24 animate-in fade-in duration-500">
       
@@ -104,7 +135,14 @@ export default function FinalStoryboardView() {
         <Link href="/storyboard" className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-60 text-slate-400">
           <ArrowLeft size={16} /> Back to Hub
         </Link>
-        {/* Actions securely removed as story is accepted */}
+        <button
+          type="button"
+          onClick={downloadResume}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-[12px] font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-sm"
+        >
+          <Download size={14} />
+          Download resume
+        </button>
       </div>
 
       {/* Title Block */}
