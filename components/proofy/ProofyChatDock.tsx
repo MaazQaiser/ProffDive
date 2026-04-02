@@ -1,8 +1,17 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { MessageCircle, Mic, Send, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  buildFlowForIntent,
+  classifyIntent,
+  EMPTY_STATE_CHIPS,
+  trainingCardMeta,
+  type FlowStep,
+} from "@/lib/proofy-central-intents";
 import {
   getSpeechRecognition,
   type WebSpeechRecognition,
@@ -14,25 +23,56 @@ const TEAL_DEEP = "#005f77";
 const TEAL_LIGHT = "#67e8f9";
 const TEAL_MIST = "#a5f3fc";
 
+type ChatMsg =
+  | { id: string; role: "user"; kind: "text"; text: string }
+  | { id: string; role: "assistant"; kind: "text"; text: string }
+  | {
+      id: string;
+      role: "assistant";
+      kind: "performance_summary";
+      overall: number;
+      strongest: { title: string; score: number };
+      needsWork: { title: string; score: number };
+      focusLine: string;
+    }
+  | { id: string; role: "assistant"; kind: "training_cards"; slugs: [string, string] }
+  | { id: string; role: "assistant"; kind: "mock_options" };
+
+function uid(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => window.setTimeout(r, ms));
+}
+
 export function ProofyChatDock() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [listening, setListening] = useState(false);
   const [speechSupported] = useState(() => !!getSpeechRecognition());
   const inputRef = useRef<HTMLInputElement>(null);
   const dockRef = useRef<HTMLDivElement>(null);
+  const transcriptRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<WebSpeechRecognition | null>(null);
-  /** Text in the field when dictation started */
   const dictationPrefixRef = useRef("");
-  /** Finalized speech segments since mic on (Web Speech fires incrementally) */
   const dictationCommittedRef = useRef("");
   const listeningRef = useRef(false);
+  const [flowRunning, setFlowRunning] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     const t = window.setTimeout(() => inputRef.current?.focus(), 280);
     return () => window.clearTimeout(t);
   }, [open]);
+
+  useEffect(() => {
+    const el = transcriptRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages]);
 
   const stopListening = useCallback(() => {
     listeningRef.current = false;
@@ -62,6 +102,7 @@ export function ProofyChatDock() {
   const closeDock = useCallback(() => {
     stopListening();
     setOpen(false);
+    setMessages([]);
   }, [stopListening]);
 
   useEffect(() => {
@@ -86,6 +127,71 @@ export function ProofyChatDock() {
   useEffect(() => {
     return () => stopListening();
   }, [stopListening]);
+
+  const applyFlowStep = useCallback((step: FlowStep) => {
+    switch (step.type) {
+      case "assistant_text":
+        setMessages((m) => [...m, { id: uid(), role: "assistant", kind: "text", text: step.text }]);
+        break;
+      case "performance_summary":
+        setMessages((m) => [
+          ...m,
+          {
+            id: uid(),
+            role: "assistant",
+            kind: "performance_summary",
+            overall: step.overall,
+            strongest: step.strongest,
+            needsWork: step.needsWork,
+            focusLine: step.focusLine,
+          },
+        ]);
+        break;
+      case "training_cards":
+        setMessages((m) => [
+          ...m,
+          { id: uid(), role: "assistant", kind: "training_cards", slugs: step.slugs },
+        ]);
+        break;
+      case "mock_options":
+        setMessages((m) => [...m, { id: uid(), role: "assistant", kind: "mock_options" }]);
+        break;
+      default:
+        break;
+    }
+  }, []);
+
+  const runFlow = useCallback(
+    async (steps: FlowStep[]) => {
+      setFlowRunning(true);
+      try {
+        for (const step of steps) {
+          if (step.type === "navigate") {
+            await sleep(1100);
+            router.push(step.href);
+            break;
+          }
+          applyFlowStep(step);
+          await sleep(step.type === "assistant_text" ? 520 : 360);
+        }
+      } finally {
+        setFlowRunning(false);
+      }
+    },
+    [applyFlowStep, router]
+  );
+
+  const submitUserText = useCallback(
+    async (raw: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed || flowRunning) return;
+      setMessages((m) => [...m, { id: uid(), role: "user", kind: "text", text: trimmed }]);
+      const intent = classifyIntent(trimmed);
+      const steps = buildFlowForIntent(intent);
+      await runFlow(steps);
+    },
+    [runFlow, flowRunning]
+  );
 
   const toggleVoice = useCallback(() => {
     if (listeningRef.current) {
@@ -160,7 +266,8 @@ export function ProofyChatDock() {
     const trimmed = message.trim();
     if (!trimmed) return;
     setMessage("");
-  }, [message]);
+    void submitUserText(trimmed);
+  }, [message, submitUserText]);
 
   const glowGradient = `linear-gradient(125deg, ${TEAL_DEEP} 0%, ${TEAL} 28%, ${TEAL_LIGHT} 72%, ${TEAL_MIST} 100%)`;
 
@@ -172,7 +279,7 @@ export function ProofyChatDock() {
             role="dialog"
             aria-modal="true"
             aria-label="Message Proofy"
-            className="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex justify-center px-4 pb-8 md:px-8"
+            className="pointer-events-none fixed inset-x-0 bottom-0 z-[100] flex justify-center px-4 pb-6 md:px-8 md:pb-8"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -180,7 +287,7 @@ export function ProofyChatDock() {
           >
             <motion.div
               ref={dockRef}
-              className="pointer-events-auto w-full max-w-[540px]"
+              className="pointer-events-auto flex w-full max-w-[540px] flex-col gap-3"
               initial={{ y: "130%", opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: "50%", opacity: 0 }}
@@ -191,8 +298,9 @@ export function ProofyChatDock() {
                 mass: 0.88,
               }}
             >
+              {/* Connected chat widget (transcript + input in one card) */}
               <motion.div
-                className="relative rounded-full p-[11px]"
+                className="relative rounded-[28px] p-[10px]"
                 style={{
                   background: glowGradient,
                   boxShadow: `
@@ -211,73 +319,215 @@ export function ProofyChatDock() {
                 }}
                 transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <form
-                  className="flex items-center gap-1 rounded-full bg-white py-3 pl-5 pr-3 shadow-[inset_0_1px_2px_rgba(15,23,42,0.04)]"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    send();
-                  }}
-                >
-                  <input
-                    ref={inputRef}
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    readOnly={listening}
-                    placeholder="Ask me anything..."
-                    aria-label="Message to Proofy"
-                    className="min-w-0 flex-1 border-0 bg-transparent py-1 pl-1 text-[16px] leading-snug outline-none placeholder:text-[#64748B] read-only:opacity-95"
-                    style={{ color: "#0F172A" }}
-                  />
+                <div className="overflow-hidden rounded-[22px] border border-white/60 bg-white/[0.96] shadow-[0_8px_40px_rgba(15,23,42,0.10)] backdrop-blur-md">
+                  <div
+                    ref={transcriptRef}
+                    aria-label="Proofy conversation"
+                    className="max-h-[min(46vh,400px)] overflow-y-auto overscroll-contain px-4 py-3"
+                  >
+                    {messages.length === 0 && (
+                      <div className="mb-2 flex flex-wrap gap-2 border-b border-slate-100 pb-3">
+                        <p className="w-full text-[12px] font-medium text-[#64748B]">
+                          Try one of these
+                        </p>
+                        {EMPTY_STATE_CHIPS.map((c) => (
+                          <button
+                            key={c.label}
+                            type="button"
+                            disabled={flowRunning}
+                            onClick={() => void submitUserText(c.sendText)}
+                            className="rounded-full border border-[#0087A8]/25 bg-[#0087A8]/[0.06] px-3 py-1.5 text-left text-[13px] font-medium text-[#0F172A] transition-colors hover:bg-[#0087A8]/10 disabled:opacity-50"
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                  <div className="relative flex shrink-0 items-center justify-center gap-0.5 pr-1">
-                  {speechSupported && (
-                    <motion.button
-                      type="button"
-                      onClick={toggleVoice}
-                      aria-label={listening ? "Stop voice input" : "Voice input"}
-                      aria-pressed={listening}
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full outline-none transition-colors"
-                      style={{
-                        color: listening ? TEAL : "rgba(15, 23, 42, 0.42)",
-                        background: listening ? `${TEAL}14` : "transparent",
-                        boxShadow: listening ? `0 0 0 2px ${TEAL}44` : "none",
-                      }}
-                      whileTap={{ scale: 0.94 }}
-                    >
-                      <Mic
-                        className="h-[22px] w-[22px]"
-                        strokeWidth={listening ? 2.25 : 2}
+                    <div className="flex flex-col gap-3">
+                      {messages.map((msg) => {
+                    if (msg.role === "user" && msg.kind === "text") {
+                      return (
+                        <div key={msg.id} className="flex justify-end">
+                          <div
+                            className="max-w-[92%] rounded-2xl rounded-br-md px-3.5 py-2 text-[15px] leading-snug text-white"
+                            style={{ background: TEAL }}
+                          >
+                            {msg.text}
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (msg.role === "assistant" && msg.kind === "text") {
+                      return (
+                        <div key={msg.id} className="flex justify-start">
+                          <div className="max-w-[92%] rounded-2xl rounded-bl-md border border-slate-100 bg-slate-50/90 px-3.5 py-2 text-[15px] leading-relaxed text-[#0F172A]">
+                            {msg.text}
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (msg.role === "assistant" && msg.kind === "performance_summary") {
+                      return (
+                        <div key={msg.id} className="flex justify-start">
+                          <div
+                            className="max-w-[92%] space-y-2 rounded-2xl border border-[#0087A8]/20 bg-gradient-to-br from-[#f0fdfa]/90 to-white px-3.5 py-3 text-[14px]"
+                            style={{ color: "#0F172A" }}
+                          >
+                            <p className="text-[11px] font-semibold uppercase tracking-wider text-[#0087A8]">
+                              Latest session
+                            </p>
+                            <div className="grid grid-cols-2 gap-2 text-[13px]">
+                              <div>
+                                <p className="text-[11px] text-[#64748B]">Overall</p>
+                                <p className="text-[18px] font-semibold tabular-nums">{msg.overall}</p>
+                              </div>
+                              <div>
+                                <p className="text-[11px] text-[#64748B]">Strongest</p>
+                                <p className="font-medium">
+                                  {msg.strongest.title}{" "}
+                                  <span className="tabular-nums text-[#64748B]">
+                                    ({msg.strongest.score})
+                                  </span>
+                                </p>
+                              </div>
+                              <div className="col-span-2">
+                                <p className="text-[11px] text-[#64748B]">Needs work</p>
+                                <p className="font-medium">
+                                  {msg.needsWork.title}{" "}
+                                  <span className="tabular-nums text-[#64748B]">
+                                    ({msg.needsWork.score})
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+                            <p className="border-t border-[#0087A8]/10 pt-2 text-[13px] leading-snug text-[#334155]">
+                              {msg.focusLine}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    }
+                    if (msg.role === "assistant" && msg.kind === "training_cards") {
+                      return (
+                        <div key={msg.id} className="flex flex-col gap-2">
+                          {msg.slugs.map((slug) => {
+                            const meta = trainingCardMeta(slug);
+                            if (!meta) return null;
+                            return (
+                              <Link
+                                key={slug}
+                                href={meta.href}
+                                className="block rounded-xl border border-[#0087A8]/25 bg-white px-3.5 py-3 text-left shadow-sm transition-colors hover:bg-[#0087A8]/[0.04]"
+                              >
+                                <p className="text-[12px] font-semibold uppercase tracking-wide text-[#0087A8]">
+                                  Training
+                                </p>
+                                <p className="text-[15px] font-semibold text-[#0F172A]">{meta.title}</p>
+                                <p className="mt-1 text-[12px] text-[#64748B]">Open module →</p>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      );
+                    }
+                    if (msg.role === "assistant" && msg.kind === "mock_options") {
+                      return (
+                        <div key={msg.id} className="flex flex-col gap-2">
+                          <button
+                            type="button"
+                            onClick={() => router.push("/mock/setup?mode=full")}
+                            className="rounded-xl border border-[#0087A8]/25 bg-white px-3.5 py-3 text-left shadow-sm transition-colors hover:bg-[#0087A8]/[0.04]"
+                          >
+                            <p className="text-[15px] font-semibold text-[#0F172A]">
+                              Full Session Interview
+                            </p>
+                            <p className="mt-1 text-[13px] text-[#64748B]">
+                              Complete mock across all focus areas
+                            </p>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => router.push("/mock/setup?mode=specific")}
+                            className="rounded-xl border border-[#0087A8]/25 bg-white px-3.5 py-3 text-left shadow-sm transition-colors hover:bg-[#0087A8]/[0.04]"
+                          >
+                            <p className="text-[15px] font-semibold text-[#0F172A]">
+                              Specific Practice
+                            </p>
+                            <p className="mt-1 text-[13px] text-[#64748B]">
+                              Targeted prep on selected pillars
+                            </p>
+                          </button>
+                        </div>
+                      );
+                    }
+                    return null;
+                      })}
+                    </div>
+                  </div>
+
+                  <form
+                    className="flex items-center gap-2 border-t border-slate-100 bg-white/90 px-4 py-3"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      send();
+                    }}
+                  >
+                    {speechSupported && (
+                      <motion.button
+                        type="button"
+                        onClick={toggleVoice}
+                        aria-label={listening ? "Stop voice input" : "Voice input"}
+                        aria-pressed={listening}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full outline-none transition-colors"
+                        style={{
+                          color: listening ? TEAL : "rgba(15, 23, 42, 0.42)",
+                          background: listening ? `${TEAL}14` : "transparent",
+                          boxShadow: listening ? `0 0 0 2px ${TEAL}33` : "none",
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Mic className="h-[20px] w-[20px]" strokeWidth={listening ? 2.25 : 2} />
+                      </motion.button>
+                    )}
+
+                    <div className="relative min-w-0 flex-1">
+                      <input
+                        ref={inputRef}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        readOnly={listening || flowRunning}
+                        placeholder="Ask Proofy what to do next…"
+                        aria-label="Message to Proofy"
+                        className="h-10 w-full rounded-full border border-slate-200 bg-white px-4 text-[15px] outline-none placeholder:text-[#94A3B8] focus:border-[#0087A8]/50 focus:ring-2 focus:ring-[#0087A8]/10 read-only:opacity-95"
+                        style={{ color: "#0F172A" }}
                       />
-                    </motion.button>
-                  )}
-                    <motion.span
-                      className="pointer-events-none absolute -right-0.5 -top-2 flex gap-0.5"
-                      aria-hidden
-                      animate={{ opacity: [0.85, 1, 0.85], y: [0, -2, 0] }}
-                      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                      <Sparkles
-                        className="h-3.5 w-3.5"
-                        strokeWidth={2}
-                        style={{ color: TEAL, fill: `${TEAL}22` }}
-                      />
-                      <Sparkles
-                        className="h-2.5 w-2.5 -translate-y-0.5"
-                        strokeWidth={2}
-                        style={{ color: TEAL_LIGHT, fill: `${TEAL_LIGHT}33` }}
-                      />
-                    </motion.span>
+                      <motion.span
+                        className="pointer-events-none absolute right-3 top-1.5 flex gap-0.5"
+                        aria-hidden
+                        animate={{ opacity: [0.75, 1, 0.75], y: [0, -1, 0] }}
+                        transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                      >
+                        <Sparkles
+                          className="h-3.5 w-3.5"
+                          strokeWidth={2}
+                          style={{ color: TEAL, fill: `${TEAL}22` }}
+                        />
+                      </motion.span>
+                    </div>
+
                     <motion.button
                       type="submit"
-                      disabled={!message.trim()}
-                      className="flex h-11 w-11 items-center justify-center rounded-full text-[#0F172A]/55 transition-colors hover:bg-[#0F172A]/[0.05] hover:text-[#0F172A] disabled:pointer-events-none disabled:opacity-35"
+                      disabled={!message.trim() || flowRunning}
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white transition-colors disabled:pointer-events-none disabled:opacity-40"
                       aria-label="Send message"
-                      whileTap={{ scale: 0.92 }}
+                      style={{ background: TEAL }}
+                      whileTap={{ scale: 0.94 }}
                     >
-                      <Send className="h-[22px] w-[22px]" strokeWidth={2} />
+                      <Send className="h-[18px] w-[18px]" strokeWidth={2.25} />
                     </motion.button>
-                  </div>
-                </form>
+                  </form>
+                </div>
               </motion.div>
             </motion.div>
           </motion.div>

@@ -183,7 +183,7 @@ Use `gap-px bg-[#E2E8F0]` on a parent grid to create crisp cell borders without 
 │   ├── /mock
 │   │   ├── /mock/setup    → Session setup (Role, JD, Pillars, Device)
 │   │   ├── /mock/live     → Live mock interview room
-│   │   └── /report/[id]   → AI performance report
+│   │   └── /report/[id]   → AI Analytics & AI Coaching
 │   │         Sections: Overall · Competency · CAR · Strengths/Improvements
 │   │                   Question insights + AI rewrite · Suggested Trainings
 │   │                   Coaching Recs · Readiness · Final Verdict
@@ -238,7 +238,7 @@ Before starting any mock interview session, a **VideoConsentModal** intercepts t
   1. Device access (microphone ± camera)
   2. AI recording & analysis
 - Gate: both must be checked before "Confirm & start" enables
-- Recording is used **only** to generate the performance report — never shared
+- Recording is used **only** to generate the Analytics & AI Coaching — never shared
 
 ---
 

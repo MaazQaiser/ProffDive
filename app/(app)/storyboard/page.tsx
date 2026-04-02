@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, PlusCircle, Play, X, Layers, Info } from "lucide-react";
+import { ArrowRight, Play, X, Layers, Info } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 
 // --- Design Tokens ---
@@ -74,6 +74,14 @@ export default function StoryBoardPage() {
       ) : (
         /* HORIZONTAL STORY CARDS */
         <div className="flex flex-col gap-4 max-w-[840px] mx-auto relative z-10">
+          <Link
+            href="/storyboard/new"
+            className="block w-full rounded-[20px] border border-dashed border-slate-300/90 px-6 py-8 text-center transition-colors hover:border-slate-400 hover:bg-slate-50/50"
+          >
+            <p className="text-[14px] text-slate-500 mb-1">Planning a new role?</p>
+            <p className="text-[15px] font-medium text-slate-600">Let&apos;s create another story</p>
+          </Link>
+
           {stories.map((s) => (
             <Link key={s.id} href={`/storyboard/${s.id}`} className="group block">
               <div style={G} className="p-7 transition-all group-hover:bg-white group-hover:shadow-xl group-hover:shadow-slate-200/50 group-hover:-translate-y-0.5 relative">
@@ -91,13 +99,7 @@ export default function StoryBoardPage() {
             </Link>
           ))}
 
-          {/* Bottom Action */}
-          <div className="mt-8 flex justify-center pb-20">
-             <Link href="/storyboard/new" className="inline-flex items-center justify-center h-11 px-8 rounded-xl text-[13px] font-bold text-slate-500 hover:text-[#0F172A] hover:bg-white transition-colors border border-slate-200 shadow-sm border-dashed">
-                <PlusCircle size={16} className="mr-2" />
-                Create Story Board
-             </Link>
-          </div>
+          <div className="pb-12" aria-hidden />
         </div>
       )}
 

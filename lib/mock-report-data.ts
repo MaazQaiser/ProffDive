@@ -1,5 +1,5 @@
 /**
- * Shared mock payload for Performance Report (/report/[id]).
+ * Shared mock payload for Analytics & AI Coaching (/report/[id]).
  * Replace with API data when wired.
  */
 

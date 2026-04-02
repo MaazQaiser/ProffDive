@@ -194,7 +194,7 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-[12px] uppercase tracking-widest font-bold text-[#0087A8] mb-3 ml-4">BETTER VERSION</p>
+                  <p className="text-[12px] uppercase tracking-widest font-bold text-[#0087A8] mb-3 ml-4">Recommended Version</p>
                   <div className="p-4 rounded-[12px] bg-[#0087A8]/5 border border-[#0087A8]/10 italic text-[13px] text-[#0F172A] leading-relaxed relative">
                     <span className="absolute left-0 top-4 bottom-4 w-[3px] bg-[#0087A8] rounded-r-full" />
                     &ldquo;{q.aiSaid}&rdquo;
@@ -318,7 +318,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </Link>
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-1">
-                <h1 className="text-[36px] font-bold tracking-tight text-[#0F172A] leading-tight">Performance Report</h1>
+                <h1 className="text-[36px] font-bold tracking-tight text-[#0F172A] leading-tight">Analytics & AI Coaching</h1>
                 <div className="px-3 py-1 rounded-full bg-[#0F172A]/5 text-[#475569] text-[11px] font-bold mt-2">V1.2</div>
                 <span className="text-[12px] text-[#475569]/50 mt-2 font-mono">#{id}</span>
               </div>

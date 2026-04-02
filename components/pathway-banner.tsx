@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CircleCheck } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 interface PathwayBannerProps {
   label: string;
@@ -56,15 +56,29 @@ export function PathwayBanner({
   buttonHref,
 }: PathwayBannerProps) {
   return (
-    <PathwayCardSurface className="px-8 py-6">
+    <PathwayCardSurface className="px-8 py-5">
       <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3">
-          <p className="text-[18px] font-normal leading-normal text-[#044859]">
-            {label}
-          </p>
-          <p className="text-[20px] font-semibold leading-tight text-[#044757] text-balance">
-            {title}
-          </p>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+          <div className="flex flex-col gap-3">
+            <p className="text-[18px] font-normal leading-normal text-[#044859]">
+              {label}
+            </p>
+            <p className="text-[20px] font-semibold leading-tight text-[#044757] text-balance">
+              {title}
+            </p>
+          </div>
+
+          <Link
+            href={buttonHref}
+            className="group inline-flex shrink-0 items-center gap-1 text-sm font-normal text-[#334155] transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0087A8] sm:pt-1"
+          >
+            {buttonText}
+            <ArrowRight
+              className="size-4 transition-transform group-hover:translate-x-0.5"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </Link>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -92,28 +106,6 @@ export function PathwayBanner({
               )}
             </div>
           ))}
-        </div>
-
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex min-w-0 items-center gap-1">
-            <CircleCheck
-              className="size-4 shrink-0 text-[#334155]"
-              strokeWidth={2}
-              aria-hidden
-            />
-            <p className="text-sm leading-none text-[#334155]">{footerText}</p>
-          </div>
-          <Link
-            href={buttonHref}
-            className="group inline-flex shrink-0 items-center gap-1 text-sm font-normal text-[#334155] transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0087A8]"
-          >
-            {buttonText}
-            <ArrowRight
-              className="size-4 transition-transform group-hover:translate-x-0.5"
-              strokeWidth={2}
-              aria-hidden
-            />
-          </Link>
         </div>
       </div>
     </PathwayCardSurface>

@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Brain, Zap, Users, Target, ClipboardList, Timer, X, ChevronDown, ChevronUp, Camera, FileText, Briefcase, ArrowRight, Settings2, Pencil, Circle } from "lucide-react";
 import { JdResumeInput } from "@/components/JdResumeInput";
@@ -146,12 +146,22 @@ function ConsentModal({ onAccept, onClose }: { onAccept: () => void; onClose: ()
 
 
 // ── Main page ──────────────────────────────────────
-export default function MockSetup() {
+function MockSetupInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const mode = searchParams.get("mode");
   const { user } = useUser();
-  
-  // Default to selecting all pillars
-  const [pillars, setPillars] = useState<Set<P>>(new Set(["thinking","action","people","mastery"]));
+
+  // Default: all pillars; Proofy "specific" mode pre-selects a focused subset
+  const [pillars, setPillars] = useState<Set<P>>(new Set(["thinking", "action", "people", "mastery"]));
+
+  useEffect(() => {
+    if (mode === "full") {
+      setPillars(new Set(["thinking", "action", "people", "mastery"]));
+    } else if (mode === "specific") {
+      setPillars(new Set(["thinking", "action"]));
+    }
+  }, [mode]);
   const [story, setStory]     = useState<string | null>("a");
   const [isEditingStory, setIsEditingStory] = useState(false);
   const [jd, setJd]           = useState(user.jd || "");
@@ -188,9 +198,21 @@ export default function MockSetup() {
         {/* ① Page Header */}
         <div className="mb-10">
           <p className="text-[12px] uppercase tracking-[0.18em] font-bold mb-2" style={{ color: "rgba(15,15,15,0.35)" }}>Practice Session</p>
+          {mode === "full" && (
+            <p className="mb-2 inline-block rounded-full bg-[#0087A8]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#0087A8]">
+              Full session
+            </p>
+          )}
+          {mode === "specific" && (
+            <p className="mb-2 inline-block rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800">
+              Specific practice
+            </p>
+          )}
           <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F] mb-2">You&apos;re almost ready.</h1>
           <p className="text-[14px] leading-relaxed text-black/50 max-w-sm">
-            Your storyboard is attached. Pick your focus, select optional settings, and go.
+            {mode === "specific"
+              ? "Focused prep — adjust pillars if you want, then start when you’re ready."
+              : "Your storyboard is attached. Pick your focus, select optional settings, and go."}
           </p>
         </div>
 
@@ -396,5 +418,19 @@ export default function MockSetup() {
 
       </div>
     </>
+  );
+}
+
+export default function MockSetup() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-[560px] px-6 py-24 text-center text-[14px] text-black/40">
+          Loading setup…
+        </div>
+      }
+    >
+      <MockSetupInner />
+    </Suspense>
   );
 }

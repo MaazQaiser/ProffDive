@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Session detail now lives on the unified Performance Report. */
+/** Session detail now lives on the unified Analytics & AI Coaching. */
 export default async function SessionDetailRedirect({
   params,
 }: {
