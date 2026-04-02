@@ -64,9 +64,11 @@ function ConsentModal({ onAccept, onClose }: { onAccept: () => void; onClose: ()
         {/* Consent points */}
         <div className="px-7 py-5 space-y-4" style={{ borderBottom: SD }}>
           {[
-            "Your responses will be recorded and analysed by AI to generate your readiness report.",
-            "No data is shared with third parties. All session data is private to your account.",
-            "You can exit the interview at any time — partial sessions still generate a report.",
+            "Structure your answers using the CAR method (Context, Action, Result).",
+            "Keep responses clear and concise (1–2 minutes max).",
+            "Focus on your individual contribution, not just the team.",
+            "Position yourself properly if your camera is on — sit centered, well-lit, and not too far.",
+            "Ensure a clean, plain background with minimal distractions.",
           ].map((t, i) => (
             <div key={i} className="flex items-start gap-3">
               <span style={{ width: 6, height: 6, borderRadius: 99, background: "#0087A8", flexShrink: 0, marginTop: 5, display: "inline-block" }} />

@@ -7,7 +7,7 @@ import type { DriverDef } from "@/lib/mock-report-data";
 import { MOCK_DRIVERS, MOCK_SESSION_META } from "@/lib/mock-report-data";
 import { getTraining } from "@/lib/trainings-data";
 
-export type ProofyIntent = "reflect" | "new_role" | "mock" | "unknown";
+export type ProofyIntent = "reflect" | "new_role" | "mock" | "craft_story" | "unknown";
 
 export type FlowStep =
   | { type: "assistant_text"; text: string }
@@ -20,12 +20,13 @@ export type FlowStep =
     }
   | { type: "training_cards"; slugs: [string, string] }
   | { type: "mock_options" }
+  | { type: "await_role" }
   | { type: "navigate"; href: string };
 
 export const EMPTY_STATE_CHIPS: { label: string; sendText: string }[] = [
   { label: "Review my last session", sendText: "Review my last session" },
-  { label: "Train for a new role", sendText: "I want to train for a new role" },
   { label: "Start a mock interview", sendText: "I want to do a quick mock interview" },
+  { label: "Start with new role", sendText: "I want to craft a story" },
 ];
 
 function norm(s: string): string {
@@ -36,6 +37,19 @@ function norm(s: string): string {
 export function classifyIntent(text: string): ProofyIntent {
   const t = norm(text);
   if (!t) return "unknown";
+
+  const craftSignals = [
+    "craft a story",
+    "craft story",
+    "create a story",
+    "new story",
+    "storyboard for",
+    "build a story",
+    "write a story",
+    "star story",
+    "s t a r story",
+  ];
+  if (craftSignals.some((k) => t.includes(k))) return "craft_story";
 
   const newRoleSignals = [
     "new role",
@@ -128,6 +142,14 @@ const UNKNOWN_REPLY =
 export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
   if (intent === "unknown") {
     return [{ type: "assistant_text", text: UNKNOWN_REPLY }];
+  }
+
+  if (intent === "craft_story") {
+    return [
+      { type: "assistant_text", text: "Awesome — what role are you crafting this story for?" },
+      { type: "assistant_text", text: "Just say it naturally (you can type or use the mic)." },
+      { type: "await_role" },
+    ];
   }
 
   if (intent === "reflect") {

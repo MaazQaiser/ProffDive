@@ -26,6 +26,7 @@ const TEAL_MIST = "#a5f3fc";
 type ChatMsg =
   | { id: string; role: "user"; kind: "text"; text: string }
   | { id: string; role: "assistant"; kind: "text"; text: string }
+  | { id: string; role: "assistant"; kind: "story_role_card"; roleName: string }
   | {
       id: string;
       role: "assistant";
@@ -61,6 +62,7 @@ export function ProofyChatDock() {
   const dictationCommittedRef = useRef("");
   const listeningRef = useRef(false);
   const [flowRunning, setFlowRunning] = useState(false);
+  const [awaitingRole, setAwaitingRole] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -103,6 +105,7 @@ export function ProofyChatDock() {
     stopListening();
     setOpen(false);
     setMessages([]);
+    setAwaitingRole(false);
   }, [stopListening]);
 
   useEffect(() => {
@@ -132,6 +135,9 @@ export function ProofyChatDock() {
     switch (step.type) {
       case "assistant_text":
         setMessages((m) => [...m, { id: uid(), role: "assistant", kind: "text", text: step.text }]);
+        break;
+      case "await_role":
+        setAwaitingRole(true);
         break;
       case "performance_summary":
         setMessages((m) => [
@@ -171,6 +177,10 @@ export function ProofyChatDock() {
             router.push(step.href);
             break;
           }
+          if (step.type === "await_role") {
+            applyFlowStep(step);
+            break;
+          }
           applyFlowStep(step);
           await sleep(step.type === "assistant_text" ? 520 : 360);
         }
@@ -181,16 +191,36 @@ export function ProofyChatDock() {
     [applyFlowStep, router]
   );
 
+  const handleRoleCaptured = useCallback(
+    async (rawRole: string) => {
+      const roleName = rawRole.trim();
+      if (!roleName) return;
+      setAwaitingRole(false);
+      setMessages((m) => [
+        ...m,
+        { id: uid(), role: "assistant", kind: "text", text: "Ok — let’s craft a story for that role." },
+        { id: uid(), role: "assistant", kind: "story_role_card", roleName },
+      ]);
+      await sleep(850);
+      router.push(`/storyboard/new?role=${encodeURIComponent(roleName)}`);
+    },
+    [router]
+  );
+
   const submitUserText = useCallback(
     async (raw: string) => {
       const trimmed = raw.trim();
       if (!trimmed || flowRunning) return;
       setMessages((m) => [...m, { id: uid(), role: "user", kind: "text", text: trimmed }]);
+      if (awaitingRole) {
+        await handleRoleCaptured(trimmed);
+        return;
+      }
       const intent = classifyIntent(trimmed);
       const steps = buildFlowForIntent(intent);
       await runFlow(steps);
     },
-    [runFlow, flowRunning]
+    [runFlow, flowRunning, awaitingRole, handleRoleCaptured]
   );
 
   const toggleVoice = useCallback(() => {
@@ -367,6 +397,21 @@ export function ProofyChatDock() {
                         </div>
                       );
                     }
+                    if (msg.role === "assistant" && msg.kind === "story_role_card") {
+                      return (
+                        <div key={msg.id} className="flex justify-start">
+                          <div className="max-w-[92%] rounded-2xl border border-[#0087A8]/25 bg-white px-3.5 py-3 text-left shadow-sm">
+                            <p className="text-[11px] font-semibold uppercase tracking-wide text-[#0087A8]">
+                              Story role
+                            </p>
+                            <p className="mt-0.5 text-[15px] font-semibold text-[#0F172A]">
+                              {msg.roleName}
+                            </p>
+                            <p className="mt-1 text-[12px] text-[#64748B]">Creating your storyboard…</p>
+                          </div>
+                        </div>
+                      );
+                    }
                     if (msg.role === "assistant" && msg.kind === "performance_summary") {
                       return (
                         <div key={msg.id} className="flex justify-start">
@@ -473,31 +518,13 @@ export function ProofyChatDock() {
                       send();
                     }}
                   >
-                    {speechSupported && (
-                      <motion.button
-                        type="button"
-                        onClick={toggleVoice}
-                        aria-label={listening ? "Stop voice input" : "Voice input"}
-                        aria-pressed={listening}
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full outline-none transition-colors"
-                        style={{
-                          color: listening ? TEAL : "rgba(15, 23, 42, 0.42)",
-                          background: listening ? `${TEAL}14` : "transparent",
-                          boxShadow: listening ? `0 0 0 2px ${TEAL}33` : "none",
-                        }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Mic className="h-[20px] w-[20px]" strokeWidth={listening ? 2.25 : 2} />
-                      </motion.button>
-                    )}
-
                     <div className="relative min-w-0 flex-1">
                       <input
                         ref={inputRef}
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         readOnly={listening || flowRunning}
-                        placeholder="Ask Proofy what to do next…"
+                        placeholder={awaitingRole ? "Type the role (e.g. Product Manager)..." : "Ask Proofy what to do next…"}
                         aria-label="Message to Proofy"
                         className="h-10 w-full rounded-full border border-slate-200 bg-white px-4 text-[15px] outline-none placeholder:text-[#94A3B8] focus:border-[#0087A8]/50 focus:ring-2 focus:ring-[#0087A8]/10 read-only:opacity-95"
                         style={{ color: "#0F172A" }}
@@ -515,6 +542,24 @@ export function ProofyChatDock() {
                         />
                       </motion.span>
                     </div>
+
+                    {speechSupported && (
+                      <motion.button
+                        type="button"
+                        onClick={toggleVoice}
+                        aria-label={listening ? "Stop voice input" : "Voice input"}
+                        aria-pressed={listening}
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full outline-none transition-colors"
+                        style={{
+                          color: listening ? TEAL : "rgba(15, 23, 42, 0.42)",
+                          background: listening ? `${TEAL}14` : "transparent",
+                          boxShadow: listening ? `0 0 0 2px ${TEAL}33` : "none",
+                        }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        <Mic className="h-[20px] w-[20px]" strokeWidth={listening ? 2.25 : 2} />
+                      </motion.button>
+                    )}
 
                     <motion.button
                       type="submit"

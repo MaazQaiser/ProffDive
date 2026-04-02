@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Play, Clock, ChevronRight, Zap, ArrowRight, Target, Mic } from "lucide-react";
+import { Play, Clock, ChevronRight, Zap, ArrowRight, Target, Mic, Info } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import { RecommendationBanner } from "@/components/recommendation-banner";
 
@@ -129,8 +129,15 @@ export default function PracticePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     {s.ai && (
-                       <span className="text-[12px] font-bold uppercase tracking-wider px-2 py-1 bg-gradient-to-r from-[#F59E0B]/10 to-[#F59E0B]/5 text-[#D97706] rounded-[6px] border border-[#F59E0B]/20">
-                         AI Pick
+                       <span className="group relative inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-wider px-2 py-1 bg-gradient-to-r from-[#F59E0B]/10 to-[#F59E0B]/5 text-[#D97706] rounded-[6px] border border-[#F59E0B]/20">
+                         Suggested
+                         <Info size={14} className="opacity-70 group-hover:opacity-100 transition-opacity" />
+                         <span
+                           role="tooltip"
+                           className="pointer-events-none absolute right-0 top-full mt-2 w-[240px] rounded-[10px] border border-[#0F172A]/10 bg-white px-3 py-2 text-[11px] font-medium normal-case tracking-normal text-[#475569] shadow-xl opacity-0 translate-y-1 group-hover:opacity-100 group-hover:translate-y-0 transition-all"
+                         >
+                           Based on your last session, we’re working on the <span className="font-semibold">Action</span> pillar.
+                         </span>
                        </span>
                     )}
                     <div className="flex items-center gap-1.5 text-[#475569] bg-white/50 px-2.5 py-1 rounded-[6px] border border-[#0F172A]/5">

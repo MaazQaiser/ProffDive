@@ -58,7 +58,7 @@ export const MOCK_SESSION_META: SessionMeta = {
   date: "Oct 24, 2024",
   duration: "31 min",
   pillars: ["Thinking", "Action", "People", "Mastery"],
-  questionCount: 4,
+  questionCount: 8,
 };
 
 export const MOCK_DRIVERS: DriverDef[] = [
@@ -152,6 +152,72 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
     improve: [
       { heading: "Lacked technical depth", detail: "Name the specific tech, pattern or principle you applied." },
       { heading: "No outcome or learning", detail: "What did this teach you? What would you do differently?" },
+    ],
+  },
+  {
+    q: "Tell me about a time you had to work with incomplete or ambiguous information.",
+    driver: "Thinking",
+    driverAccent: "#D97706",
+    score: 3.4,
+    taken: "2m 21s",
+    ideal: "3–4 min",
+    car: [
+      { label: "Context", ok: true, note: "Ambiguity framed clearly" },
+      { label: "Action", ok: true, note: "You described how you gathered signals" },
+      { label: "Result", ok: false, note: "Outcome wasn’t tied to a clear metric" },
+    ],
+    improve: [
+      { heading: "State your decision criteria", detail: "Explain how you chose a path with limited info." },
+      { heading: "Quantify the outcome", detail: "Add a metric: reduced risk, time saved, or accuracy gain." },
+    ],
+  },
+  {
+    q: "Describe a time you influenced someone without formal authority.",
+    driver: "People",
+    driverAccent: "#16A34A",
+    score: 3.9,
+    taken: "3m 05s",
+    ideal: "3–4 min",
+    car: [
+      { label: "Context", ok: true, note: "Stakeholders and stakes were clear" },
+      { label: "Action", ok: true, note: "You used empathy + data to align" },
+      { label: "Result", ok: true, note: "Decision landed and moved forward" },
+    ],
+    improve: [
+      { heading: "Add one concrete artifact", detail: "Mention the doc, brief, or deck you used to align." },
+    ],
+  },
+  {
+    q: "Tell me about a time you delivered results under a tight deadline.",
+    driver: "Action",
+    driverAccent: "#0087A8",
+    score: 3.0,
+    taken: "2m 02s",
+    ideal: "3–4 min",
+    car: [
+      { label: "Context", ok: true, note: "Deadline and constraints were stated" },
+      { label: "Action", ok: false, note: "Trade-offs and prioritization were vague" },
+      { label: "Result", ok: false, note: "Impact wasn’t measurable" },
+    ],
+    improve: [
+      { heading: "Show prioritization", detail: "Name what you cut, delayed, or de-scoped and why." },
+      { heading: "Measure the impact", detail: "Add one metric: time-to-launch, adoption, or revenue impact." },
+    ],
+  },
+  {
+    q: "What’s a mistake you made at work, and what did you learn from it?",
+    driver: "Mastery",
+    driverAccent: "#7C3AED",
+    score: 3.5,
+    taken: "3m 11s",
+    ideal: "3–4 min",
+    car: [
+      { label: "Context", ok: true, note: "Mistake explained with enough detail" },
+      { label: "Action", ok: true, note: "You owned the correction steps" },
+      { label: "Result", ok: true, note: "Learning was explicit and forward-looking" },
+    ],
+    improve: [
+      { heading: "Tighten the setup", detail: "Get to the mistake sooner; keep context to 1–2 sentences." },
     ],
   },
 ];

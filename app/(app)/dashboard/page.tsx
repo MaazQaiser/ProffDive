@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Mic, BookOpen, Zap, X, Play } from "lucide-react";
 import { useUser } from "@/lib/user-context";
@@ -16,23 +16,276 @@ const glassSquare: React.CSSProperties = {
   borderRadius: 12,
 }
 
+function AboutProofDiveModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-6 sm:p-12">
+      <div
+        className="absolute inset-0 bg-[#0F172A]/55 backdrop-blur-[14px]"
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-[620px] rounded-[24px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.45)] border border-white/10 bg-gradient-to-br from-[#0B1220] via-[#0F172A] to-[#0B1220]">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div className="min-w-0">
+              <p className="text-white/60 text-[12px] uppercase tracking-[0.18em] font-bold">
+                About ProofDive
+              </p>
+              <h3 className="text-white text-[24px] sm:text-[26px] font-semibold tracking-tight mt-2">
+                Practice answers. Build story. Measure readiness.
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="shrink-0 w-10 h-10 rounded-full bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-white/15 transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <p className="text-white/70 text-[14px] leading-relaxed">
+            ProofDive helps you prepare with structure: learn the essentials, craft interview-ready
+            stories, run mock interviews, and review AI feedback so you always know what to improve
+            next.
+          </p>
+
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="rounded-[16px] border border-white/10 bg-white/5 p-4">
+              <p className="text-white text-[12px] font-bold mb-1">Guided practice</p>
+              <p className="text-white/65 text-[12px] leading-relaxed">
+                A clear path that reduces decision fatigue.
+              </p>
+            </div>
+            <div className="rounded-[16px] border border-white/10 bg-white/5 p-4">
+              <p className="text-white text-[12px] font-bold mb-1">Better storytelling</p>
+              <p className="text-white/65 text-[12px] leading-relaxed">
+                Turn experience into reusable answers.
+              </p>
+            </div>
+            <div className="rounded-[16px] border border-white/10 bg-white/5 p-4">
+              <p className="text-white text-[12px] font-bold mb-1">Actionable feedback</p>
+              <p className="text-white/65 text-[12px] leading-relaxed">
+                Strengths, gaps, and next steps—fast.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-7 flex items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="h-10 px-4 rounded-[12px] text-[13px] font-bold text-white/75 hover:text-white transition-colors"
+            >
+              Back
+            </button>
+            <button
+              onClick={onClose}
+              className="h-10 px-5 rounded-[12px] text-[13px] font-bold text-[#0B1220] bg-white hover:bg-white/90 transition-colors"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HowItWorksVideoModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-[130] flex items-center justify-center p-6 sm:p-12">
+      <div className="absolute inset-0 bg-[#0F172A]/55 backdrop-blur-[14px]" onClick={onClose} />
+      <div className="relative w-full max-w-[920px] rounded-[24px] overflow-hidden shadow-[0_32px_90px_rgba(0,0,0,0.50)] border border-black/10 bg-white">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start justify-between gap-4 mb-5">
+            <div className="min-w-0">
+              <p className="text-[#64748B] text-[12px] uppercase tracking-[0.18em] font-bold">
+                How it works
+              </p>
+              <h3 className="text-[#0F172A] text-[22px] sm:text-[24px] font-semibold tracking-tight mt-2">
+                A 2‑minute walkthrough of ProofDive
+              </h3>
+            </div>
+            <button
+              onClick={onClose}
+              className="shrink-0 w-10 h-10 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div className="rounded-[18px] border border-black/10 bg-[#0B1220] overflow-hidden">
+            <div className="aspect-video w-full">
+              <video
+                className="w-full h-full object-cover"
+                controls
+                playsInline
+                preload="metadata"
+                src="/how-it-works.mp4"
+              />
+            </div>
+          </div>
+
+          <p className="mt-4 text-[#64748B] text-[12px]">
+            To replace this video, add your file at <span className="font-semibold">public/how-it-works.mp4</span>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function VideoGuideModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [showAbout, setShowAbout] = useState(false);
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setShowAbout(false);
+      setShowHowItWorks(false);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 sm:p-12">
-      <div className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-[12px]" onClick={onClose} />
-      <div className="relative w-full max-w-[840px] aspect-video bg-black rounded-[24px] overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.4)] border border-white/10 group">
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-[#1E293B] to-[#0F172A]">
-          <div className="w-20 h-20 rounded-full bg-white/10 backdrop-blur-xl flex items-center justify-center border border-white/20 mb-6 group-hover:scale-110 transition-transform cursor-pointer">
-            <Play fill="white" color="white" size={32} className="ml-1" />
+      <div className="absolute inset-0 bg-[#0F172A]/35 backdrop-blur-[10px]" onClick={onClose} />
+      <div className="relative w-full max-w-[760px] rounded-[24px] overflow-hidden shadow-[0_24px_70px_rgba(2,6,23,0.28)] border border-black/10 bg-white">
+        <div className="p-6 sm:p-8">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div className="min-w-0">
+              <p className="text-[#64748B] text-[12px] uppercase tracking-[0.18em] font-bold">
+                Welcome to ProofDive
+              </p>
+              <h2 className="text-[#0F172A] text-[26px] sm:text-[30px] font-semibold tracking-tight mt-2">
+                Get interview-ready with a clear guided path.
+              </h2>
+              <p className="text-[#475569] text-[14px] leading-relaxed mt-3 max-w-[60ch]">
+                Start with practice, craft your story, test it in a mock, then review your AI analytics
+                report to know exactly what to improve next.
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="shrink-0 w-10 h-10 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#0F172A] hover:bg-[#F8FAFC] transition-colors"
+              aria-label="Close"
+            >
+              <X size={18} />
+            </button>
           </div>
-          <h3 className="text-white text-[20px] font-semibold mb-2">ProofDive Quick Guide</h3>
-          <p className="text-white/50 text-[14px]">Click to start your onboarding tour</p>
+
+          <div className="space-y-4">
+            <div className="rounded-[18px] border border-black/10 bg-[#F8FAFC] p-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-[#0F172A] text-[14px] font-semibold">Know about ProofDive</p>
+                  <p className="text-[#475569] text-[12px] leading-relaxed mt-1">
+                    Learn what we do and how the guided path helps you prepare with structure.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowHowItWorks(true)}
+                  className="shrink-0 inline-flex items-center gap-2 h-10 px-4 rounded-[12px] text-[12px] font-bold text-white bg-[#0087A8] hover:bg-[#007592] border border-[#007592]/20 transition-colors"
+                >
+                  <Play size={14} className="opacity-95" />
+                  How it works
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-black/10 bg-white p-5">
+              <div className="mb-3">
+                <p className="text-[#64748B] text-[12px] uppercase tracking-[0.18em] font-bold">
+                  Your guided path
+                </p>
+                <p className="text-[#64748B] text-[12px] mt-1">
+                  Follow these steps in order. No pressure—do what you can today.
+                </p>
+              </div>
+
+              <div className="relative">
+                <div className="absolute left-[14px] top-[14px] bottom-[14px] w-px bg-[#E2E8F0]" />
+                {[
+                  {
+                    title: "Practice first",
+                    desc: "Do a quick warm‑up to get comfortable speaking clearly and concisely.",
+                  },
+                  {
+                    title: "Craft your story",
+                    desc: "Turn your experience into a reusable, interview‑ready narrative.",
+                  },
+                  {
+                    title: "Mock interview",
+                    desc: "Answer realistic questions under pressure and build confidence.",
+                  },
+                  {
+                    title: "Analytics Report & Ai Coaching",
+                    desc: "Review strengths, gaps, and the exact next actions to improve.",
+                  },
+                ].map((s, idx) => (
+                  <div
+                    key={s.title}
+                    className="relative flex items-start gap-4 py-3 pl-10"
+                  >
+                    <div
+                      className={[
+                        "absolute left-0 top-3 w-7 h-7 rounded-full flex items-center justify-center border",
+                        idx === 0
+                          ? "bg-[#0087A8] border-[#0087A8] text-white"
+                          : "bg-white border-[#CBD5E1] text-[#0F172A]",
+                      ].join(" ")}
+                    >
+                      <span className="text-[12px] font-bold">{idx + 1}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[#0F172A] text-[13px] font-semibold">{s.title}</p>
+                      <p className="text-[#475569] text-[12px] leading-relaxed mt-1">{s.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="h-11 px-4 rounded-[14px] text-[13px] font-bold text-[#475569] hover:text-[#0F172A] transition-colors"
+            >
+              Skip for now
+            </button>
+            <button
+              onClick={onClose}
+              className="h-11 px-6 rounded-[14px] text-[13px] font-bold text-white bg-[#0087A8] hover:bg-[#007592] transition-colors"
+            >
+              Let’s get started
+            </button>
+          </div>
+
+          <p className="mt-4 text-[#94A3B8] text-[12px]">
+            You can reopen this anytime from the dashboard.
+          </p>
         </div>
-        <button onClick={onClose} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:bg-black/60 transition-colors z-[110]">
-          <X size={20} />
-        </button>
       </div>
+
+      <AboutProofDiveModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      <HowItWorksVideoModal isOpen={showHowItWorks} onClose={() => setShowHowItWorks(false)} />
     </div>
   );
 }
@@ -43,16 +296,12 @@ export default function NewUserDashboard() {
   const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
-    const hasSeen = localStorage.getItem("hasSeenGuide");
-    if (!hasSeen) {
-      const timer = setTimeout(() => setShowGuide(true), 1200);
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(() => setShowGuide(true), 450);
+    return () => clearTimeout(timer);
   }, []);
 
   const closeGuide = () => {
     setShowGuide(false);
-    localStorage.setItem("hasSeenGuide", "true");
   };
 
   return (

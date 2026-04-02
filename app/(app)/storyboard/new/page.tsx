@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronRight, Zap, Info, Lightbulb, Brain, Users, Target, Mic } from "lucide-react";
 import {
   getSpeechRecognition,
@@ -73,8 +74,14 @@ function pillarQuestionIndex(step: number) {
 // ── Component ────────────────────────────────────────────────────────
 export default function NewStoryBoardFlow() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rolePrefill = (searchParams.get("role") ?? "").trim();
   const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [answers, setAnswers] = useState<Record<number, string>>(() => {
+    const init: Record<number, string> = {};
+    if (rolePrefill) init[1] = rolePrefill;
+    return init;
+  });
   const [showSample, setShowSample] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<WebSpeechRecognition | null>(null);

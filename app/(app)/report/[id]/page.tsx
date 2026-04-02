@@ -8,7 +8,6 @@ import {
   Users,
   Target,
   Play,
-  Clock,
   BookOpen,
   Timer,
   ChevronDown,
@@ -452,8 +451,8 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         <div style={glassCard} className="overflow-hidden border border-white/40">
           <div className="p-6 md:px-8 border-b border-black/[0.06] bg-black/[0.02] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h3 className="text-[16px] font-bold text-[#0F172A]">Cross-Answer Consistency (CAR)</h3>
-              <p className="text-[12px] text-[#475569]/60">How consistently you structure your narrative across the entire session.</p>
+              <h3 className="text-[16px] font-bold text-[#0F172A]">Context Action Result</h3>
+              <p className="text-[12px] text-[#475569]/60">A quick read on how consistently you used CAR across the session.</p>
             </div>
             <div className="hidden md:flex gap-4">
               <div className="flex items-center gap-1.5">
@@ -468,28 +467,47 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-black/[0.06]">
-            {MOCK_CAR_ROWS.map((c) => (
-              <div key={c.label} className="p-8 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[16px] font-black text-[#0F172A] tracking-tight italic" style={{ opacity: 0.1 }}>
-                    {c.label.toUpperCase()}
-                  </span>
-                  <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full" style={{ background: `${c.dot}15`, color: c.dot }}>
+          <div className="p-6 md:px-8">
+            <div className="flex flex-wrap gap-2">
+              {MOCK_CAR_ROWS.map((c) => (
+                <div
+                  key={c.label}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/[0.06] bg-white px-3 py-2"
+                >
+                  <span className="text-[12px] font-semibold text-[#0F172A]">{c.label}</span>
+                  <span
+                    className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: `${c.dot}15`, color: c.dot }}
+                  >
                     {c.status.toUpperCase()}
                   </span>
                 </div>
-                <h4 className="text-[16px] font-bold text-[#0F172A]">{c.label} Quality</h4>
-                <p className="text-[13px] text-[#475569] leading-relaxed">{c.note}</p>
-              </div>
-            ))}
+              ))}
+            </div>
+
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              {MOCK_CAR_ROWS.map((c) => (
+                <div key={`${c.label}-note`} className="rounded-[14px] border border-black/[0.06] bg-white/70 p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[12px] font-bold text-[#0F172A]">{c.label}</span>
+                    <span
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: `${c.dot}15`, color: c.dot }}
+                    >
+                      {c.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <p className="text-[12px] text-[#475569] leading-relaxed">{c.note}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         <div className="pt-4">
           <div className="mb-8">
-            <h2 className="text-[24px] font-bold text-[#0F172A]">Detailed Session Breakdown</h2>
-            <p className="text-[14px] text-[#475569]/60 mt-1">AI-augmented performance analysis for each question asked.</p>
+            <h2 className="text-[24px] font-bold text-[#0F172A]">Detail breakdown per question</h2>
+            <p className="text-[14px] text-[#475569]/60 mt-1">AI performance analysis for each question.</p>
           </div>
           <div className="flex flex-col">
             {MOCK_QUESTIONS.map((q, qi) => (

@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Smile, Mail, Key, Eye, EyeOff } from "lucide-react";
 import { useUser } from "@/lib/user-context";
@@ -196,19 +195,19 @@ export default function SignupPage() {
         {/* Bottom copyright */}
         <div className="absolute bottom-0 left-0 w-full px-8 py-[18px]">
           <p className="text-[14px] text-[#475569] font-medium">
-            © Proofdive 2025. All Rights Reserved
+            © ProofDive 2025. All Rights Reserved
           </p>
         </div>
       </div>
 
       {/* Right Side - Hero Panel */}
       <div className="hidden lg:flex w-[460px] h-screen relative overflow-hidden">
-        <Image
+        <img
           src="/login_hero_final.png"
           alt="Turn experience into proof"
-          fill
-          className="object-cover"
-          priority
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
         />
       </div>
     </div>

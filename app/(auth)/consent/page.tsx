@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 
@@ -115,19 +114,19 @@ export default function ConsentPage() {
         {/* Bottom copyright */}
         <div className="absolute bottom-6 left-8">
           <p className="text-[12px] text-[#475569] font-medium">
-            © Proofdive 2025. All Rights Reserved
+            © ProofDive 2025. All Rights Reserved
           </p>
         </div>
       </div>
 
       {/* Right Side - Hero Panel (matches exactly with other screens) */}
       <div className="hidden lg:flex w-[460px] h-screen relative overflow-hidden flex-shrink-0">
-        <Image
+        <img
           src="/login_hero_final.png"
           alt="Turn experience into proof"
-          fill
-          className="object-cover"
-          priority
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
         />
       </div>
     </div>

@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 /** Email sign-in: existing (onboarded) users → returning dashboard; new users → onboarding. */
@@ -118,12 +117,12 @@ export default function LoginPage() {
 
           {/* Footer Link */}
           <div className="mt-8 flex gap-2 text-[16px]">
-            <span className="text-[#475569]">New to Proofdive.com</span>
+            <span className="text-[#475569]">New to ProofDive.com</span>
             <Link
               href="/signup"
               className="text-[#0F172A] font-medium underline underline-offset-4 decoration-1"
             >
-              Sign Up fo Free
+              Sign up for free
             </Link>
           </div>
         </div>
@@ -131,20 +130,19 @@ export default function LoginPage() {
         {/* Bottom copyright */}
         <div className="absolute bottom-0 left-0 w-full px-8 py-[18px]">
           <p className="text-[14px] text-[#475569] font-medium">
-            © Proofdive 2025. All Rights Reserved
+            © ProofDive 2025. All Rights Reserved
           </p>
         </div>
       </div>
 
       {/* Right Side - Hero Panel */}
-      <div className="hidden lg:flex w-[460px] h-screen relative overflow-hidden">
-        {/* Since the user provided image has all elements baked in, we'll just display it */}
-        <Image
+      <div className="hidden md:flex w-[460px] h-screen relative overflow-hidden bg-white/30">
+        <img
           src="/login_hero_final.png"
           alt="Turn experience into proof"
-          fill
-          className="object-cover"
-          priority
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
         />
       </div>
     </div>

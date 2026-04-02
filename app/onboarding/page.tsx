@@ -1,6 +1,5 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { JdResumeInput } from "@/components/JdResumeInput";
 import { StepContainer } from "@/components/step-container";
@@ -254,12 +253,12 @@ export default function OnboardingPage() {
 
       {/* Right Side - Hero Panel */}
       <div className="hidden lg:flex w-[460px] h-screen relative overflow-hidden flex-shrink-0">
-        <Image
+        <img
           src="/login_hero_final.png"
           alt="Turn experience into proof"
-          fill
-          className="object-cover"
-          priority
+          className="absolute inset-0 h-full w-full object-cover"
+          loading="eager"
+          decoding="async"
         />
       </div>
     </div>
