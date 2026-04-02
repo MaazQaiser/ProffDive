@@ -353,7 +353,7 @@ export default function NewUserDashboard() {
           <PathwayBanner 
             label="Get started with coaching created for you"
             title="A clear path to help you prepare with more structure and confidence."
-            steps={["Learn the essentials", "Craft your story", "Test it in a mock"]}
+            steps={["Learn the essentials", "Craft your story", "Test it in a mock", "Analytics & AI coaching"]}
             footerText="Move through the right steps to build stronger interview readiness."
             buttonText="let's Get Started"
             buttonHref="/mock/setup"
