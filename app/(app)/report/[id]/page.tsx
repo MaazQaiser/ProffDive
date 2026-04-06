@@ -10,7 +10,6 @@ import {
   Play,
   BookOpen,
   Timer,
-  ChevronDown,
   ChevronRight,
   ArrowLeft,
   Mic,
@@ -18,19 +17,24 @@ import {
   CheckCircle,
   AlertTriangle,
   ArrowRight,
+  Sparkles,
+  ChevronDown,
 } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import {
   MOCK_SESSION_META,
   MOCK_DRIVERS,
-  MOCK_CAR_ROWS,
   MOCK_QUESTIONS,
   MOCK_TRANSCRIPT,
   MOCK_SUMMARY_CHIPS,
   REC_TRAINING_FEATURED,
   SUGGESTED_TRAINING_SLUGS,
+  COMPETENCY_DETAILS,
+  MOCK_SESSION_AI_COACHING,
   getOverallScore,
+  focusFacetLabelForQuestionIndex,
   type ReportQuestion,
+  type DriverDef,
 } from "@/lib/mock-report-data";
 import { TRAININGS, PILLAR_COLORS, type Pillar } from "@/lib/trainings-data";
 import { PathwayCardSurface } from "@/components/pathway-banner";
@@ -64,6 +68,17 @@ const stickyCard: React.CSSProperties = {
 const sessionPlayerGrad = "linear-gradient(145deg,#1C3B4A 0%,#2D5668 55%,#1E4456 100%)";
 const IB = "1px solid rgba(0,0,0,0.06)";
 const TEAL = "#0087A8";
+
+function stripOuterQuotes(s: string): string {
+  const t = s.trim();
+  if (
+    t.length >= 2 &&
+    ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("\u201c") && t.endsWith("\u201d")))
+  ) {
+    return t.slice(1, -1).trim();
+  }
+  return t;
+}
 
 const DRIVER_ICONS = {
   thinking: Brain,
@@ -100,51 +115,109 @@ function stickyBadge(score: number) {
   return { dot: "#F87171", bg: "rgba(248,113,113,0.12)", text: "#DC2626", label: "Not Ready" };
 }
 
+const DRIVER_LABEL_TO_ID: Record<string, DriverDef["id"]> = {
+  Thinking: "thinking",
+  Action: "action",
+  People: "people",
+  Mastery: "mastery",
+};
+
+/** Mock per–sub-skill score derived from pillar score (deterministic). */
+function mockSubSkillScore(parentScore: number, skillIndex: number): number {
+  const deltas = [0.12, -0.18, 0.06];
+  const v = parentScore + deltas[skillIndex % deltas.length];
+  return Math.min(5, Math.max(1, Math.round(v * 10) / 10));
+}
+
+const tagBase =
+  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0";
+
+const focusFacetTagClass =
+  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#0F172A]/10 bg-white text-[#475569] text-[11px] font-semibold tracking-normal normal-case shrink-0 max-w-[min(100%,17rem)] truncate";
+
 function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
-  const [open, setOpen] = useState(!!q.showAI);
+  const [open, setOpen] = useState(false);
   const sc = getScoreColor(q.score);
+  const pillarId = DRIVER_LABEL_TO_ID[q.driver];
+  const pillarDetail = pillarId ? COMPETENCY_DETAILS[pillarId] : null;
+  const focusFacetLabel = focusFacetLabelForQuestionIndex(qi);
 
   return (
-    <div style={{ ...glassCard, borderRadius: 16 }} className="mb-4 overflow-hidden border border-white/40 hover:border-[#0087A8]/30 transition-all">
-      <div className="flex flex-wrap items-center gap-4 md:gap-6 p-5 cursor-pointer" onClick={() => setOpen(!open)}>
-        <span className="shrink-0 w-8 h-8 flex items-center justify-center text-[12px] font-bold bg-[#0F172A]/5 rounded-[10px] text-[#0F172A]/40">
-          {qi + 1}
-        </span>
-
-        <p className="flex-1 min-w-[200px] text-[16px] font-bold text-[#0F172A] mb-0">&ldquo;{q.q}&rdquo;</p>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span style={{ width: 6, height: 6, borderRadius: 99, background: q.driverAccent }} />
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[#475569]/60">{q.driver}</span>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0">
-          <span className="text-[22px] font-bold font-mono tabular-nums leading-none" style={{ color: sc }}>
+    <div
+      style={{ ...glassCard, borderRadius: 16 }}
+      className="mb-4 overflow-hidden border border-white/40 hover:border-[#0087A8]/30 transition-all"
+    >
+      <div className="p-5 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={focusFacetTagClass} title={focusFacetLabel}>
+            {focusFacetLabel}
+          </span>
+          <span
+            className={`${tagBase} border-black/[0.06] bg-white text-[#0F172A]`}
+            style={{ boxShadow: `inset 0 0 0 1px ${q.driverAccent}33` }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: 99, background: q.driverAccent }} />
+            {q.driver}
+          </span>
+          <span className={`${tagBase} border-[#0F172A]/8 bg-[#0F172A]/[0.02] text-[#475569]`}>
+            <Timer size={12} className="text-[#475569]/50" />
+            {q.taken}
+          </span>
+          <span className={`${tagBase} border-[#0F172A]/10 bg-white font-mono tabular-nums`} style={{ color: sc }}>
             {q.score}
-            <span className="text-[12px] font-medium text-[#475569]/30">/5</span>
+            <span className="text-[#475569]/35 font-sans">/5</span>
           </span>
           <StatusBadge score={q.score} />
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0 md:ml-4">
-          <Timer size={14} className="text-[#475569]/30" />
-          <span className="text-[12px] font-medium text-[#475569]/60">{q.taken}</span>
-        </div>
-
         <button
           type="button"
-          className="flex items-center justify-center w-8 h-8 rounded-full bg-[#0F172A]/5 hover:bg-[#0F172A]/10 transition-colors ml-auto"
-          aria-label={open ? "Collapse" : "Expand"}
+          onClick={() => setOpen((v) => !v)}
+          className="flex w-full items-start gap-3 text-left rounded-xl -mx-1 px-1 py-1 hover:bg-[#0F172A]/[0.02] transition-colors"
+          aria-expanded={open}
         >
-          <ChevronDown size={16} className={`text-[#0F172A]/40 transition-transform ${open ? "rotate-180" : ""}`} />
+          <span className="shrink-0 w-8 h-8 flex items-center justify-center text-[12px] font-bold bg-[#0F172A]/5 rounded-[10px] text-[#0F172A]/50">
+            {qi + 1}
+          </span>
+          <p className="flex-1 min-w-0 text-[16px] font-bold text-[#0F172A] leading-snug pr-2">&ldquo;{q.q}&rdquo;</p>
+          <ChevronDown
+            size={20}
+            className={`shrink-0 text-[#475569]/40 mt-0.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            aria-hidden
+          />
         </button>
       </div>
 
-      {open && (
-        <div className="border-t border-black/[0.04] bg-white/[0.02]">
-          <div className="p-6 border-b border-black/[0.04]">
-            <p className="text-[12px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">COMPETENCY ANALYSIS</p>
-            <div className="flex flex-wrap gap-8 items-start">
+      {open ? (
+        <div className="border-t border-black/[0.06] bg-white/35 px-5 py-6 space-y-8">
+          {pillarDetail ? (
+            <div className="p-4 rounded-[14px] border border-black/[0.06] bg-white/60">
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#475569]/45 mb-2">Competency area</p>
+              <p className="text-[15px] font-bold text-[#0F172A]">
+                {pillarDetail.pillar}{" "}
+                <span className="text-[#475569]/60 font-semibold">({pillarDetail.subtitle})</span>
+              </p>
+              <ul className="mt-3 space-y-2">
+                {pillarDetail.skills.map((s, si) => {
+                  const pillarScore = pillarId ? MOCK_DRIVERS.find((d) => d.id === pillarId)?.score ?? q.score : q.score;
+                  const sub = mockSubSkillScore(pillarScore, si);
+                  return (
+                    <li key={s} className="text-[13px] text-[#475569] flex items-center justify-between gap-3 flex-wrap">
+                      <span className="flex items-center gap-2 min-w-0">
+                        <span className="w-1 h-1 rounded-full shrink-0 bg-[#0087A8]" />
+                        {s}
+                      </span>
+                      <span className="font-mono font-bold tabular-nums text-[#0F172A] text-[12px] shrink-0">{sub.toFixed(1)}/5</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ) : null}
+
+          <div>
+            <p className="text-[12px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">Competency analysis</p>
+            <div className="flex flex-col gap-4">
               {q.car.map((c) => (
                 <div key={c.label} className="flex items-start gap-3">
                   <div
@@ -162,9 +235,9 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
             </div>
           </div>
 
-          <div className={`p-6 ${q.showAI ? "border-b border-black/[0.04]" : ""}`}>
-            <p className="text-[12px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">AREAS FOR IMPROVEMENT</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-3">
+          <div>
+            <p className="text-[12px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">Areas for improvement</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3">
               {q.improve.map((imp) => (
                 <div key={imp.heading} className="flex items-start gap-2.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] mt-[7px] shrink-0" />
@@ -175,43 +248,83 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
               ))}
             </div>
           </div>
-
-          {q.showAI && (
-            <div className="p-6 bg-[#0087A8]/[0.03]">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-6 h-6 rounded-full bg-[#0087A8] flex items-center justify-center">
-                  <Zap size={12} fill="white" color="white" />
-                </div>
-                <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#0087A8]">AI Performance Coaching</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div>
-                  <p className="text-[12px] uppercase tracking-widest font-bold text-[#475569]/40 mb-3 ml-4">YOUR ANSWER</p>
-                  <div className="p-4 rounded-[12px] bg-white/40 border border-black/[0.04] italic text-[13px] text-[#475569]/80 leading-relaxed">
-                    &ldquo;{q.youSaid}&rdquo;
-                  </div>
-                </div>
-                <div>
-                  <p className="text-[12px] uppercase tracking-widest font-bold text-[#0087A8] mb-3 ml-4">Recommended Version</p>
-                  <div className="p-4 rounded-[12px] bg-[#0087A8]/5 border border-[#0087A8]/10 italic text-[13px] text-[#0F172A] leading-relaxed relative">
-                    <span className="absolute left-0 top-4 bottom-4 w-[3px] bg-[#0087A8] rounded-r-full" />
-                    &ldquo;{q.aiSaid}&rdquo;
-                    <div className="mt-4 flex flex-wrap gap-3">
-                      {q.aiTips?.map((t) => (
-                        <div key={t} className="flex items-center gap-1.5">
-                          <div className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-                          <span className="text-[11px] font-bold text-[#10B981]">{t}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
-      )}
+      ) : null}
+    </div>
+  );
+}
+
+function DriverPillarCard({ d }: { d: DriverDef }) {
+  const [open, setOpen] = useState(false);
+  const Icon = DRIVER_ICONS[d.id];
+  const sc = getScoreColor(d.score);
+  const det = COMPETENCY_DETAILS[d.id];
+
+  return (
+    <div style={glassCard} className="p-6 flex flex-col gap-4 border border-white/40 hover:border-[#0087A8]/20 transition-colors">
+      <div className="flex items-center justify-between gap-3">
+        <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0" style={{ background: `${d.accent}10` }}>
+          <Icon size={20} style={{ color: d.accent }} />
+        </div>
+        <div className="flex items-baseline gap-2">
+          <span className="text-[28px] font-bold font-mono tabular-nums leading-none" style={{ color: sc }}>
+            {d.score.toFixed(1)}
+          </span>
+          <span className="text-[12px] font-medium text-[#475569]/30">/5</span>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-[16px] font-bold text-[#0F172A] mb-1">{d.title} Performance</h3>
+        <p className="text-[11px] text-[#475569]/55 font-semibold uppercase tracking-wide">
+          {det.pillar} · {det.subtitle}
+        </p>
+      </div>
+
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <StatusBadge score={d.score} />
+        <span className="text-[11px] font-bold text-[#475569]/40 tracking-wide uppercase">Efficiency {d.pct}%</span>
+      </div>
+
+      <div className="h-[6px] w-full bg-[#0F172A]/5 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${d.pct}%`, background: d.accent }} />
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-center gap-2 h-10 rounded-[10px] border border-[#0F172A]/10 text-[12px] font-bold text-[#0087A8] hover:bg-[#0087A8]/5 transition-colors"
+        aria-expanded={open}
+      >
+        {open ? "Hide" : "Show"} competency breakdown
+        <ChevronDown size={16} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open ? (
+        <div className="border-t border-black/[0.06] pt-4 space-y-3 -mb-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#475569]/45">Sub-competencies & scores</p>
+          <ul className="space-y-2.5">
+            {det.skills.map((s, si) => {
+              const sub = mockSubSkillScore(d.score, si);
+              const ssc = getScoreColor(sub);
+              return (
+                <li
+                  key={s}
+                  className="flex items-center justify-between gap-3 text-[13px] text-[#475569] rounded-lg border border-black/[0.05] bg-white/50 px-3 py-2"
+                >
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: d.accent }} />
+                    <span className="font-medium text-[#0F172A]">{s}</span>
+                  </span>
+                  <span className="font-mono font-bold tabular-nums text-[13px] shrink-0" style={{ color: ssc }}>
+                    {sub.toFixed(1)}/5
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -261,6 +374,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
   const suggestedTrainings = TRAININGS.filter((t) =>
     (SUGGESTED_TRAINING_SLUGS as readonly string[]).includes(t.slug)
   );
+
+  const coachingSpotlight = MOCK_QUESTIONS[MOCK_SESSION_AI_COACHING.questionIndex];
+  const coachingAi = coachingSpotlight?.youSaid && coachingSpotlight?.aiSaid ? coachingSpotlight : null;
+  const spotlightQuestionNumber = MOCK_SESSION_AI_COACHING.questionIndex + 1;
 
   return (
     <div className="min-h-screen">
@@ -390,37 +507,62 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {MOCK_DRIVERS.map((d) => {
-            const Icon = DRIVER_ICONS[d.id];
-            const sc = getScoreColor(d.score);
-            return (
-              <div key={d.id} style={glassCard} className="p-6 flex flex-col gap-5 border border-white/40 hover:translate-y-[-4px] transition-transform duration-300">
-                <div className="flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0" style={{ background: `${d.accent}10` }}>
-                    <Icon size={20} style={{ color: d.accent }} />
-                  </div>
-                  <StatusBadge score={d.score} />
-                </div>
+          {MOCK_DRIVERS.map((d) => (
+            <DriverPillarCard key={d.id} d={d} />
+          ))}
+        </div>
 
-                <div>
-                  <h3 className="text-[16px] font-bold text-[#0F172A] mb-1">{d.title} Performance</h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-[32px] font-bold font-mono tabular-nums leading-none" style={{ color: sc }}>
-                      {d.score.toFixed(1)}
-                    </span>
-                    <span className="text-[13px] font-medium text-[#475569]/30">/ 5.0</span>
+        <div className="flex justify-center">
+          <details
+            className="group w-full max-w-3xl rounded-[16px] border border-[#0F172A]/08 overflow-hidden [&>summary::-webkit-details-marker]:hidden"
+            style={glassCard}
+          >
+            <summary className="flex cursor-pointer list-none items-center justify-center gap-2 h-11 px-6 text-[13px] font-bold text-[#0F172A] hover:bg-[#0F172A]/[0.03] transition-colors">
+              <ChevronDown
+                size={16}
+                className="text-[#0087A8] shrink-0 transition-transform duration-200 group-open:rotate-180"
+                aria-hidden
+              />
+              View all competency areas
+            </summary>
+            <div className="px-5 md:px-6 pb-6 pt-2 border-t border-black/[0.06] space-y-5">
+              <p className="text-[12px] text-[#475569]/70 text-center md:text-left">
+                Power dimensions and sub-skills measured in this session — each pillar has an overall score; expand driver cards above for per–sub-skill scores.
+              </p>
+              {MOCK_DRIVERS.map((d) => {
+                const det = COMPETENCY_DETAILS[d.id];
+                return (
+                  <div key={d.id} className="rounded-[14px] border border-black/[0.06] bg-white/50 p-5">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+                      <h3 className="text-[15px] font-bold text-[#0F172A]">
+                        {det.pillar}{" "}
+                        <span className="text-[#475569]/60 font-semibold text-[13px]">({det.subtitle})</span>
+                      </h3>
+                      <span className="text-[14px] font-mono font-bold tabular-nums" style={{ color: getScoreColor(d.score) }}>
+                        {d.score.toFixed(1)} / 5
+                      </span>
+                    </div>
+                    <ul className="space-y-2">
+                      {det.skills.map((s, si) => {
+                        const sub = mockSubSkillScore(d.score, si);
+                        return (
+                          <li key={s} className="text-[13px] text-[#475569] flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 min-w-0">
+                              <span className="w-1 h-1 rounded-full shrink-0" style={{ background: d.accent }} />
+                              {s}
+                            </span>
+                            <span className="font-mono font-bold tabular-nums text-[12px] shrink-0" style={{ color: getScoreColor(sub) }}>
+                              {sub.toFixed(1)}/5
+                            </span>
+                          </li>
+                        );
+                      })}
+                    </ul>
                   </div>
-                </div>
-
-                <div className="space-y-2 mt-auto">
-                  <div className="h-[6px] w-full bg-[#0F172A]/5 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${d.pct}%`, background: d.accent }} />
-                  </div>
-                  <p className="text-[11px] font-bold text-[#475569]/40 tracking-wide uppercase">Efficiency: {d.pct}%</p>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </details>
         </div>
         </div>
 
@@ -447,62 +589,6 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </div>
           </div>
         </section>
-
-        <div style={glassCard} className="overflow-hidden border border-white/40">
-          <div className="p-6 md:px-8 border-b border-black/[0.06] bg-black/[0.02] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h3 className="text-[16px] font-bold text-[#0F172A]">Context Action Result</h3>
-              <p className="text-[12px] text-[#475569]/60">A quick read on how consistently you used CAR across the session.</p>
-            </div>
-            <div className="hidden md:flex gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#10B981]" /> <span className="text-[11px] font-bold text-[#475569]">STRONG</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#F59E0B]" /> <span className="text-[11px] font-bold text-[#475569]">PARTIAL</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-[#EF4444]" /> <span className="text-[11px] font-bold text-[#475569]">WEAK</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 md:px-8">
-            <div className="flex flex-wrap gap-2">
-              {MOCK_CAR_ROWS.map((c) => (
-                <div
-                  key={c.label}
-                  className="inline-flex items-center gap-2 rounded-full border border-black/[0.06] bg-white px-3 py-2"
-                >
-                  <span className="text-[12px] font-semibold text-[#0F172A]">{c.label}</span>
-                  <span
-                    className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: `${c.dot}15`, color: c.dot }}
-                  >
-                    {c.status.toUpperCase()}
-                  </span>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
-              {MOCK_CAR_ROWS.map((c) => (
-                <div key={`${c.label}-note`} className="rounded-[14px] border border-black/[0.06] bg-white/70 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[12px] font-bold text-[#0F172A]">{c.label}</span>
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: `${c.dot}15`, color: c.dot }}
-                    >
-                      {c.status.toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-[12px] text-[#475569] leading-relaxed">{c.note}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
 
         <div className="pt-4">
           <div className="mb-8">
@@ -619,6 +705,147 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                     </p>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-6 pt-4 scroll-mt-32" id="ai-coaching">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-[#0087A8]/10 flex items-center justify-center shrink-0">
+              <Sparkles size={20} className="text-[#0087A8]" />
+            </div>
+            <div>
+              <h2 className="text-[24px] font-bold text-[#0F172A]">AI session coaching</h2>
+              <p className="text-[14px] text-[#475569]/60 mt-0.5">
+                Delivery, language, and a sharper version of your highest-priority gap answer.
+              </p>
+            </div>
+          </div>
+
+          <div style={glassCard} className="p-0 border border-white/40 overflow-hidden rounded-[20px]">
+            {coachingAi ? (
+              <div className="border-b border-black/[0.06]">
+                <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-5 bg-gradient-to-b from-[#0F172A]/[0.02] to-transparent">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
+                    <span
+                      className="inline-flex items-center justify-center min-w-[2.75rem] h-9 px-2.5 rounded-[10px] bg-[#0087A8] text-white text-[13px] font-bold tabular-nums shadow-sm"
+                      title={`Question ${spotlightQuestionNumber}`}
+                    >
+                      Q{spotlightQuestionNumber}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-black/[0.06] bg-white/80 text-[11px] font-bold uppercase tracking-wider text-[#475569]"
+                    >
+                      <span
+                        className="w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{ background: coachingAi.driverAccent }}
+                        aria-hidden
+                      />
+                      {coachingAi.driver}
+                    </span>
+                    <span className="text-[12px] font-semibold text-[#475569]/55 w-full sm:w-auto sm:ml-1">
+                      Spotlight · highest-priority gap
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#475569]/45 mb-2">Interview question</p>
+                  <p className="text-[17px] sm:text-[19px] font-semibold text-[#0F172A] leading-[1.45] max-w-3xl">
+                    {coachingAi.q}
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x divide-black/[0.06]">
+                  <div className="p-5 sm:p-8 sm:pt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-[#0F172A]/6 flex items-center justify-center shrink-0">
+                        <Mic size={16} className="text-[#475569]" aria-hidden />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-[#0F172A]">Your answer</p>
+                        <p className="text-[11px] text-[#475569]/55">What you said in session</p>
+                      </div>
+                    </div>
+                    <blockquote className="pl-4 border-l-[3px] border-[#0F172A]/12 m-0">
+                      <p className="text-[15px] leading-[1.7] text-[#334155] font-normal not-italic">
+                        {stripOuterQuotes(coachingAi.youSaid ?? "")}
+                      </p>
+                    </blockquote>
+                  </div>
+                  <div className="p-5 sm:p-8 sm:pt-6 bg-[#0087A8]/[0.04] lg:bg-gradient-to-br lg:from-[#0087A8]/[0.06] lg:to-transparent">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-8 h-8 rounded-lg bg-[#0087A8]/15 flex items-center justify-center shrink-0">
+                        <Sparkles size={16} className="text-[#0087A8]" aria-hidden />
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-[#0F172A]">Coach rewrite</p>
+                        <p className="text-[11px] text-[#475569]/55">Stronger structure &amp; impact</p>
+                      </div>
+                    </div>
+                    <blockquote className="pl-4 border-l-[3px] border-[#0087A8] m-0">
+                      <p className="text-[15px] leading-[1.7] text-[#0F172A] font-normal not-italic">
+                        {stripOuterQuotes(coachingAi.aiSaid ?? "")}
+                      </p>
+                    </blockquote>
+                  </div>
+                </div>
+
+                {coachingAi.aiTips && coachingAi.aiTips.length > 0 ? (
+                  <div className="px-5 sm:px-8 pb-6 sm:pb-8 pt-0">
+                    <div className="rounded-[14px] border border-[#0087A8]/20 bg-[#0087A8]/[0.06] px-4 py-4 sm:px-5 sm:py-5">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0087A8] mb-3">Why this rewrite works</p>
+                      <ul className="space-y-2.5">
+                        {coachingAi.aiTips.map((tip) => (
+                          <li key={tip} className="flex gap-3 text-[14px] text-[#334155] leading-snug">
+                            <CheckCircle size={16} className="text-[#0087A8] shrink-0 mt-0.5" aria-hidden />
+                            <span>{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="p-5 sm:p-8 space-y-6 sm:space-y-8">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#475569]/45">Delivery &amp; language</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
+                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Body language</p>
+                  <ul className="space-y-3">
+                    {MOCK_SESSION_AI_COACHING.bodyLanguage.map((line) => (
+                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0087A8]/25">
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
+                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Grammar &amp; phrasing</p>
+                  <ul className="space-y-3">
+                    {MOCK_SESSION_AI_COACHING.grammar.map((line) => (
+                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0087A8]/25">
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
+                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Gestures &amp; interview presence</p>
+                  <ul className="space-y-3">
+                    {MOCK_SESSION_AI_COACHING.deliveryEthics.map((line) => (
+                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0087A8]/25">
+                        {line}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
+                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Filler words &amp; pacing</p>
+                  <p className="text-[14px] text-[#475569] leading-[1.65] mb-6">{MOCK_SESSION_AI_COACHING.fillerWords}</p>
+                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">On-camera presence</p>
+                  <p className="text-[14px] text-[#475569] leading-[1.65]">{MOCK_SESSION_AI_COACHING.appearanceTip}</p>
+                </div>
               </div>
             </div>
           </div>

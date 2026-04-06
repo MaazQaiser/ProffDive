@@ -5,9 +5,9 @@ import { ReactNode, useState, useEffect } from "react";
 
 const NAV = [
   { label: "Dashboard",  href: "/dashboard" },
-  { label: "Practice",   href: "/mock" },
   { label: "Trainings",  href: "/trainings" },
   { label: "StoryBoard", href: "/storyboard" },
+  { label: "Practice",   href: "/mock" },
 ];
 
 // Shared glass token used by all page cards

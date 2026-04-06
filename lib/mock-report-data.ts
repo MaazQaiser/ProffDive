@@ -41,7 +41,76 @@ export interface DriverDef {
   accent: string;
 }
 
+/** Pillar labels + sub-skills shown in competency breakdown modals */
+export const COMPETENCY_DETAILS: Record<
+  DriverDef["id"],
+  { pillar: string; subtitle: string; skills: string[] }
+> = {
+  thinking: {
+    pillar: "Power of Thinking",
+    subtitle: "Strategic",
+    skills: ["Analytical Thinking", "Prioritization", "Decision-Making Agility"],
+  },
+  action: {
+    pillar: "Power of Action",
+    subtitle: "Leadership",
+    skills: ["Ownership", "Initiative & Follow-through", "Embraces Change"],
+  },
+  people: {
+    pillar: "Power of People",
+    subtitle: "People",
+    skills: ["Influence", "Collaboration & Inclusion", "Grows Capability"],
+  },
+  mastery: {
+    pillar: "Power of Mastery",
+    subtitle: "Technical",
+    skills: ["Functional Knowledge", "Execution", "Innovation"],
+  },
+};
+
+const PILLAR_IDS_FOR_FOCUS: readonly DriverDef["id"][] = ["thinking", "action", "people", "mastery"];
+
+/** Twelve sub-skills — used as rotating “focus facet” tags on each question row */
+export const SUB_SKILL_FOCUS_LABELS: readonly string[] = PILLAR_IDS_FOR_FOCUS.flatMap(
+  (id) => COMPETENCY_DETAILS[id].skills
+);
+
+/**
+ * Which facet label to show for question N — deterministic pseudo-shuffle (SSR-safe, no Math.random).
+ * Cycles every 12 questions so facets repeat in a varied order.
+ */
+const FOCUS_LABEL_PERM: readonly number[] = [7, 2, 10, 0, 8, 4, 11, 1, 9, 3, 6, 5];
+
+export function focusFacetLabelForQuestionIndex(questionIndex: number): string {
+  const skillIndex = FOCUS_LABEL_PERM[questionIndex % FOCUS_LABEL_PERM.length]!;
+  return SUB_SKILL_FOCUS_LABELS[skillIndex]!;
+}
+
+/** Session-level AI coaching spotlight (maps to a question in MOCK_QUESTIONS) */
+export const MOCK_SESSION_AI_COACHING = {
+  /** 0-based index into MOCK_QUESTIONS */
+  questionIndex: 1,
+  bodyLanguage: [
+    "Limited open posture — shoulders were slightly closed for ~40% of the answer; square up to camera to project confidence.",
+    "Eye contact drifted downward when stating results; brief upward engagement on metrics reads stronger.",
+  ],
+  grammar: [
+    "Subject–verb agreement: “The data were inconsistent” → “The data was inconsistent” (data is singular here).",
+    "Run-on: split the second sentence after “caching layer” for clarity.",
+  ],
+  deliveryEthics: [
+    "Gesture: hands dropped out of frame during the key result — keep hands visible through the payoff line.",
+    "Pace: you sped up through ownership; slow slightly on “I led…” so credit lands clearly.",
+  ],
+  fillerWords:
+    "You leaned on “like” and “kind of” as bridges (~9 times in 90s). Swap for a half-second pause — it reads as more executive.",
+  appearanceTip:
+    "Pro tip: solid mid-tone top (navy, charcoal, or muted teal) with minimal pattern reads best on video and keeps focus on your face.",
+} as const;
+
 export interface SessionMeta {
+  /** Hiring org / client — shown on per-question rows as the company tag */
+  companyName: string;
   interviewName: string;
   role: string;
   exp: string;
@@ -52,6 +121,7 @@ export interface SessionMeta {
 }
 
 export const MOCK_SESSION_META: SessionMeta = {
+  companyName: "Vertex Global",
   interviewName: "Role-Based Mock",
   role: "Business Analyst",
   exp: "3 yrs · L3+",
@@ -110,8 +180,10 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
       { heading: "Result too vague", detail: "'It went well' → 'delivery improved by X%'" },
       { heading: "Answer too short", detail: "You used 1m 42s. Aim for 3–4 min. Expand context and result." },
     ],
-    youSaid: `"We had a performance issue in our system. I looked into it and found the problem was in our caching layer. I fixed it and the system got faster."`,
-    aiSaid: `"Our checkout service was experiencing a 3-second latency spike during peak hours — causing a 12% drop-off in conversions. I led the root cause analysis, identified our Redis caching layer was expiring keys too aggressively, redesigned the TTL strategy and added a read-through fallback. Within 48 hours, latency dropped to under 400ms — a 7× improvement — and checkout completions recovered fully."`,
+    youSaid:
+      "We had a performance issue in our system. I looked into it and found the problem was in our caching layer. I fixed it and the system got faster.",
+    aiSaid:
+      "Our checkout service was experiencing a 3-second latency spike during peak hours — causing a 12% drop-off in conversions. I led the root cause analysis, identified our Redis caching layer was expiring keys too aggressively, redesigned the TTL strategy and added a read-through fallback. Within 48 hours, latency dropped to under 400ms — a 7× improvement — and checkout completions recovered fully.",
     aiTips: [
       "Context: Business impact stated upfront",
       "Action: Your specific role clearly defined",

@@ -1,222 +1,603 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CheckCircle2, ChevronRight, CornerDownLeft, RefreshCw, Send, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  CornerDownLeft,
+  Edit3,
+  History,
+  Info,
+  Loader2,
+  Save,
+} from "lucide-react";
+import { useUser } from "@/lib/user-context";
+import {
+  STORYBOARD_CRAFTING_STORAGE_KEY,
+  STORYBOARD_GLASS_CARD,
+  TEAL,
+  buildInitialSections,
+  hydrateCraftSectionsFromLocalStorage,
+  isIntroSection,
+  mockStoryScore,
+  normalizeIntroBlock,
+  PROOFY_LOW_SCORE_MESSAGE,
+  type CarBlock,
+  type CraftSection,
+} from "@/lib/storyboard-crafting";
+import { CarBlockStack } from "@/components/storyboard-car-block-stack";
 
-// --- Tokens ---
-const TEAL = "#0087A8";
-const G: React.CSSProperties = {
-  background: "rgba(255,255,255,0.72)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.85)",
-  borderRadius: 20,
-  boxShadow: "0 8px 32px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.9)",
-};
+const MAX_REGENS_PER_SECTION = 3;
 
-const STAGES = [
-  "Analyzing context and constraints...",
-  "Extracting leadership actions...",
-  "Quantifying business results...",
-  "Polishing narrative flow..."
+/** Mock “AI” regen: single paragraph for Core Introduction. */
+function mockRegenerateIntro(prompt: string): CarBlock {
+  const hint = prompt.trim() || "Sharpen clarity and interview impact";
+  return {
+    context: `[Core Introduction — ${hint}] One concise paragraph: your role, the scope you operate in, and how the stories ahead showcase your strengths—ready for a behavioral interview.`,
+    action: "",
+    result: "",
+  };
+}
+
+/** Mock “AI” regen: rewrites all three CAR fields using the prompt hint. */
+function mockRegenerateCar(section: CraftSection, prompt: string): CarBlock {
+  const hint = prompt.trim() || "Sharpen clarity and interview impact";
+  const t = section.title;
+  return {
+    context: `[${t}] Context — ${hint}. Situation reframed with clearer stakes and scope; who was affected and why it mattered.`,
+    action: `[${t}] Action — Your specific moves: analysis, alignment, and execution steps you owned (not the team generically).`,
+    result: `[${t}] Result — Quantify where possible; otherwise name the decision, adoption, or risk reduced. Tie to ${hint.toLowerCase()}.`,
+  };
+}
+
+const PROMPT_CHIPS: { label: string; text: string }[] = [
+  {
+    label: "More dramatic",
+    text: "Rewrite with higher narrative tension: sharpen stakes, conflict, and the turning point—while staying credible and interview-appropriate.",
+  },
+  {
+    label: "Richer context",
+    text: "Expand context with org setting, constraints, timelines, and why this mattered to the business before any action is described.",
+  },
+  {
+    label: "Executive polish",
+    text: "Elevate tone for a senior panel: concise, confident language; clear accountability; no jargon without purpose.",
+  },
+  {
+    label: "Stakeholder arc",
+    text: "Make the human thread explicit: who was involved, resistance or alignment, and how you moved decisions forward.",
+  },
+  {
+    label: "Measurable impact",
+    text: "Strengthen outcomes with numbers where possible (%, $, time, adoption); if none exist, state the clearest qualitative business effect.",
+  },
 ];
 
-const MOCK_STORY_PARAGRAPHS = [
-  "During my time at Acme Corp, we faced a critical challenge: our mobile onboarding completion rate dropped by 25% following a major iOS update. This trend directly threatened our Q2 user acquisition targets, posing an estimated $1.2M risk in lost projected revenue if left unresolved.",
-  "Instead of guessing or immediately rolling back the update—which engineering pushed for—I proposed a phased diagnostic approach. I pulled the Mixpanel logs and correlated the drop-offs with specific hardware profiles, identifying a silent memory leak that was predominantly affecting users on older devices, specifically the iPhone 8 and X models.",
-  "Understanding the severity, I immediately gathered the mobile engineering lead and our principal UX designer. I reframed the problem from a 'technical failure' to a 'user continuity issue', which helped align the team on finding a rapid workaround. We prioritized a lightweight, low-memory fallback flow over a complete architectural rewrite to minimize engineering time while still unblocking the core funnel.",
-  "To execute, I broke the work into a dedicated, two-week 'war room' sprint. I established daily 15-minute syncs specifically focused on unblocking QA and backend dependencies. When we encountered a bottleneck with the legacy authentication token size, I negotiated a temporary caching solution with the security team that bypassed the heavy lifting on the client side.",
-  "As a result, we successfully deployed a hotfix within 48 hours of identifying the root cause. By the end of the full 2-week sprint, not only had the crash rate returned to absolute zero across all devices, but the newly streamlined fallback flow actually proved more efficient. It improved overall onboarding completion by 12% above our previous baseline.",
-  "Looking back, this incident taught me the immense value of cross-functional alignment during a crisis. The team subsequently adopted this 'graceful degradation' fallback mechanism as a standard requirement for all future major iOS feature releases, securing our core funnels against similar future regressions."
-];
+function suggestionForSection(section: CraftSection): string {
+  if (isIntroSection(section.id)) {
+    return "Make the introduction concise: role, scope, and one sentence on the story you will unpack.";
+  }
+  const map: Record<string, string> = {
+    "Analytical Thinking": "Emphasize data sources, hypotheses tested, and how you separated signal from noise.",
+    Prioritization: "Show the trade-off framework and what you deliberately did not do.",
+    "Decision-Making Agility": "Highlight time pressure, incomplete information, and how you decided anyway.",
+    Ownership: "Use first-person ownership: I decided, I drove, I was accountable for…",
+    "Initiative & Follow-through": "Prove you started without being asked and closed the loop to a durable outcome.",
+    "Embraces Change": "Describe resistance or ambiguity and how you adapted the plan or brought others along.",
+    Influence: "Name stakeholders, objections, and the tactic that shifted their position.",
+    "Collaboration & Inclusion": "Show how you brought diverse voices in and resolved conflict constructively.",
+    "Grows Capability": "Show mentoring, documentation, or process that made the team stronger after you left.",
+    "Functional Knowledge": "Add domain or technical depth that proves credibility.",
+    Execution: "Tighten timeline, milestones, and how you unblocked delivery.",
+    Innovation: "Clarify the novel approach, experiment, or creative constraint you introduced.",
+  };
+  return map[section.title] ?? "Add metrics, ownership language, and a sharper result line.";
+}
 
 export default function CraftingPage() {
   const router = useRouter();
-  
-  // Progress states
-  const [activeStage, setActiveStage] = useState(0);
-  const [paragraphsRevealed, setParagraphsRevealed] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
+  const { user } = useUser();
+  const [sections, setSections] = useState<CraftSection[]>(buildInitialSections);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [draftCar, setDraftCar] = useState<CarBlock>({ context: "", action: "", result: "" });
+  const [draftPrompt, setDraftPrompt] = useState("");
+  const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [regeneratingSectionId, setRegeneratingSectionId] = useState<string | null>(null);
+  const regenBusyRef = useRef(false);
+  const regenGenRef = useRef(0);
 
-  // Review states
-  const [comment, setComment] = useState("");
-  const [isRegenerating, setIsRegenerating] = useState(false);
-
-  // Reset animation state when user requests regenerate (deferred to avoid sync setState in effect)
   useEffect(() => {
-    if (!isRegenerating) return;
-    queueMicrotask(() => {
-      setActiveStage(0);
-      setParagraphsRevealed(0);
-      setIsComplete(false);
-      setIsRegenerating(false);
+    const hydrated = hydrateCraftSectionsFromLocalStorage();
+    if (hydrated) setSections(hydrated);
+  }, []);
+
+  const persistAll = useCallback((updater: CraftSection[] | ((prev: CraftSection[]) => CraftSection[])) => {
+    setSections((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      try {
+        localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
     });
-  }, [isRegenerating]);
+  }, []);
 
-  // Animate through the stages
-  useEffect(() => {
-    if (isRegenerating) return;
+  const openEdit = (id: string) => {
+    const s = sections.find((x) => x.id === id);
+    if (!s) return;
+    setEditingId(id);
+    setDraftCar(isIntroSection(id) ? normalizeIntroBlock(s.car) : { ...s.car });
+    setDraftPrompt(s.prompt);
+  };
 
-    const executeSequence = async () => {
-      await new Promise((r) => setTimeout(r, 1200));
-      setActiveStage(1);
+  const closeEdit = () => {
+    regenGenRef.current += 1;
+    regenBusyRef.current = false;
+    setEditingId(null);
+    setDraftPrompt("");
+    setRegeneratingSectionId(null);
+  };
 
-      await new Promise((r) => setTimeout(r, 1000));
-      setParagraphsRevealed(2);
-      setActiveStage(2);
+  const saveSectionDraft = (id: string) => {
+    persistAll((prev) =>
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const car = isIntroSection(id)
+          ? { context: draftCar.context.trim(), action: "", result: "" }
+          : { ...draftCar };
+        return { ...s, car, prompt: draftPrompt };
+      })
+    );
+    closeEdit();
+  };
 
-      await new Promise((r) => setTimeout(r, 1500));
-      setParagraphsRevealed(4);
-      setActiveStage(3);
+  const applyRegenerate = (id: string, promptText: string) => {
+    if (regenBusyRef.current) return;
+    const s = sections.find((x) => x.id === id);
+    if (!s || s.regenerationsUsed >= MAX_REGENS_PER_SECTION) return;
+    regenBusyRef.current = true;
+    const gen = ++regenGenRef.current;
+    setRegeneratingSectionId(id);
+    window.setTimeout(() => {
+      if (gen !== regenGenRef.current) {
+        regenBusyRef.current = false;
+        return;
+      }
+      persistAll((prev) => {
+        const sec = prev.find((x) => x.id === id);
+        if (!sec || sec.regenerationsUsed >= MAX_REGENS_PER_SECTION) return prev;
+        const nextCar = isIntroSection(id) ? mockRegenerateIntro(promptText) : mockRegenerateCar(sec, promptText);
+        setDraftCar(nextCar);
+        return prev.map((x) =>
+          x.id === id
+            ? {
+                ...x,
+                history: [...x.history, isIntroSection(id) ? normalizeIntroBlock(x.car) : x.car],
+                car: nextCar,
+                regenerationsUsed: x.regenerationsUsed + 1,
+                prompt: promptText,
+              }
+            : x
+        );
+      });
+      regenBusyRef.current = false;
+      setRegeneratingSectionId(null);
+    }, 900);
+  };
 
-      await new Promise((r) => setTimeout(r, 1500));
-      setParagraphsRevealed(6);
-      setIsComplete(true);
-    };
+  const applySuggestion = (id: string) => {
+    const s = sections.find((x) => x.id === id);
+    if (!s) return;
+    setDraftPrompt(suggestionForSection(s));
+  };
 
-    void executeSequence();
-  }, [isRegenerating]);
+  const revertSection = (id: string) => {
+    persistAll((prev) => {
+      const s = prev.find((x) => x.id === id);
+      if (!s || s.history.length === 0) return prev;
+      const raw = s.history[s.history.length - 1];
+      const restored = isIntroSection(id) ? normalizeIntroBlock(raw) : raw;
+      const history = s.history.slice(0, -1);
+      if (editingId === id) setDraftCar({ ...restored });
+      return prev.map((sec) => (sec.id === id ? { ...sec, car: restored, history } : sec));
+    });
+  };
+
+  const saveStoryboard = () => {
+    try {
+      localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(sections));
+      setSaveToast("Storyboard saved");
+      setTimeout(() => setSaveToast(null), 2500);
+    } catch {
+      setSaveToast("Could not save");
+      setTimeout(() => setSaveToast(null), 2500);
+    }
+  };
+
+  const roleTitle = user.role?.trim() || "Your storyboard";
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-[#F8F9FC]">
-      <div className="max-w-[760px] mx-auto w-full px-8 py-14 flex-1 flex flex-col">
-        
-        {/* Header Section */}
-        <div className="text-center max-w-[700px] mx-auto mb-10 mt-6 flex flex-col items-center">
-          <p className="text-[17px] font-medium text-slate-800 mb-3 flex items-center justify-center gap-2">
-            <Sparkles size={16} className={!isComplete ? "animate-pulse" : ""} style={{ color: TEAL }} />
-            {isComplete ? "Generation complete" : "Crafting in progress..."}
-          </p>
-          <h1 className="text-4xl md:text-[44px] font-bold tracking-tight text-slate-900 mb-4 leading-[1.15]">
-            {isComplete ? "Your Story is Ready" : "Working on your narrative"}
-          </h1>
-          <p className="text-[18px] text-slate-600 max-w-[500px]">
-             {isComplete 
-              ? "Review your CAR-optimized story below and refine it if needed." 
-              : "AI is turning your raw inputs into an elite, interview-ready behavioral response."}
-          </p>
+    <div className="max-w-[760px] mx-auto px-6 py-10 pb-28 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+        <Link
+          href="/storyboard"
+          className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-60 text-slate-400"
+        >
+          <ArrowLeft size={16} /> Back to Hub
+        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={saveStoryboard}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[12px] font-bold shadow-sm transition-opacity hover:opacity-90"
+            style={{ background: TEAL }}
+          >
+            <Save size={14} />
+            Save storyboard
+          </button>
         </div>
-
-        {/* Dynamic Checklist */}
-        {!isComplete && (
-          <div className="flex flex-col gap-3 mb-12 max-w-[400px] mx-auto w-full">
-            {STAGES.map((stage, idx) => {
-              const isActive = activeStage === idx;
-              const isDone = activeStage > idx;
-              
-              let statusIcon = null;
-              if (isDone) {
-                statusIcon = <CheckCircle2 size={16} className="text-emerald-500 transition-all scale-100" />;
-              } else if (isActive) {
-                statusIcon = <RefreshCw size={14} className="animate-spin transition-all scale-100" style={{ color: TEAL }} />;
-              } else {
-                statusIcon = <div className="w-3.5 h-3.5 rounded-full border border-gray-300" />;
-              }
-
-              return (
-                <div key={idx} className="flex items-center gap-3 transition-opacity duration-500" style={{ opacity: isDone || isActive ? 1 : 0.3 }}>
-                  <div className="w-5 h-5 flex items-center justify-center">
-                    {statusIcon}
-                  </div>
-                  <span className="text-[13px] font-medium" style={{ color: isDone || isActive ? "#0F172A" : "rgba(15,23,42,0.4)" }}>
-                    {stage}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-
-        {/* Streamed Story Container */}
-        <div style={G} className="w-full flex-1 p-8 md:p-10 mb-8 max-h-[600px] overflow-y-auto custom-scrollbar">
-          <p className="text-[12px] uppercase font-bold tracking-widest mb-6" style={{ color: "rgba(15,23,42,0.3)" }}>
-            Draft 1
-          </p>
-          <div className="space-y-6">
-            {MOCK_STORY_PARAGRAPHS.map((text, idx) => (
-              <p 
-                key={idx} 
-                className={`text-[16px] leading-[1.8] transition-all duration-1000 transform ${idx < paragraphsRevealed ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
-                style={{ color: "rgba(15,23,42,0.85)" }}
-              >
-                {text}
-              </p>
-            ))}
-          </div>
-
-          {/* Typewriter cursor for active generation */}
-          {!isComplete && (
-            <div className="mt-4 flex gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#0087A8]/50 animate-bounce" />
-              <span className="w-2 h-2 rounded-full bg-[#0087A8]/50 animate-bounce" style={{ animationDelay: "0.15s" }} />
-              <span className="w-2 h-2 rounded-full bg-[#0087A8]/50 animate-bounce" style={{ animationDelay: "0.3s" }} />
-            </div>
-          )}
-        </div>
-
-        {/* Review Actions (Only show when complete) */}
-        <div className={`transition-all duration-700 ${isComplete ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8 pointer-events-none"}`}>
-          
-          {/* Quick Suggestions */}
-          <div className="flex flex-wrap gap-2.5 mb-5 justify-center md:justify-start">
-            {[
-              { icon: "🎭", text: "Make it more dramatic" },
-              { icon: "🔍", text: "Add more details" },
-              { icon: "⚙️", text: "Emphasize technical depth" },
-              { icon: "🚀", text: "Focus on leadership" },
-            ].map((sugg, i) => (
-              <button
-                key={i}
-                onClick={() => { setComment(sugg.text); setIsRegenerating(true); }}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 text-[12px] font-semibold rounded-full border border-slate-200/60 bg-white/60 text-slate-600 hover:border-[#0087A8]/40 hover:text-[#0087A8] hover:shadow-sm transition-all shadow-[#0087A8]/5"
-              >
-                <span>{sugg.icon}</span> {sugg.text}
-              </button>
-            ))}
-          </div>
-
-          {/* Refine / Comment Input */}
-          <div className="relative mb-6 group">
-            <textarea
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Give feedback to refine (e.g. 'Make the action sound more technical...')"
-              className="w-full min-h-[56px] py-4 pl-4 pr-14 text-[13px] rounded-xl outline-none resize-none transition-all placeholder:text-gray-400 focus:ring-2 focus:ring-[#0087A8]/30 text-[#0F172A]"
-              style={{ border: `1px solid rgba(0,135,168,0.2)`, background: "rgba(255,255,255,0.8)", boxShadow: "0 2px 10px rgba(0,0,0,0.02)" }}
-            />
-            <button 
-              onClick={() => { if(comment) { setIsRegenerating(true); setComment(""); } }}
-              disabled={!comment}
-              className="absolute right-3 top-[10px] w-9 h-9 rounded-lg flex items-center justify-center transition-all disabled:opacity-30 disabled:hover:scale-100 hover:scale-105"
-              style={{ background: comment ? TEAL : "rgba(0,0,0,0.05)", color: comment ? "#fff" : "rgba(15,23,42,0.4)" }}
-            >
-              <CornerDownLeft size={16} />
-            </button>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
-            <button 
-              onClick={() => setIsRegenerating(true)}
-              className="flex items-center gap-2 px-5 py-3 text-[13px] font-semibold rounded-xl border transition-colors hover:bg-black/5 w-full sm:w-auto justify-center"
-              style={{ borderColor: "rgba(0,0,0,0.12)", color: "rgba(15,23,42,0.6)" }}
-            >
-              <RefreshCw size={14} /> Regenerate Draft
-            </button>
-            <button 
-              onClick={() => router.push("/storyboard/1")}
-              className="flex items-center gap-2 px-8 py-3 text-[13px] font-bold rounded-xl text-white transition-opacity hover:opacity-90 w-full sm:w-auto justify-center"
-              style={{ background: "#0087A8", boxShadow: "0 4px 14px rgba(0, 135, 168, 0.2)" }}
-            >
-              <Check size={16} /> Accept & Save to Bank
-            </button>
-          </div>
-        </div>
-
       </div>
+
+      {saveToast && (
+        <div
+          className="mb-6 text-center text-[13px] font-semibold text-[#0F172A] py-2 px-4 rounded-xl border border-slate-200 bg-white/80"
+          role="status"
+        >
+          {saveToast}
+        </div>
+      )}
+
+      <div className="text-center max-w-[700px] mx-auto mb-10 mt-2 flex flex-col items-center">
+        <h1 className="text-4xl md:text-[44px] font-bold tracking-tight text-slate-900 leading-[1.15]">
+          {roleTitle}
+        </h1>
+      </div>
+
+      <div className="space-y-6 mt-10">
+        {sections.map((section, idx) => {
+          const isEditing = editingId === section.id;
+          const creditsLeft = MAX_REGENS_PER_SECTION - section.regenerationsUsed;
+          const isRegenerating = regeneratingSectionId === section.id;
+          const canRegen = creditsLeft > 0 && !isRegenerating;
+          const canSendRegen = creditsLeft > 0;
+          const canRevert = section.history.length > 0;
+          const score = mockStoryScore(section.id);
+          const showProofyNudge = score < 2.5;
+          const regenLeftStr = String(creditsLeft).padStart(2, "0");
+          const regenMaxStr = String(MAX_REGENS_PER_SECTION).padStart(2, "0");
+
+          return (
+            <div key={section.id} style={STORYBOARD_GLASS_CARD} className="overflow-hidden">
+              <div className="p-6 md:p-8 flex flex-col gap-5">
+                {/* Header: title + score + actions (regen count only in edit panel) */}
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex gap-3 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
+                      style={{ background: "rgba(0,135,168,0.1)", color: TEAL }}
+                    >
+                      {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+                        {section.pillar}
+                      </p>
+                      <h3 className="text-[14px] font-bold uppercase tracking-widest text-slate-800">
+                        {section.title}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
+                      <span className="text-[20px] font-bold tabular-nums text-[#0F172A] leading-none">
+                        {score.toFixed(1)}
+                      </span>
+                      <span className="relative group inline-flex">
+                        <button
+                          type="button"
+                          className="p-0.5 rounded text-slate-400 hover:text-[#0087A8] focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#0087A8]/30"
+                          aria-label="About story context score"
+                        >
+                          <Info size={14} strokeWidth={2} />
+                        </button>
+                        <span
+                          role="tooltip"
+                          className="pointer-events-none absolute right-0 top-full z-20 mt-1 w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-medium text-slate-600 shadow-lg opacity-0 translate-y-0.5 transition-all group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0"
+                        >
+                          This is your story context score.
+                        </span>
+                      </span>
+                    </div>
+
+                    {!isEditing ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(section.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-600"
+                      >
+                        <Edit3 size={12} /> Edit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={closeEdit}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-500"
+                      >
+                        Close
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 1: single paragraph; others: full CAR */}
+                {!isEditing ? (
+                  <div className="flex flex-col gap-6 border-t border-slate-100 pt-5">
+                    {isIntroSection(section.id) ? (
+                      <CarBlockStack label="Introduction" accent="teal" text={section.car.context} />
+                    ) : (
+                      <>
+                        <CarBlockStack label="Context" accent="slate" text={section.car.context} />
+                        <CarBlockStack label="Action" accent="teal" text={section.car.action} />
+                        <CarBlockStack label="Result" accent="emerald" text={section.car.result} />
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex flex-col gap-5 border-t border-slate-100 pt-5">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 tabular-nums">
+                          Version {section.history.length + 1}
+                        </p>
+                        {canRevert ? (
+                          <button
+                            type="button"
+                            onClick={() => revertSection(section.id)}
+                            disabled={isRegenerating}
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-[10px] font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <History size={12} /> Revert
+                          </button>
+                        ) : null}
+                      </div>
+                      {isRegenerating ? (
+                        isIntroSection(section.id) ? (
+                          <IntroFieldSkeleton />
+                        ) : (
+                          <CarFieldsSkeleton />
+                        )
+                      ) : isIntroSection(section.id) ? (
+                        <CarField
+                          label="Introduction"
+                          value={draftCar.context}
+                          rows={8}
+                          onChange={(v) => setDraftCar((c) => ({ ...c, context: v, action: "", result: "" }))}
+                        />
+                      ) : (
+                        <>
+                          <CarField
+                            label="Context"
+                            value={draftCar.context}
+                            onChange={(v) => setDraftCar((c) => ({ ...c, context: v }))}
+                          />
+                          <CarField
+                            label="Action"
+                            value={draftCar.action}
+                            onChange={(v) => setDraftCar((c) => ({ ...c, action: v }))}
+                          />
+                          <CarField
+                            label="Result"
+                            value={draftCar.result}
+                            onChange={(v) => setDraftCar((c) => ({ ...c, result: v }))}
+                          />
+                        </>
+                      )}
+                    </div>
+
+                    {showProofyNudge && (
+                      <div
+                        className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950"
+                        role="status"
+                      >
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800/90 mb-1">
+                          Proofy suggestion
+                        </p>
+                        {PROOFY_LOW_SCORE_MESSAGE}
+                      </div>
+                    )}
+
+                    {/* Bottom: chips above prompt; send inside input */}
+                    <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 space-y-3">
+                      <div className="flex flex-wrap gap-2">
+                        {PROMPT_CHIPS.map((c) => (
+                          <button
+                            key={c.label}
+                            type="button"
+                            disabled={isRegenerating}
+                            onClick={() => setDraftPrompt(c.text)}
+                            className="px-2.5 py-1.5 rounded-full border border-slate-200 bg-white text-[11px] font-semibold text-slate-700 hover:border-[#0087A8]/35 hover:text-[#0087A8] hover:shadow-sm disabled:opacity-40 transition-all"
+                          >
+                            {c.label}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          disabled={isRegenerating}
+                          onClick={() => applySuggestion(section.id)}
+                          className="px-2.5 py-1.5 rounded-full border border-[#0087A8]/25 bg-[#0087A8]/5 text-[11px] font-semibold text-[#0087A8] hover:bg-[#0087A8]/10 disabled:opacity-40"
+                        >
+                          Competency playbook
+                        </button>
+                      </div>
+
+                      <label className="text-[13px] font-semibold text-slate-700 block">
+                        {isIntroSection(section.id)
+                          ? "Add a prompt to regenerate this paragraph"
+                          : "Add a prompt to regenerate your output"}
+                      </label>
+                      <div className="relative">
+                        <textarea
+                          value={draftPrompt}
+                          onChange={(e) => setDraftPrompt(e.target.value)}
+                          rows={3}
+                          disabled={isRegenerating}
+                          placeholder="Describe how you want this section to read—then send to regenerate."
+                          className="w-full pl-3 pr-12 pt-2.5 pb-10 text-[13px] rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#0087A8]/20 focus:border-[#0087A8] disabled:opacity-50 resize-none"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                              e.preventDefault();
+                              if (canRegen) applyRegenerate(section.id, draftPrompt);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={!canSendRegen}
+                          onClick={() => applyRegenerate(section.id, draftPrompt)}
+                          className="absolute right-2 bottom-2 h-9 w-9 rounded-lg flex items-center justify-center text-white shadow-sm transition-opacity disabled:opacity-35 disabled:cursor-not-allowed hover:opacity-90"
+                          style={{ background: TEAL }}
+                          title="Send prompt and regenerate output"
+                          aria-label="Send prompt and regenerate"
+                          aria-busy={isRegenerating}
+                        >
+                          {isRegenerating ? (
+                            <Loader2 size={18} className="animate-spin" strokeWidth={2.25} />
+                          ) : (
+                            <CornerDownLeft size={16} strokeWidth={2.25} />
+                          )}
+                        </button>
+                      </div>
+                      <div className="rounded-lg bg-white/80 border border-slate-100 px-3 py-2.5 space-y-1">
+                        <p className="text-[12px] font-bold text-[#0F172A] tabular-nums">
+                          <span className="text-[#0087A8]">{regenLeftStr}</span>
+                          <span className="text-slate-400 font-medium"> of </span>
+                          <span className="text-slate-500">{regenMaxStr}</span>
+                          <span className="text-slate-600 font-semibold"> regenerations left</span>
+                        </p>
+                        <p className="text-[11px] text-slate-500 leading-snug">
+                          Each send uses one regeneration. Revert above restores the previous{" "}
+                          {isIntroSection(section.id) ? "paragraph" : "version"}.
+                          {canRegen && !isRegenerating ? " ⌘/Ctrl+Enter to send." : ""}
+                          {isRegenerating ? " Regenerating…" : ""}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={closeEdit}
+                        className="px-4 py-2 text-[12px] font-bold text-slate-500 border border-slate-200 rounded-xl bg-white"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => saveSectionDraft(section.id)}
+                        disabled={isRegenerating}
+                        className="px-4 py-2 text-[12px] font-bold text-white rounded-xl disabled:opacity-40"
+                        style={{ background: TEAL }}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Save size={14} /> Save section
+                        </span>
+                      </button>
+                    </div>
+                  </>
+                )}
+
+                {!isEditing && showProofyNudge && (
+                  <div
+                    className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950"
+                    role="status"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800/90 mb-1">
+                      Proofy suggestion
+                    </p>
+                    {PROOFY_LOW_SCORE_MESSAGE}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <button
+          type="button"
+          onClick={saveStoryboard}
+          className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 text-[13px] font-bold rounded-xl text-white"
+          style={{ background: TEAL, boxShadow: "0 4px 14px rgba(0, 135, 168, 0.2)" }}
+        >
+          <Save size={16} /> Save full storyboard
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/storyboard/3")}
+          className="w-full sm:w-auto px-6 py-3 text-[13px] font-semibold rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+        >
+          View example final layout →
+        </button>
+      </div>
+
+      {/* Dev hint: pillar counts */}
+      <p className="text-center text-[11px] text-slate-400 mt-8">
+        Pillars: Thinking (3) · Action (3) · People (3) · Mastery (3) · plus Core Introduction.
+      </p>
+    </div>
+  );
+}
+
+function CarField({
+  label,
+  value,
+  onChange,
+  rows = 5,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        className="w-full p-3 text-[13px] rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#0087A8]/15 resize-none"
+      />
+    </div>
+  );
+}
+
+function CarFieldsSkeleton() {
+  return (
+    <div className="space-y-5 animate-pulse" aria-hidden>
+      {(["Context", "Action", "Result"] as const).map((label) => (
+        <div key={label}>
+          <div className="h-3 w-24 bg-slate-200 rounded mb-2" />
+          <div className="h-[120px] w-full rounded-xl bg-gradient-to-b from-slate-100 to-slate-50 border border-slate-200/90" />
+        </div>
+      ))}
+      <p className="text-[12px] font-medium text-slate-400 text-center pt-1">Regenerating output…</p>
+    </div>
+  );
+}
+
+function IntroFieldSkeleton() {
+  return (
+    <div className="space-y-5 animate-pulse" aria-hidden>
+      <div>
+        <div className="h-3 w-28 bg-slate-200 rounded mb-2" />
+        <div className="h-[200px] w-full rounded-xl bg-gradient-to-b from-slate-100 to-slate-50 border border-slate-200/90" />
+      </div>
+      <p className="text-[12px] font-medium text-slate-400 text-center pt-1">Regenerating paragraph…</p>
     </div>
   );
 }

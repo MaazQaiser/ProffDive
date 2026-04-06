@@ -1,122 +1,73 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, BookOpen, Clock, Download, Edit3, ChevronDown, Save } from "lucide-react";
+import { ArrowLeft, Download, Edit3, Info, Save } from "lucide-react";
+import { useUser } from "@/lib/user-context";
+import { CarBlockStack } from "@/components/storyboard-car-block-stack";
+import {
+  TEAL,
+  STORYBOARD_CRAFTING_STORAGE_KEY,
+  STORYBOARD_GLASS_CARD,
+  buildInitialSections,
+  buildResumeExportText,
+  hydrateCraftSectionsFromLocalStorage,
+  isIntroSection,
+  mockStoryScore,
+  normalizeIntroBlock,
+  PROOFY_LOW_SCORE_MESSAGE,
+  type CarBlock,
+  type CraftSection,
+} from "@/lib/storyboard-crafting";
 
-// --- Tokens ---
-const TEAL = "#0087A8";
-const G: React.CSSProperties = {
-  background: "rgba(255,255,255,0.6)",
-  backdropFilter: "blur(24px)",
-  WebkitBackdropFilter: "blur(24px)",
-  border: "1px solid rgba(255,255,255,0.72)",
-  borderRadius: 16,
-  boxShadow: "0 4px 24px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.88)",
-};
-
-const INITIAL_STORY = {
-  meta: "Mastery Pillar • Updated 2 days ago",
-  sections: [
-    {
-      id: "intro",
-      title: "Core Introduction",
-      content: "As the Lead Backend Engineer at FintechX, I was the primary technical owner for the core payment processing pipeline, handling over $5M in daily transactions.",
-      car: {
-        context: "The system was stable but struggling under new load, causing intermittent 502 errors.",
-        action: "I proposed a complete overhaul of our caching layer.",
-        result: "Reduced average request latency by 45% and eliminated timeouts."
-      }
-    },
-    {
-      id: "thinking",
-      title: "Problem Diagnosis & Thinking",
-      content: "During Q2, our transaction volume spiked by 3x. Instead of immediately scaling up our database instances, I ran a week-long profiling audit using Datadog. I discovered that 80% of our slow queries were redundant reads on merchant configuration profiles, which rarely changed but were being queried on every single transaction.",
-      car: {
-        context: "Sudden 3x volume spike led to DB bottlenecks and high costs.",
-        action: "Profiled the system for 1 week and identified redundant read patterns on config data.",
-        result: "Pinpointed the exact bottleneck, saving $2k/mo in unnecessary database scaling."
-      }
-    },
-    {
-      id: "action",
-      title: "Execution & Action",
-      content: "I designed and implemented a distributed Redis caching layer. I had to ensure cache invalidation was perfect, so I built an event-driven pub/sub mechanism that listened to merchant update events to clear stale cache. I led a 2-person squad to deploy this behind a feature flag, migrating 10% of traffic initially to monitor error rates.",
-      car: {
-        context: "Needed to implement caching without risking stale financial data.",
-        action: "Built a Redis layer with an event-driven pub/sub invalidation strategy and rolled out via feature flags.",
-        result: "Successfully deployed to 10% traffic with 0 errors before full rollout."
-      }
-    },
-    {
-      id: "people",
-      title: "People & Collaboration",
-      content: "The main challenge was convincing the risk team, who were deeply fearful of caching financial metadata. I created a sandbox environment and demonstrated the invalidation logic live. By showing them how a configuration change immediately propagated and cleared the cache, I won their approval to proceed.",
-      car: {
-        context: "Risk team actively blocked the rollout due to stale data concerns.",
-        action: "Built a live sandbox demo to prove the robustness of the pub/sub invalidation.",
-        result: "Got formal sign-off from Risk within 48 hours."
-      }
-    },
-    {
-      id: "result",
-      title: "Outcome & Mastery",
-      content: "Following the full rollout, our P99 latency dropped from 800ms to 120ms. We survived the Q4 holiday spike with zero downtime. From a technical standpoint, this project became the gold standard for how we handle high-throughput reads, and I later documented the architecture into a guild presentation for the broader engineering org.",
-      car: {
-        context: "Approaching the critical Q4 holiday traffic spike.",
-        action: "Scaled the solution to 100% traffic and documented the architecture for the team.",
-        result: "P99 latency down 85% (800ms -> 120ms) and established a new architectural standard."
-      }
-    }
-  ]
-};
-
-export default function FinalStoryboardView() {
+export default function StoryboardReadonlyPage() {
   const params = useParams<{ id: string }>();
-  const [openInsightId, setOpenInsightId] = useState<string | null>(null);
-  const [story, setStory] = useState(INITIAL_STORY);
+  const { user } = useUser();
+  const [sections, setSections] = useState<CraftSection[]>(buildInitialSections);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editContent, setEditContent] = useState<string>("");
+  const [draftCar, setDraftCar] = useState<CarBlock>({ context: "", action: "", result: "" });
 
-  const toggleInsight = (id: string) => {
-    setOpenInsightId(openInsightId === id ? null : id);
+  useEffect(() => {
+    const hydrated = hydrateCraftSectionsFromLocalStorage();
+    if (hydrated) setSections(hydrated);
+  }, []);
+
+  const persistSections = useCallback((next: CraftSection[]) => {
+    setSections(next);
+    try {
+      localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const openEdit = (id: string) => {
+    const s = sections.find((x) => x.id === id);
+    if (!s) return;
+    setEditingId(id);
+    setDraftCar(isIntroSection(id) ? normalizeIntroBlock(s.car) : { ...s.car });
   };
 
-  const startEdit = (sectionId: string, content: string) => {
-    setEditingId(sectionId);
-    setEditContent(content);
-  };
-
-  const saveEdit = (sectionId: string) => {
-    setStory(prev => ({
-      ...prev,
-      sections: prev.sections.map(s => 
-        s.id === sectionId ? { ...s, content: editContent } : s
-      )
-    }));
+  const closeEdit = () => {
     setEditingId(null);
   };
 
-  const downloadResume = () => {
-    const storyboardId = params?.id ? String(params.id) : "storyboard";
-    const content = [
-      `ProofDive Resume Export`,
-      `Storyboard ID: ${storyboardId}`,
-      ``,
-      ...story.sections.flatMap((s) => [
-        `## ${s.title}`,
-        s.content,
-        ``,
-        `CAR Breakdown`,
-        `- Context: ${s.car.context}`,
-        `- Action: ${s.car.action}`,
-        `- Result: ${s.car.result}`,
-        ``,
-      ]),
-    ].join("\n");
+  const saveSection = (id: string) => {
+    const car = isIntroSection(id)
+      ? { context: draftCar.context.trim(), action: "", result: "" }
+      : { ...draftCar };
+    const next = sections.map((s) => (s.id === id ? { ...s, car } : s));
+    persistSections(next);
+    setEditingId(null);
+  };
 
-    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const storyboardId = params?.id ? String(params.id) : "storyboard";
+  const roleTitle = user.role?.trim() || "Your storyboard";
+
+  const downloadResume = () => {
+    const text = buildResumeExportText(sections, storyboardId);
+    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -128,11 +79,12 @@ export default function FinalStoryboardView() {
   };
 
   return (
-    <div className="max-w-[760px] mx-auto px-6 py-10 pb-24 animate-in fade-in duration-500">
-      
-      {/* Navbar / Header */}
-      <div className="flex items-center justify-between mb-8">
-        <Link href="/storyboard" className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-60 text-slate-400">
+    <div className="max-w-[760px] mx-auto px-6 py-10 pb-28 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
+        <Link
+          href="/storyboard"
+          className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-60 text-slate-400"
+        >
           <ArrowLeft size={16} /> Back to Hub
         </Link>
         <button
@@ -145,126 +97,180 @@ export default function FinalStoryboardView() {
         </button>
       </div>
 
-      {/* Title Block */}
-      <div className="text-center max-w-[700px] mx-auto mb-10 mt-6 flex flex-col items-center">
-        <h1 className="text-4xl md:text-[44px] font-bold tracking-tight text-slate-900 mb-6 leading-[1.15]">
-           Senior Software Engineer
-        </h1>
-
-        <p className="text-[17px] text-slate-500 max-w-[500px]">
-           Review your completed story and the underlying CAR framework breakdown.
-        </p>
+      <div className="text-center max-w-[700px] mx-auto mb-10 mt-2 flex flex-col items-center">
+        <h1 className="text-4xl md:text-[44px] font-bold tracking-tight text-slate-900 leading-[1.15]">{roleTitle}</h1>
       </div>
 
-      {/* Sections List */}
-      <div className="space-y-6 mt-12">
-        {story.sections.map((section, idx) => {
-          const isInsightOpen = openInsightId === section.id;
+      <div className="space-y-6 mt-10">
+        {sections.map((section, idx) => {
+          const isEditing = editingId === section.id;
+          const score = mockStoryScore(section.id);
+          const showProofyNudge = score < 2.5;
 
           return (
-            <div key={section.id} style={G} className="overflow-hidden transition-all duration-300 group">
-              
-              {/* Reading Card */}
-              <div className="p-6 md:p-8">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0" style={{ background: "rgba(0,135,168,0.1)", color: TEAL }}>
-                    0{idx + 1}
-                  </div>
-                  <h3 className="text-[14px] font-bold uppercase tracking-widest text-slate-800 flex-1">
-                    {section.title}
-                  </h3>
-                  {editingId !== section.id && (
-                    <button 
-                      onClick={() => startEdit(section.id, section.content)} 
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-500 hover:text-slate-800 transition-colors shadow-sm">
-                      <Edit3 size={12} /> Edit
-                    </button>
-                  )}
-                </div>
-                
-                {editingId === section.id ? (
-                  <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
-                    <textarea 
-                      value={editContent} 
-                      onChange={e => setEditContent(e.target.value)} 
-                      rows={4}
-                      autoFocus
-                      className="w-full p-4 text-[14px] bg-white border border-[#0087A8]/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#0087A8]/20 focus:border-[#0087A8] resize-none shadow-inner leading-relaxed text-slate-800"
-                    />
-                    <div className="flex items-center justify-end gap-2">
-                      <button 
-                        onClick={() => setEditingId(null)} 
-                        className="px-4 py-2 text-[12px] font-bold text-slate-500 hover:text-slate-700 transition-colors bg-white border border-slate-200 rounded-lg hover:bg-slate-50">
-                        Cancel
-                      </button>
-                      <button 
-                        onClick={() => saveEdit(section.id)} 
-                        className="px-4 py-2 text-[12px] font-bold text-white bg-[#0087A8] rounded-lg shadow-md hover:bg-[#006E89] transition-all flex items-center gap-1.5">
-                        <Save size={14} /> Save
-                      </button>
+            <div key={section.id} style={STORYBOARD_GLASS_CARD} className="overflow-hidden">
+              <div className="p-6 md:p-8 flex flex-col gap-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex gap-3 min-w-0">
+                    <div
+                      className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0"
+                      style={{ background: "rgba(0,135,168,0.1)", color: TEAL }}
+                    >
+                      {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+                        {section.pillar}
+                      </p>
+                      <h3 className="text-[14px] font-bold uppercase tracking-widest text-slate-800">{section.title}</h3>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-[16px] leading-relaxed text-slate-600">
-                    {section.content}
-                  </p>
+
+                  <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
+                      <span className="text-[20px] font-bold tabular-nums text-[#0F172A] leading-none">
+                        {score.toFixed(1)}
+                      </span>
+                      <span className="relative group inline-flex">
+                        <button
+                          type="button"
+                          className="p-0.5 rounded text-slate-400 hover:text-[#0087A8] focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#0087A8]/30"
+                          aria-label="About story context score"
+                        >
+                          <Info size={14} strokeWidth={2} />
+                        </button>
+                        <span
+                          role="tooltip"
+                          className="pointer-events-none absolute right-0 top-full z-20 mt-1 w-[200px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-[11px] font-medium text-slate-600 shadow-lg opacity-0 translate-y-0.5 transition-all group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0"
+                        >
+                          This is your story context score.
+                        </span>
+                      </span>
+                    </div>
+
+                    {!isEditing ? (
+                      <button
+                        type="button"
+                        onClick={() => openEdit(section.id)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-600"
+                      >
+                        <Edit3 size={12} /> Edit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={closeEdit}
+                        className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-[11px] font-semibold text-slate-500"
+                      >
+                        Close
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-6 border-t border-slate-100 pt-5">
+                  {!isEditing ? (
+                    isIntroSection(section.id) ? (
+                      <CarBlockStack label="Introduction" accent="teal" text={section.car.context} />
+                    ) : (
+                      <>
+                        <CarBlockStack label="Context" accent="slate" text={section.car.context} />
+                        <CarBlockStack label="Action" accent="teal" text={section.car.action} />
+                        <CarBlockStack label="Result" accent="emerald" text={section.car.result} />
+                      </>
+                    )
+                  ) : isIntroSection(section.id) ? (
+                    <StoryboardCarField
+                      label="Introduction"
+                      value={draftCar.context}
+                      rows={8}
+                      onChange={(v) => setDraftCar((c) => ({ ...c, context: v, action: "", result: "" }))}
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-5">
+                      <StoryboardCarField
+                        label="Context"
+                        value={draftCar.context}
+                        onChange={(v) => setDraftCar((c) => ({ ...c, context: v }))}
+                      />
+                      <StoryboardCarField
+                        label="Action"
+                        value={draftCar.action}
+                        onChange={(v) => setDraftCar((c) => ({ ...c, action: v }))}
+                      />
+                      <StoryboardCarField
+                        label="Result"
+                        value={draftCar.result}
+                        onChange={(v) => setDraftCar((c) => ({ ...c, result: v }))}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {isEditing && (
+                  <div className="flex justify-end gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={closeEdit}
+                      className="px-4 py-2 text-[12px] font-bold text-slate-500 border border-slate-200 rounded-xl bg-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveSection(section.id)}
+                      className="px-4 py-2 text-[12px] font-bold text-white rounded-xl flex items-center gap-1.5"
+                      style={{ background: TEAL }}
+                    >
+                      <Save size={14} /> Save section
+                    </button>
+                  </div>
                 )}
-              </div>
 
-              {/* View Insight Toggle */}
-              <button 
-                onClick={() => toggleInsight(section.id)}
-                className="w-full flex items-center justify-between px-6 md:px-8 py-3.5 transition-colors hover:bg-black/5"
-                style={{ borderTop: "1px dashed rgba(0,0,0,0.06)", background: isInsightOpen ? "rgba(0,0,0,0.02)" : "transparent" }}
-              >
-                <div className="flex items-center gap-2">
-                  <BookOpen size={14} style={{ color: TEAL }} />
-                  <span className="text-[12px] font-bold" style={{ color: TEAL }}>View CAR Insight Breakdown</span>
-                </div>
-                <ChevronDown size={14} className={`transition-transform duration-300 ${isInsightOpen ? "rotate-180" : ""}`} style={{ color: TEAL }} />
-              </button>
-
-              {/* Expanded Insight Area */}
-              <div 
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${isInsightOpen ? "max-h-[500px] opacity-100" : "max-h-0 opacity-0"}`}
-                style={{ background: "rgba(0,0,0,0.02)" }}
-              >
-                <div className="p-6 md:p-8 grid md:grid-cols-3 gap-8">
-                  
-                  {/* Context */}
-                  <div className="space-y-3">
-                     <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                        <p className="text-[12px] font-bold uppercase tracking-widest text-slate-400">Context</p>
-                     </div>
-                    <p className="text-[13px] leading-relaxed text-slate-600">{section.car.context}</p>
+                {showProofyNudge && (
+                  <div
+                    className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950"
+                    role="status"
+                  >
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800/90 mb-1">
+                      Proofy suggestion
+                    </p>
+                    {PROOFY_LOW_SCORE_MESSAGE}
                   </div>
-
-                  {/* Action */}
-                  <div className="space-y-3 md:border-l md:pl-8 border-slate-200">
-                     <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#0087A8]" />
-                        <p className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8]">Action</p>
-                     </div>
-                    <p className="text-[13px] leading-relaxed text-slate-600">{section.car.action}</p>
-                  </div>
-
-                  {/* Result */}
-                  <div className="space-y-3 md:border-l md:pl-8 border-slate-200">
-                     <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <p className="text-[12px] font-bold uppercase tracking-widest text-emerald-600">Result</p>
-                     </div>
-                    <p className="text-[13px] leading-relaxed font-medium text-emerald-700">{section.car.result}</p>
-                  </div>
-
-                </div>
+                )}
               </div>
             </div>
           );
         })}
       </div>
 
+      <p className="text-center text-[11px] text-slate-400 mt-8">
+        Pillars: Thinking (3) · Action (3) · People (3) · Mastery (3) · plus Core Introduction.
+      </p>
+    </div>
+  );
+}
+
+function StoryboardCarField({
+  label,
+  value,
+  onChange,
+  rows = 5,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        className="w-full p-3 text-[13px] rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#0087A8]/15 resize-none"
+      />
     </div>
   );
 }
