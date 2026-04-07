@@ -465,7 +465,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         </div>
 
         <div ref={heroSectionRef} className="space-y-12">
-        <div style={glassCard} className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 md:gap-20 relative overflow-hidden">
+        <div
+          data-journey-id="report-overall"
+          style={glassCard}
+          className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 md:gap-20 relative overflow-hidden"
+        >
           <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[140%] bg-white/50 blur-[100px] rounded-full pointer-events-none" />
 
           <div className="text-center md:text-left shrink-0">
@@ -506,7 +510,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div data-journey-id="report-pillars" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {MOCK_DRIVERS.map((d) => (
             <DriverPillarCard key={d.id} d={d} />
           ))}
@@ -566,7 +570,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         </div>
         </div>
 
-        <section className="space-y-6">
+        <section data-journey-id="report-summary" className="space-y-6">
           <div>
             <h2 className="text-[24px] font-bold text-[#0F172A]">Overall summary</h2>
             <p className="text-[14px] text-[#475569]/60 mt-1">AI-generated synthesis of your session.</p>
@@ -590,7 +594,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           </div>
         </section>
 
-        <div className="pt-4">
+        <div data-journey-id="report-questions" className="pt-4">
           <div className="mb-8">
             <h2 className="text-[24px] font-bold text-[#0F172A]">Detail breakdown per question</h2>
             <p className="text-[14px] text-[#475569]/60 mt-1">AI performance analysis for each question.</p>
@@ -602,7 +606,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
 
-        <section id="recording" className="scroll-mt-32 space-y-4">
+        <section id="recording" data-journey-id="report-recording" className="scroll-mt-32 space-y-4">
           <div>
             <h2 className="text-[24px] font-bold text-[#0F172A]">Recording &amp; transcript</h2>
             <p className="text-[14px] text-[#475569]/60 mt-1">Replay your session and review the full conversation.</p>
@@ -710,7 +714,11 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           </div>
         </section>
 
-        <section className="space-y-6 pt-4 scroll-mt-32" id="ai-coaching">
+        <section
+          className="space-y-6 pt-4 scroll-mt-32"
+          id="ai-coaching"
+          data-journey-id="report-ai-coaching"
+        >
           <div className="flex flex-wrap items-center gap-3">
             <div className="w-10 h-10 rounded-[12px] bg-[#0087A8]/10 flex items-center justify-center shrink-0">
               <Sparkles size={20} className="text-[#0087A8]" />

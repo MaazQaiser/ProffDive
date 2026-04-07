@@ -76,6 +76,7 @@ export default function StoryBoardPage() {
         <div className="flex flex-col gap-4 max-w-[840px] mx-auto relative z-10">
           <Link
             href="/storyboard/new"
+            data-journey-id="story-start"
             className="block w-full rounded-[20px] border border-dashed border-slate-300/90 px-6 py-8 text-center transition-colors hover:border-slate-400 hover:bg-slate-50/50"
           >
             <p className="text-[14px] text-slate-500 mb-1">Planning a new role?</p>

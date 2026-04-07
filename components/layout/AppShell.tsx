@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useState, useEffect } from "react";
+import { JourneyController } from "@/components/guided-journey/JourneyController";
 
 const NAV = [
   { label: "Dashboard",  href: "/dashboard" },
@@ -76,6 +77,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen relative overflow-x-hidden">
       <TopNav />
+      <JourneyController />
       {/* Consistent top offset and horizontal padding container */}
       <main className="flex-1 pt-14 selection:bg-[#0087A8]/10 selection:text-[#0087A8]">
         {children}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   ArrowLeft,
   CornerDownLeft,
@@ -13,6 +13,7 @@ import {
   Save,
 } from "lucide-react";
 import { useUser } from "@/lib/user-context";
+import { completeJourneyStep, readJourneyState } from "@/lib/guided-journey";
 import {
   STORYBOARD_CRAFTING_STORAGE_KEY,
   STORYBOARD_GLASS_CARD,
@@ -97,6 +98,7 @@ function suggestionForSection(section: CraftSection): string {
 
 export default function CraftingPage() {
   const router = useRouter();
+  const pathname = usePathname() || "";
   const { user } = useUser();
   const [sections, setSections] = useState<CraftSection[]>(buildInitialSections);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -107,10 +109,90 @@ export default function CraftingPage() {
   const regenBusyRef = useRef(false);
   const regenGenRef = useRef(0);
 
+  const [journeyTipsOn, setJourneyTipsOn] = useState(false);
+  const [journeyTipIdx, setJourneyTipIdx] = useState(0);
+
   useEffect(() => {
     const hydrated = hydrateCraftSectionsFromLocalStorage();
     if (hydrated) setSections(hydrated);
   }, []);
+
+  useEffect(() => {
+    const sync = () => {
+      const st = readJourneyState();
+      const onJourney = Boolean(st.active && !st.skipped && st.stepId === "story");
+      const onPage = pathname.startsWith("/storyboard/crafting");
+      setJourneyTipsOn(onJourney && onPage);
+      if (!(onJourney && onPage)) setJourneyTipIdx(0);
+    };
+    sync();
+    window.addEventListener("journey:start", sync);
+    window.addEventListener("journey:step", sync);
+    window.addEventListener("journey:skip", sync);
+    window.addEventListener("journey:reset", sync);
+    return () => {
+      window.removeEventListener("journey:start", sync);
+      window.removeEventListener("journey:step", sync);
+      window.removeEventListener("journey:skip", sync);
+      window.removeEventListener("journey:reset", sync);
+    };
+  }, [pathname]);
+
+  const Tip = ({
+    title,
+    body,
+    stepLabel,
+    onNext,
+    nextLabel = "Next",
+    placement = "above",
+  }: {
+    title: string;
+    body: React.ReactNode;
+    stepLabel: string;
+    onNext: () => void;
+    nextLabel?: string;
+    placement?: "above" | "below";
+  }) => (
+    <div
+      className={[
+        "absolute left-1/2 -translate-x-1/2 w-[380px] max-w-[92vw] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3 z-30",
+        placement === "above" ? "-top-3 -translate-y-full" : "top-full mt-3",
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "absolute left-1/2 -translate-x-1/2 w-0 h-0",
+          placement === "above" ? "-bottom-2" : "-top-2",
+        ].join(" ")}
+        style={{
+          borderLeft: "10px solid transparent",
+          borderRight: "10px solid transparent",
+          ...(placement === "above"
+            ? {
+                borderTop: "10px solid white",
+                filter: "drop-shadow(0 -1px 0 rgba(0,0,0,0.08))",
+              }
+            : {
+                borderBottom: "10px solid white",
+                filter: "drop-shadow(0 1px 0 rgba(0,0,0,0.08))",
+              }),
+        }}
+      />
+      <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">Guide</p>
+      <p className="mt-1 text-[13px] font-semibold text-[#0F172A]">{title}</p>
+      <div className="mt-1 text-[12px] text-[#475569] leading-relaxed">{body}</div>
+      <div className="mt-3 flex items-center justify-between">
+        <p className="text-[11px] font-bold text-[#64748B]">{stepLabel}</p>
+        <button
+          type="button"
+          onClick={onNext}
+          className="h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+        >
+          {nextLabel}
+        </button>
+      </div>
+    </div>
+  );
 
   const persistAll = useCallback((updater: CraftSection[] | ((prev: CraftSection[]) => CraftSection[])) => {
     setSections((prev) => {
@@ -130,6 +212,7 @@ export default function CraftingPage() {
     setEditingId(id);
     setDraftCar(isIntroSection(id) ? normalizeIntroBlock(s.car) : { ...s.car });
     setDraftPrompt(s.prompt);
+    if (journeyTipsOn && journeyTipIdx === 1) setJourneyTipIdx(2);
   };
 
   const closeEdit = () => {
@@ -210,6 +293,9 @@ export default function CraftingPage() {
       localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(sections));
       setSaveToast("Storyboard saved");
       setTimeout(() => setSaveToast(null), 2500);
+      // Guided journey: storyboard step completes when the user saves.
+      completeJourneyStep("story");
+      router.push("/storyboard/1");
     } catch {
       setSaveToast("Could not save");
       setTimeout(() => setSaveToast(null), 2500);
@@ -227,10 +313,26 @@ export default function CraftingPage() {
         >
           <ArrowLeft size={16} /> Back to Hub
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 relative">
+          {journeyTipsOn && journeyTipIdx === 6 ? (
+            <Tip
+              title="Save to complete StoryBoard"
+              body={
+                <>
+                  Save locks in your story. Once you save, we move you to{" "}
+                  <span className="font-semibold text-[#0F172A]">Mock interview</span>.
+                </>
+              }
+              stepLabel="Tip 7/7"
+              onNext={() => setJourneyTipsOn(false)}
+              nextLabel="Got it"
+              placement="below"
+            />
+          ) : null}
           <button
             type="button"
             onClick={saveStoryboard}
+            data-journey-id="story-save"
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-[12px] font-bold shadow-sm transition-opacity hover:opacity-90"
             style={{ background: TEAL }}
           >
@@ -269,7 +371,15 @@ export default function CraftingPage() {
           const regenMaxStr = String(MAX_REGENS_PER_SECTION).padStart(2, "0");
 
           return (
-            <div key={section.id} style={STORYBOARD_GLASS_CARD} className="overflow-hidden">
+            <div
+              key={section.id}
+              style={STORYBOARD_GLASS_CARD}
+              className={
+                journeyTipsOn && idx === 1 && journeyTipIdx >= 0 && journeyTipIdx <= 5
+                  ? "overflow-visible"
+                  : "overflow-hidden"
+              }
+            >
               <div className="p-6 md:p-8 flex flex-col gap-5">
                 {/* Header: title + score + actions (regen count only in edit panel) */}
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -291,7 +401,24 @@ export default function CraftingPage() {
                   </div>
 
                   <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white">
+                    <div
+                      className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white"
+                      data-journey-id={idx === 1 ? "story-craft-score" : undefined}
+                    >
+                      {journeyTipsOn && journeyTipIdx === 0 && idx === 1 ? (
+                        <Tip
+                          title="This score is a quick signal"
+                          body={
+                            <>
+                              Higher = clearer context + impact. We’ll use it to make your story feel{" "}
+                              <span className="font-semibold text-[#0F172A]">credible</span> and{" "}
+                              <span className="font-semibold text-[#0F172A]">measurable</span>.
+                            </>
+                          }
+                          stepLabel="Tip 1/7"
+                          onNext={() => setJourneyTipIdx(1)}
+                        />
+                      ) : null}
                       <span className="text-[20px] font-bold tabular-nums text-[#0F172A] leading-none">
                         {score.toFixed(1)}
                       </span>
@@ -316,8 +443,22 @@ export default function CraftingPage() {
                       <button
                         type="button"
                         onClick={() => openEdit(section.id)}
+                        data-journey-id={idx === 1 ? "story-craft-edit" : undefined}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-[11px] font-semibold text-slate-600"
                       >
+                        {journeyTipsOn && journeyTipIdx === 1 && idx === 1 ? (
+                          <Tip
+                            title="Open the editor"
+                            body={
+                              <>
+                                Click <span className="font-semibold text-[#0F172A]">Edit</span> to refine your story using CAR.
+                              </>
+                            }
+                            stepLabel="Tip 2/7"
+                            onNext={() => openEdit(section.id)}
+                            nextLabel="Edit"
+                          />
+                        ) : null}
                         <Edit3 size={12} /> Edit
                       </button>
                     ) : (
@@ -347,7 +488,25 @@ export default function CraftingPage() {
                   </div>
                 ) : (
                   <>
-                    <div className="flex flex-col gap-5 border-t border-slate-100 pt-5">
+                    <div
+                      className="relative flex flex-col gap-5 border-t border-slate-100 pt-5"
+                      data-journey-id={idx === 1 ? "story-craft-car" : undefined}
+                    >
+                      {journeyTipsOn && journeyTipIdx === 2 && idx === 1 ? (
+                        <Tip
+                          title="Refine with CAR"
+                          body={
+                            <>
+                              Keep it tight: 2–3 sentences for{" "}
+                              <span className="font-semibold text-[#0F172A]">Context</span>, bullet-like{" "}
+                              <span className="font-semibold text-[#0F172A]">Action</span>, and a{" "}
+                              <span className="font-semibold text-[#0F172A]">Result</span> with numbers if possible.
+                            </>
+                          }
+                          stepLabel="Tip 3/7"
+                          onNext={() => setJourneyTipIdx(3)}
+                        />
+                      ) : null}
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <p className="text-[11px] font-bold uppercase tracking-widest text-slate-400 tabular-nums">
                           Version {section.history.length + 1}
@@ -399,9 +558,22 @@ export default function CraftingPage() {
 
                     {showProofyNudge && (
                       <div
-                        className="rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950"
+                        className="relative rounded-xl border border-amber-200/80 bg-amber-50/90 px-4 py-3 text-[13px] leading-relaxed text-amber-950"
                         role="status"
+                        data-journey-id={idx === 1 ? "story-craft-suggestion" : undefined}
                       >
+                        {journeyTipsOn && journeyTipIdx === 3 && idx === 1 ? (
+                          <Tip
+                            title="Use suggestions to upgrade impact"
+                            body={
+                              <>
+                                This is the shortcut: it tells you what’s missing (ownership, decision-making, measurable outcomes).
+                              </>
+                            }
+                            stepLabel="Tip 4/7"
+                            onNext={() => setJourneyTipIdx(4)}
+                          />
+                        ) : null}
                         <p className="text-[10px] font-bold uppercase tracking-widest text-amber-800/90 mb-1">
                           Proofy suggestion
                         </p>
@@ -410,7 +582,22 @@ export default function CraftingPage() {
                     )}
 
                     {/* Bottom: chips above prompt; send inside input */}
-                    <div className="rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 space-y-3">
+                    <div
+                      className="relative rounded-xl border border-slate-200/90 bg-slate-50/80 p-4 space-y-3"
+                      data-journey-id={idx === 1 ? "story-craft-regenerate" : undefined}
+                    >
+                      {journeyTipsOn && journeyTipIdx === 4 && idx === 1 ? (
+                        <Tip
+                          title="Regenerate (limited)"
+                          body={
+                            <>
+                              Use chips for quick upgrades, or write a custom prompt. Each send uses 1 regeneration—make it count.
+                            </>
+                          }
+                          stepLabel="Tip 5/7"
+                          onNext={() => setJourneyTipIdx(5)}
+                        />
+                      ) : null}
                       <div className="flex flex-wrap gap-2">
                         {PROMPT_CHIPS.map((c) => (
                           <button
@@ -470,7 +657,22 @@ export default function CraftingPage() {
                           )}
                         </button>
                       </div>
-                      <div className="rounded-lg bg-white/80 border border-slate-100 px-3 py-2.5 space-y-1">
+                      <div
+                        className="relative rounded-lg bg-white/80 border border-slate-100 px-3 py-2.5 space-y-1"
+                        data-journey-id={idx === 1 ? "story-craft-regens-left" : undefined}
+                      >
+                        {journeyTipsOn && journeyTipIdx === 5 && idx === 1 ? (
+                          <Tip
+                            title="Regen counter"
+                            body={
+                              <>
+                                You get <span className="font-semibold text-[#0F172A]">3 regenerations per section</span>. Revert restores the previous version if you don’t like the output.
+                              </>
+                            }
+                            stepLabel="Tip 6/7"
+                            onNext={() => setJourneyTipIdx(6)}
+                          />
+                        ) : null}
                         <p className="text-[12px] font-bold text-[#0F172A] tabular-nums">
                           <span className="text-[#0087A8]">{regenLeftStr}</span>
                           <span className="text-slate-400 font-medium"> of </span>
@@ -524,24 +726,6 @@ export default function CraftingPage() {
             </div>
           );
         })}
-      </div>
-
-      <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
-        <button
-          type="button"
-          onClick={saveStoryboard}
-          className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 text-[13px] font-bold rounded-xl text-white"
-          style={{ background: TEAL, boxShadow: "0 4px 14px rgba(0, 135, 168, 0.2)" }}
-        >
-          <Save size={16} /> Save full storyboard
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push("/storyboard/3")}
-          className="w-full sm:w-auto px-6 py-3 text-[13px] font-semibold rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-        >
-          View example final layout →
-        </button>
       </div>
 
       {/* Dev hint: pillar counts */}

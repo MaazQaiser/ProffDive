@@ -268,3 +268,29 @@ export const DEMO_OFFER_LINES = [
 ];
 
 export const TRANSITION_TO_TRAINING = "Perfect — let's move into your starting modules.";
+
+export const GUIDED_JOURNEY_COPY: Record<
+  "training" | "story" | "mock" | "report",
+  { title: string; doNext: string; why: string }
+> = {
+  training: {
+    title: "Trainings (step 1/4)",
+    doNext: "In Milestone Progress: do Step 1 Reading → Step 2 Video → Step 3 Quiz → Step 4 Workshop.",
+    why: "Milestones unlock in order; Workshop completion moves you to Storyboard.",
+  },
+  story: {
+    title: "StoryBoard (step 2/4)",
+    doNext: "Create your story → then refine CAR blocks and Save.",
+    why: "This becomes your reusable answer bank (clear, structured answers).",
+  },
+  mock: {
+    title: "Mock interview (step 3/4)",
+    doNext: "Start the session. Keep answers ~1–2 minutes.",
+    why: "Pressure-test delivery across all pillars.",
+  },
+  report: {
+    title: "Report (step 4/4)",
+    doNext: "Review: Overall score → 4 pillars → Overall summary → Q-by-Q → Recording → AI coaching.",
+    why: "This tells you exactly what to fix next (with evidence).",
+  },
+};

@@ -140,6 +140,17 @@ html, body {
   }
 }
 
+/* Guided Journey spotlight (common tour-style highlight) */
+@keyframes journey-ring-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(0,135,168,0.20), 0 10px 40px rgba(0,135,168,0.12); }
+  70%  { box-shadow: 0 0 0 14px rgba(0,135,168,0.00), 0 12px 50px rgba(0,135,168,0.18); }
+  100% { box-shadow: 0 0 0 0 rgba(0,135,168,0.00), 0 10px 40px rgba(0,135,168,0.12); }
+}
+
+.journey-spotlight-ring {
+  animation: journey-ring-pulse 1.6s ease-out infinite;
+}
+
 /* ── Reusable glass card utility ── */
 .card {
   background: var(--glass-light);

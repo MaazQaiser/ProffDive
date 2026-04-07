@@ -112,7 +112,9 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
                    <p className="text-[11px] text-white/50">Pick up where you left off below</p>
                  </div>
                ) : (
-                 <Link href={`/trainings/${slug}/${training.milestones[0].id}`}
+                 <Link
+                   data-journey-id={slug === "interview-essentials" ? "training-start" : undefined}
+                   href={`/trainings/${slug}/${training.milestones[0].id}`}
                    className="h-12 px-8 rounded-xl flex items-center gap-2 bg-[#0087A8] text-white text-[14px] font-bold shadow-lg shadow-teal-900/40 hover:bg-[#006E89] transition-all group">
                    Start course
                    <ArrowRight size={16} className="ml-1 transition-transform group-hover:translate-x-1" />
@@ -226,13 +228,22 @@ export default function TrainingDetailPage({ params }: { params: Promise<{ slug:
                             </button>
                           ) : (
                             <Link
+                             data-journey-id={
+                               slug === "interview-essentials" && isActive ? "training-start" : undefined
+                             }
                              href={`/trainings/${slug}/${milestone.id}`}
                               className={`h-10 px-6 rounded-xl text-[13px] font-bold flex items-center gap-2 transition-all w-fit group/btn ${
                                 isActive 
                                   ? "bg-[#0087A8] text-white shadow-lg shadow-[#0087A8]/20 hover:bg-[#006E89]" 
                                   : "bg-white text-[#0F172A] border border-slate-200 shadow-sm hover:bg-slate-50"
                               }`}>
-                              {isCompleted ? "Review Milestone" : isActive ? "Continue learning" : "Start Milestone"} 
+                              {isCompleted
+                                ? "Review Milestone"
+                                : slug === "interview-essentials"
+                                  ? "Start course"
+                                  : isActive
+                                    ? "Continue learning"
+                                    : "Start Milestone"} 
                               <ArrowRight size={16} className={`transition-transform group-hover/btn:translate-x-1 ${isActive ? "text-white" : "text-[#0F172A]"}`} />
                             </Link>
                           )}

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { completeJourneyStep } from "@/lib/guided-journey";
 
 export default function MockProcessingPage() {
   const router = useRouter();
@@ -11,6 +12,7 @@ export default function MockProcessingPage() {
     // Generate random report ID for mock route
     const id = Math.floor(Math.random() * 1000);
     const timer = setTimeout(() => {
+      completeJourneyStep("mock");
       router.push(`/report/${id}`);
     }, 4000);
     return () => clearTimeout(timer);

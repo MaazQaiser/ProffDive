@@ -3,7 +3,9 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Mic, BookOpen, Zap, X, Play } from "lucide-react";
 import { useUser } from "@/lib/user-context";
-import { PathwayBanner } from "@/components/pathway-banner";
+import { PathwayCardSurface } from "@/components/pathway-banner";
+import { startJourney } from "@/lib/guided-journey";
+import { useRouter } from "next/navigation";
 
 const PROFILE_PCT = 68;
 
@@ -149,9 +151,16 @@ function HowItWorksVideoModal({
   );
 }
 
-function VideoGuideModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+function VideoGuideModal({
+  isOpen,
+  onClose,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+}) {
   const [showAbout, setShowAbout] = useState(false);
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (!isOpen) {
@@ -271,7 +280,11 @@ function VideoGuideModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => 
               Skip for now
             </button>
             <button
-              onClick={onClose}
+              onClick={() => {
+                startJourney("training");
+                onClose();
+                router.push("/trainings/interview-essentials");
+              }}
               className="h-11 px-6 rounded-[14px] text-[13px] font-bold text-white bg-[#0087A8] hover:bg-[#007592] transition-colors"
             >
               Let’s get started
@@ -308,31 +321,7 @@ export default function NewUserDashboard() {
     <div>
       <VideoGuideModal isOpen={showGuide} onClose={closeGuide} />
 
-      {/* §1 Profile Readiness Ticker — primary background */}
-      <div style={{
-        background: "linear-gradient(90deg, #0087A8 0%, #006E89 100%)",
-        borderBottom: "1px solid rgba(0,0,0,0.10)",
-      }}>
-        <div className="max-w-[1280px] mx-auto px-8 lg:px-14 py-3">
-          <div className="flex items-center justify-between gap-6">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1.5">
-                <span className="text-[12px] uppercase tracking-[0.18em] font-bold text-white/60">Profile readiness</span>
-                <span className="text-[11px] font-bold text-white">{PROFILE_PCT}% complete</span>
-                <span className="text-[12px] text-white/50">· {user.role ? `Preparing for ${user.role}` : 'Complete your StoryBoard to improve this'}</span>
-              </div>
-              <div style={{ height: 3, background: "rgba(255,255,255,0.20)", borderRadius: 0 }}>
-                <div style={{ height: "100%", width: `${PROFILE_PCT}%`, background: "rgba(255,255,255,0.90)", transition: "width 0.8s ease" }} />
-              </div>
-            </div>
-            <Link href="/profile"
-              className="shrink-0 inline-flex items-center gap-1.5 h-8 px-4 text-[11px] font-bold transition-opacity hover:opacity-80"
-              style={{ borderRadius: 6, background: "rgba(255,255,255,0.18)", color: "#FFF", border: "1px solid rgba(255,255,255,0.30)" }}>
-              Complete profile <ArrowRight size={11} />
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* Profile readiness ticker hidden for now */}
 
       {/* Main content */}
       <div className="max-w-[1240px] mx-auto px-6 md:px-10 lg:px-14 py-12 space-y-12">
@@ -349,19 +338,65 @@ export default function NewUserDashboard() {
         </div>
 
         {/* Section 1 — Guided Path */}
-        <div className="animate-in slide-in-from-bottom-4 fade-in duration-700">
-          <PathwayBanner 
-            label="Get started with coaching created for you"
-            title="A clear path to help you prepare with more structure and confidence."
-            steps={["Learn the essentials", "Craft your story", "Test it in a mock", "Analytics & AI coaching"]}
-            footerText="Move through the right steps to build stronger interview readiness."
-            buttonText="let's Get Started"
-            buttonHref="/mock/setup"
-          />
+        <div className="animate-in slide-in-from-bottom-4 fade-in duration-700 max-w-3xl mx-auto w-full">
+          <PathwayCardSurface className="px-8 py-5">
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 md:gap-10">
+                <div className="flex flex-col gap-2 shrink-0 min-w-0 max-w-full md:max-w-lg">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-[16px] font-semibold text-[#0F172A] tracking-tight">
+                      Readiness Progress
+                    </h2>
+                  </div>
+
+                  <div className="flex flex-col gap-1.5 mt-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-[36px] md:text-[40px] font-semibold leading-none text-[#0F172A] tracking-tighter">
+                        0.0
+                      </span>
+                      <span className="text-[13px] text-[#64748B] font-medium">/ 5</span>
+                    </div>
+
+                    <div className="mt-1 pt-2.5 border-t border-slate-200 max-w-full overflow-hidden">
+                      <p className="text-[12px] md:text-[13px] font-medium text-slate-700 tracking-tight">
+                        💡 Run your first mock interview to get an instant baseline score and a clear “do next”.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex h-1.5 gap-[2px] w-full mt-[-6px]">
+                <div className="h-full w-full rounded-full bg-[#0F172A]/10" />
+              </div>
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[12px] font-medium text-[#475569]">
+                  <span className="whitespace-nowrap">Thinking —</span>
+                  <span className="whitespace-nowrap">Action —</span>
+                  <span className="whitespace-nowrap">People —</span>
+                  <span className="whitespace-nowrap">Mastery —</span>
+                </div>
+
+                <Link
+                  href="/mock/setup"
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-transparent px-5 text-[13px] font-bold text-[#0087A8] transition-colors hover:bg-[#0087A8]/[0.06] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0087A8] group"
+                >
+                  Take your first mock interview
+                  <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </div>
+          </PathwayCardSurface>
         </div>
 
         {/* Section 2 — Action Cards */}
-        <div className="animate-in slide-in-from-bottom-5 fade-in duration-1000">
+        <div className="animate-in slide-in-from-bottom-5 fade-in duration-1000 max-w-3xl mx-auto w-full">
+             <div className="mb-4">
+               <p className="text-[12px] font-bold uppercase tracking-[0.18em] text-[#64748B]">
+                 Quick actions
+               </p>
+             </div>
              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div style={{ ...glassSquare }} className="p-5 flex flex-col items-start hover:shadow-md transition-all group border border-white/40">
                    <div className="w-9 h-9 rounded-[8px] bg-[#F59E0B]/10 flex items-center justify-center mb-4 shrink-0 transition-transform group-hover:scale-105">
@@ -399,9 +434,12 @@ export default function NewUserDashboard() {
                    <p className="text-[12px] text-[#475569] leading-relaxed mb-5 flex-1">
                       Learn the basics of strong interview structure, delivery, and response quality.
                    </p>
-                   <Link href="/trainings" className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group">
-                      Open trainings
-                      <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                   <Link
+                     href="/trainings"
+                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group"
+                   >
+                     Open trainings
+                     <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                    </Link>
                 </div>
              </div>

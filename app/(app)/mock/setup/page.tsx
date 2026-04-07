@@ -319,27 +319,6 @@ function MockSetupInner() {
               })}
             </div>
 
-            <div className="h-px bg-slate-900/[0.04] my-6" />
-
-            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-400 mb-4">What interviewers test here</p>
-            <p className="text-[13px] text-slate-600 leading-relaxed mb-6 max-w-[95%]">
-              Hiring managers probe this area to see if you diagnose before prescribing. They want evidence you use data, not instinct, to frame problems and identify root causes.
-            </p>
-
-            <div className="space-y-3">
-              <span className="text-[12px] font-bold uppercase tracking-widest text-slate-400 block">Frequently asked at</span>
-              <div className="flex flex-wrap gap-2.5">
-                <span className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> Google
-                </span>
-                <span className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> Apple
-                </span>
-                <span className="text-[11px] font-bold text-slate-700 bg-white border border-slate-200 px-3.5 py-1.5 rounded-full shadow-sm flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span> Netflix
-                </span>
-              </div>
-            </div>
           </div>
           
           <div className="px-6 py-4 flex items-center justify-between bg-white/40" style={{borderTop: D}}>
@@ -408,6 +387,7 @@ function MockSetupInner() {
         {/* ⑤ CTA Block */}
         <div className="flex flex-col items-center gap-4">
            <button 
+              data-journey-id="mock-start"
               onClick={() => setShowConsent(true)} 
               className="w-full sm:w-[320px] h-12 rounded-xl bg-[#0087A8] text-white text-[14px] font-bold hover:bg-[#006E89] hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-lg shadow-[#0087A8]/20 flex items-center justify-center gap-2">
               Start interview <ArrowRight size={16} />

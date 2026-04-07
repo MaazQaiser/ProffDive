@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Play, Clock, ChevronRight, Zap, ArrowRight, Target, Mic, Info } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import { RecommendationBanner } from "@/components/recommendation-banner";
@@ -69,6 +70,7 @@ const RECENT_SESSIONS = [
 ];
 
 export default function PracticePage() {
+  const router = useRouter();
   const { user } = useUser();
   const hasSessions = RECENT_SESSIONS.length > 0;
 
@@ -122,7 +124,22 @@ export default function PracticePage() {
           {SESSION_TYPES.map((s) => {
             const Icon = s.icon;
             return (
-              <div key={s.id} style={{ ...glass, borderRadius: 12 }} className="p-5 bg-white/60 flex flex-col items-start hover:shadow-md transition-all group border border-white/40 overflow-hidden relative">
+              <div
+                key={s.id}
+                role="link"
+                tabIndex={0}
+                aria-label={`${s.label}: start interview`}
+                onClick={() => router.push(s.href)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    router.push(s.href);
+                  }
+                }}
+                data-journey-id={s.id === "full" ? "mock-card" : undefined}
+                style={{ ...glass, borderRadius: 12 }}
+                className="p-5 bg-white/60 flex flex-col items-start hover:shadow-md transition-all group border border-white/40 overflow-hidden relative cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0087A8]/30"
+              >
                 <div className="flex w-full items-start justify-between mb-4">
                   <div className="w-9 h-9 rounded-[8px] bg-white flex items-center justify-center shrink-0 border border-[#0F172A]/5 transition-transform group-hover:scale-105 shadow-sm">
                     <Icon size={18} style={{ color: s.iconColor }} />
@@ -152,7 +169,11 @@ export default function PracticePage() {
                   {s.desc}
                 </p>
 
-                <Link href={s.href} className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group-hover:text-[#0087A8]">
+                <Link
+                  href={s.href}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity group-hover:text-[#0087A8]"
+                >
                   Start interview
                   <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
                 </Link>

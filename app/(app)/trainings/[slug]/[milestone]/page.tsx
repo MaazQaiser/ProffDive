@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { use, useState, useEffect } from "react";
 import { getTraining, unsplashUrl, type Step } from "@/lib/trainings-data";
+import { completeJourneyStep } from "@/lib/guided-journey";
 import type { LucideIcon } from "lucide-react";
 import {
   CheckCircle, ChevronLeft, Play, BookOpen,
@@ -223,13 +224,14 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
               <h3 className="text-[18px] font-bold text-[#0F172A] leading-tight">{milestoneData.title}</h3>
            </div>
 
-           <div className="space-y-1">
+           <div className="space-y-1" data-journey-id="training-milestone-progress">
               <p className="text-[12px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4">Milestone Progress</p>
               {STEP_ORDER.map((key, i) => {
                 const Icon = STEP_META[key].icon;
                 const isActive = currentStepIdx === i;
                 const isPast = currentStepIdx > i;
                 const isLocked = key === "exercise" && !quizDone;
+                const isReading = key === "reading";
                 return (
                   <button 
                     key={key}
@@ -238,6 +240,7 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
                       setCurrentStepIdx(i);
                     }}
                     disabled={isLocked}
+                    data-journey-id={isReading ? "training-step-reading" : undefined}
                     className={`w-full flex items-center gap-4 p-4 rounded-[20px] text-left transition-all group disabled:opacity-50 disabled:cursor-not-allowed ${isActive ? 'bg-white shadow-xl shadow-slate-900/5 ring-1 ring-slate-200' : 'hover:bg-white/50'}`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors ${isActive ? 'bg-[#0087A8] text-white' : isPast ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
@@ -495,6 +498,8 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
                             if (!ok) return;
                             setWorkshopDone(true);
                             setComplete(true);
+                            // Guided journey: training step completes when workshop is completed.
+                            completeJourneyStep("training");
                           }}
                           disabled={workshopResponse.trim().length < 20}
                           className="px-10 py-4 bg-emerald-600 disabled:bg-slate-200 disabled:text-slate-400 text-white rounded-full text-[14px] font-bold shadow-xl shadow-emerald-900/20 hover:scale-105 disabled:hover:scale-100 transition-all"
@@ -507,35 +512,6 @@ export default function MilestonePage({ params }: { params: Promise<{ slug: stri
                  </div>
                )}
             </div>
-         </div>
-
-         {/* Navigation Bar */}
-         <div style={{ ...navGlass }} className="absolute bottom-6 inset-x-8 h-20 rounded-[28px] ring-1 ring-slate-900/5 px-8 flex items-center justify-between z-40">
-            <button 
-              onClick={() => setCurrentStepIdx(Math.max(0, currentStepIdx - 1))}
-              disabled={currentStepIdx === 0}
-              className="flex items-center gap-2 text-[13px] font-bold text-slate-400 hover:text-[#0087A8] disabled:opacity-0 transition-all"
-            >
-               <ChevronLeft size={20} /> Previous
-            </button>
-
-            <div className="hidden md:flex flex-col items-center">
-               <p className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8] mb-0.5">Currently Studying</p>
-               <p className="text-[14px] font-black text-[#0F172A]">{currentStep?.title || "Overview"}</p>
-            </div>
-
-            <button 
-              onClick={() => {
-                if (currentKey === "quiz" && !quizDone) return;
-                if (currentKey === "exercise" && !workshopDone) return;
-                if (currentStepIdx < STEP_ORDER.length - 1) setCurrentStepIdx(currentStepIdx + 1);
-                else setComplete(true);
-              }}
-              disabled={(currentKey === "quiz" && !quizDone) || (currentKey === "exercise" && !workshopDone)}
-              className="px-6 h-12 bg-[#0087A8] text-white rounded-full text-[13px] font-bold flex items-center gap-2 hover:bg-[#006E89] transition-all shadow-lg shadow-teal-900/20"
-            >
-               {currentStepIdx < STEP_ORDER.length - 1 ? "Next Step" : "Complete Milestone"} <ArrowRight size={18} />
-            </button>
          </div>
 
       </main>

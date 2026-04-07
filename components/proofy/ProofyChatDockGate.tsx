@@ -10,6 +10,7 @@ const EXCLUDE_PATTERNS: RegExp[] = [
   /^\/signup(\/|$)/,
   /^\/verify(\/|$)/,
   /^\/consent(\/|$)/,
+  /^\/mock\/live(\/|$)/,
 ];
 
 function shouldShowProofy(pathname: string | null): boolean {

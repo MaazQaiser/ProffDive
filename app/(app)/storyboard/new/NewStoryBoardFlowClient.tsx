@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronRight, Zap, Info, Lightbulb, Brain, Users, Target, Mic } from "lucide-react";
 import {
   getSpeechRecognition,
   type WebSpeechRecognition,
   type WebSpeechResultEvent,
 } from "@/lib/proofy-speech";
+import { readJourneyState } from "@/lib/guided-journey";
 
 // ── Tokens ───────────────────────────────────────────────────────────
 const TEAL = "#0087A8";
@@ -165,6 +166,7 @@ function fmtFallback() {
 
 export default function NewStoryBoardFlowClient() {
   const router = useRouter();
+  const pathname = usePathname() || "";
   const searchParams = useSearchParams();
   const rolePrefill = (searchParams.get("role") ?? "").trim();
   const [currentStep, setCurrentStep] = useState(0);
@@ -174,6 +176,8 @@ export default function NewStoryBoardFlowClient() {
     return init;
   });
   const [showSample, setShowSample] = useState(false);
+  const [journeyTipsOn, setJourneyTipsOn] = useState(false);
+  const [journeyTipIdx, setJourneyTipIdx] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<WebSpeechRecognition | null>(null);
 
@@ -217,6 +221,26 @@ export default function NewStoryBoardFlowClient() {
   };
 
   const isPillarActive = (pillar: string) => q.pillar === pillar;
+
+  useEffect(() => {
+    const sync = () => {
+      const st = readJourneyState();
+      const onJourney = Boolean(st.active && !st.skipped && st.stepId === "story");
+      setJourneyTipsOn(onJourney && pathname.startsWith("/storyboard/new"));
+      if (!onJourney) setJourneyTipIdx(0);
+    };
+    sync();
+    window.addEventListener("journey:start", sync);
+    window.addEventListener("journey:step", sync);
+    window.addEventListener("journey:skip", sync);
+    window.addEventListener("journey:reset", sync);
+    return () => {
+      window.removeEventListener("journey:start", sync);
+      window.removeEventListener("journey:step", sync);
+      window.removeEventListener("journey:skip", sync);
+      window.removeEventListener("journey:reset", sync);
+    };
+  }, [pathname]);
 
   // Stepper groups
   const stepperGroups = PILLAR_ORDER.map((pillar) => {
@@ -289,85 +313,109 @@ export default function NewStoryBoardFlowClient() {
             </div>
 
             {/* Question title */}
-            <div className="mb-6">
+            <div className="mb-6 relative" data-journey-id="story-question">
+              {journeyTipsOn && journeyTipIdx === 0 ? (
+                <div className="absolute left-0 -top-3 -translate-y-full w-[360px] max-w-[92vw] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3">
+                  <div
+                    className="absolute left-8 -bottom-2 w-0 h-0"
+                    style={{
+                      borderLeft: "10px solid transparent",
+                      borderRight: "10px solid transparent",
+                      borderTop: "10px solid white",
+                      filter: "drop-shadow(0 -1px 0 rgba(0,0,0,0.08))",
+                    }}
+                  />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">Proofy guide</p>
+                  <p className="mt-1 text-[13px] font-semibold text-[#0F172A]">This question is your story input</p>
+                  <p className="mt-1 text-[12px] text-[#475569] leading-relaxed">
+                    Answer with specifics. Aim for <span className="font-semibold text-[#0F172A]">what you owned</span>,{" "}
+                    <span className="font-semibold text-[#0F172A]">what you did</span>, and{" "}
+                    <span className="font-semibold text-[#0F172A]">the impact</span>.
+                  </p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-[#64748B]">Tip 1/3</p>
+                    <button
+                      type="button"
+                      onClick={() => setJourneyTipIdx(1)}
+                      className="h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               <h1 className="text-3xl md:text-[34px] font-bold tracking-tight text-slate-900 leading-[1.2]">{q.question}</h1>
             </div>
 
             {/* Textarea card */}
-            <div className="overflow-hidden mb-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm focus-within:ring-2 focus-within:ring-[#0087A8]/20 focus-within:border-[#0087A8]/30 transition-all">
+            <div className="relative overflow-hidden mb-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm focus-within:ring-2 focus-within:ring-[#0087A8]/20 focus-within:border-[#0087A8]/30 transition-all">
               <textarea
                 autoFocus
                 value={answers[q.id] || ""}
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                 maxLength={CHAR_LIMIT + 50}
                 placeholder="Start typing your experience here..."
-                className="w-full min-h-[200px] px-6 pt-5 pb-3 text-[16px] leading-relaxed bg-transparent outline-none resize-none placeholder:text-slate-400"
+                className="w-full min-h-[200px] px-6 pt-5 pb-14 pr-20 text-[16px] leading-relaxed bg-transparent outline-none resize-none placeholder:text-slate-400"
                 style={{ color: "#0F172A" }}
               />
-              {/* Footer: mic + count */}
-              <div className="flex items-center justify-between px-5 py-3 border-t border-slate-100 bg-slate-50/50">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isRecording) {
-                      recognitionRef.current?.stop();
-                      setIsRecording(false);
-                      return;
+
+              {/* In-box controls (bottom) */}
+              <span
+                className={`pointer-events-none absolute bottom-4 left-6 text-[12px] font-bold tabular-nums ${
+                  currentLen > CHAR_LIMIT ? "text-red-500" : currentLen > CHAR_LIMIT - 50 ? "text-amber-500" : "text-slate-400"
+                }`}
+              >
+                {currentLen} / {CHAR_LIMIT}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isRecording) {
+                    recognitionRef.current?.stop();
+                    setIsRecording(false);
+                    return;
+                  }
+                  const SR = getSpeechRecognition();
+                  if (!SR) {
+                    alert("Voice input is not supported in this browser.");
+                    return;
+                  }
+                  const recognition = new SR() as WebSpeechRecognition;
+                  recognition.continuous = true;
+                  recognition.interimResults = true;
+                  recognition.lang = "en-US";
+                  const base = answers[q.id] || "";
+                  recognition.onresult = (event: WebSpeechResultEvent) => {
+                    let interim = "",
+                      final = "";
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                      if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                      else interim += event.results[i][0].transcript;
                     }
-                    const SR = getSpeechRecognition();
-                    if (!SR) {
-                      alert("Voice input is not supported in this browser.");
-                      return;
-                    }
-                    const recognition = new SR() as WebSpeechRecognition;
-                    recognition.continuous = true;
-                    recognition.interimResults = true;
-                    recognition.lang = "en-US";
-                    const base = answers[q.id] || "";
-                    recognition.onresult = (event: WebSpeechResultEvent) => {
-                      let interim = "",
-                        final = "";
-                      for (let i = event.resultIndex; i < event.results.length; i++) {
-                        if (event.results[i].isFinal) final += event.results[i][0].transcript;
-                        else interim += event.results[i][0].transcript;
-                      }
-                      setAnswers((prev) => ({ ...prev, [q.id]: base + (base ? " " : "") + final + interim }));
-                    };
-                    recognition.onerror = () => setIsRecording(false);
-                    recognition.onend = () => setIsRecording(false);
-                    recognition.start();
-                    recognitionRef.current = recognition;
-                    setIsRecording(true);
-                  }}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition-all ${
-                    isRecording
-                      ? "bg-red-50 text-red-600 border border-red-200"
-                      : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
-                  }`}
-                >
-                  {isRecording ? (
-                    <>
-                      <span className="relative flex h-2.5 w-2.5">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
-                      </span>
-                      Recording… tap to stop
-                    </>
-                  ) : (
-                    <>
-                      <Mic size={14} />
-                      Voice input
-                    </>
-                  )}
-                </button>
-                <span
-                  className={`text-[12px] font-bold tabular-nums ${
-                    currentLen > CHAR_LIMIT ? "text-red-500" : currentLen > CHAR_LIMIT - 50 ? "text-amber-500" : "text-slate-400"
-                  }`}
-                >
-                  {currentLen} / {CHAR_LIMIT}
-                </span>
-              </div>
+                    setAnswers((prev) => ({ ...prev, [q.id]: base + (base ? " " : "") + final + interim }));
+                  };
+                  recognition.onerror = () => setIsRecording(false);
+                  recognition.onend = () => setIsRecording(false);
+                  recognition.start();
+                  recognitionRef.current = recognition;
+                  setIsRecording(true);
+                }}
+                className={`absolute bottom-3.5 right-4 inline-flex items-center justify-center w-10 h-10 rounded-xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-[#0087A8]/30 ${
+                  isRecording ? "bg-red-50 text-red-600 border border-red-200" : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50"
+                }`}
+                aria-label={isRecording ? "Stop recording" : "Start voice input"}
+                title={isRecording ? "Recording… click to stop" : "Voice input"}
+              >
+                {isRecording ? (
+                  <span className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                  </span>
+                ) : (
+                  <Mic size={16} />
+                )}
+              </button>
             </div>
 
             {/* Why + Sample */}
@@ -379,7 +427,38 @@ export default function NewStoryBoardFlowClient() {
                 </div>
                 <p className="text-[13px] leading-relaxed text-slate-600">{q.why}</p>
               </div>
-              <div className="p-5 rounded-2xl bg-white/50 border border-white/50 shadow-sm hover:bg-white hover:shadow-md transition-all">
+              <div
+                className="p-5 rounded-2xl bg-white/50 border border-white/50 shadow-sm hover:bg-white hover:shadow-md transition-all relative"
+                data-journey-id="story-protip"
+              >
+                {journeyTipsOn && journeyTipIdx === 2 ? (
+                  <div className="absolute left-1/2 -top-3 -translate-x-1/2 -translate-y-full w-[360px] max-w-[92vw] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3 z-20">
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0"
+                      style={{
+                        borderLeft: "10px solid transparent",
+                        borderRight: "10px solid transparent",
+                        borderTop: "10px solid white",
+                        filter: "drop-shadow(0 -1px 0 rgba(0,0,0,0.08))",
+                      }}
+                    />
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">Proofy guide</p>
+                    <p className="mt-1 text-[13px] font-semibold text-[#0F172A]">Use Pro tip / Sample as structure</p>
+                    <p className="mt-1 text-[12px] text-[#475569] leading-relaxed">
+                      Click <span className="font-semibold text-[#0F172A]">Reveal</span> to see an example format — then rewrite it in your own words with a measurable result.
+                    </p>
+                    <div className="mt-3 flex items-center justify-between">
+                      <p className="text-[11px] font-bold text-[#64748B]">Tip 3/3</p>
+                      <button
+                        type="button"
+                        onClick={() => setJourneyTipsOn(false)}
+                        className="h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+                      >
+                        Got it
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <Lightbulb size={14} className={showSample ? "text-amber-500" : "text-slate-400"} />
@@ -408,6 +487,7 @@ export default function NewStoryBoardFlowClient() {
                 Previous
               </button>
               <button
+                data-journey-id="story-next"
                 onClick={handleNext}
                 className="h-11 px-8 flex items-center gap-2 text-[14px] font-bold text-white rounded-xl shadow-lg transition-all hover:opacity-90 active:scale-[0.98]"
                 style={{ background: isLast ? "#10B981" : TEAL }}
@@ -434,7 +514,43 @@ export default function NewStoryBoardFlowClient() {
 
           {/* ══════════════ RIGHT — Single Progress Card (35%) ══════════════ */}
           <div className="w-full md:w-[35%] md:sticky md:top-24">
-            <div className="bg-white rounded-[20px] border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] overflow-hidden">
+            <div
+              className={`bg-white rounded-[20px] border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] relative ${
+                journeyTipsOn && journeyTipIdx === 1 ? "overflow-visible" : "overflow-hidden"
+              }`}
+              data-journey-id="story-progress"
+            >
+              {journeyTipsOn && journeyTipIdx === 1 ? (
+                <div className="absolute right-6 top-4 w-[360px] max-w-[92vw] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3 z-10">
+                  <div
+                    className="absolute -left-2 top-8 w-0 h-0"
+                    style={{
+                      borderTop: "10px solid transparent",
+                      borderBottom: "10px solid transparent",
+                      borderRight: "10px solid white",
+                      filter: "drop-shadow(1px 0 0 rgba(0,0,0,0.08))",
+                    }}
+                  />
+                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">Proofy guide</p>
+                  <p className="mt-1 text-[13px] font-semibold text-[#0F172A]">Storyboard progress = 4 pillars</p>
+                  <p className="mt-1 text-[12px] text-[#475569] leading-relaxed">
+                    You’ll fill answers for <span className="font-semibold text-[#0F172A]">Thinking</span>,{" "}
+                    <span className="font-semibold text-[#0F172A]">Action</span>,{" "}
+                    <span className="font-semibold text-[#0F172A]">People</span>,{" "}
+                    <span className="font-semibold text-[#0F172A]">Mastery</span>. This keeps your story balanced.
+                  </p>
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-[11px] font-bold text-[#64748B]">Tip 2/3</p>
+                    <button
+                      type="button"
+                      onClick={() => setJourneyTipIdx(2)}
+                      className="h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              ) : null}
               {/* Card header */}
               <div className="px-6 pt-6 pb-5 border-b border-slate-100 flex items-center justify-between">
                 <h2 className="text-[17px] font-bold text-slate-900 tracking-tight">Storyboard Progress</h2>
