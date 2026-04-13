@@ -16,7 +16,6 @@ const EXCLUDE_PATTERNS: RegExp[] = [
   /^\/mock\/live(\/|$)/,
   /^\/storyboard\/new(\/|$)/,
   /^\/storyboard\/crafting(\/|$)/,
-  /^\/trainings$/,
 ];
 
 function shouldShowProofy(pathname: string | null): boolean {

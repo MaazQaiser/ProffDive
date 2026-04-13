@@ -324,7 +324,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
         { id: uid(), role: "assistant", kind: "story_role_card", roleName },
       ]);
       await sleep(850);
-      router.push(`/storyboard/new?role=${encodeURIComponent(roleName)}`);
+      router.push(`/storyboard?prefillRole=${encodeURIComponent(roleName)}`);
     },
     [router]
   );
@@ -600,7 +600,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
   const closedBarClass =
     layout === "inline"
       ? "relative z-auto w-full flex justify-center rounded-[15px] px-0 pb-0 pt-8"
-      : "fixed inset-x-0 bottom-0 z-[100] flex justify-center rounded-[15px] px-4 pb-4 md:pb-6";
+      : "fixed inset-x-0 bottom-0 z-[100] flex justify-center rounded-[15px] px-4 pb-4 md:pb-6 pointer-events-none";
 
   return (
     <>
@@ -830,7 +830,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
           >
             <div
-              className={`relative mx-auto w-full overflow-hidden rounded-[122px] border-[0.5px] border-white ${layout === "floating" ? "max-w-[524px]" : ""}`}
+              className={`relative mx-auto w-full overflow-hidden rounded-[122px] border-[0.5px] border-white ${layout === "floating" ? "max-w-[524px] pointer-events-auto" : ""}`}
               style={{ boxShadow: GLASS_SHADOW_OUT }}
             >
               <GlassChrome roundedClass="rounded-[122px]" />
@@ -844,7 +844,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
                   className="flex min-w-0 flex-1 items-center gap-4 text-left outline-none"
                 >
                   <SparkleOrb />
-                  <span className="truncate text-[16px] font-normal leading-none text-slate-600">
+                  <span className="truncate font-sans text-[16px] font-normal leading-none text-slate-600">
                     Ask AI Coach
                   </span>
                 </button>

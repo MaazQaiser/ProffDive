@@ -3,7 +3,7 @@ import { Check, Mail, ChevronRight, CheckCircle2 } from "lucide-react";
 
 export function ProgressTasksCard() {
   return (
-    <div className="w-full bg-white rounded-[16px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 overflow-hidden font-['Inter',sans-serif]">
+    <div className="w-full overflow-hidden rounded-[16px] border border-slate-100 bg-white font-sans shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
         <h2 className="text-[18px] md:text-[20px] font-bold text-[#0F172A]">Interview Readiness</h2>

@@ -9,39 +9,12 @@ import { useUser } from "@/lib/user-context";
 import { Chip } from "@/components/Chip";
 import { JdResumeInput } from "@/components/JdResumeInput";
 import { EXP_BRACKET_OPTIONS, type ExpBracket } from "@/lib/proofy-script";
+import { ROLES, SUGGESTIVE_ROLE_CHIPS } from "@/lib/role-options";
 
 const urbanist = Urbanist({
   subsets: ["latin"],
   display: "swap",
 });
-
-const ROLES = [
-  "Product Manager",
-  "Product Designer",
-  "UX Designer",
-  "Software Engineer",
-  "Frontend Engineer",
-  "Backend Engineer",
-  "Data Scientist",
-  "Data Analyst",
-  "Business Analyst",
-  "Marketing Manager",
-  "Growth Manager",
-  "Operations Manager",
-  "Strategy Consultant",
-  "Machine Learning Engineer",
-];
-
-const SUGGESTIVE_ROLE_CHIPS = [
-  "Product Manager",
-  "UX Designer",
-  "Software Engineer",
-  "Data Analyst",
-  "Product Designer",
-  "Marketing Manager",
-  "Data Scientist",
-  "Business Analyst",
-];
 
 const INDUSTRY_OPTIONS = [
   "Technology / software",
@@ -258,7 +231,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className={`onboarding-flow relative flex w-full min-h-screen font-['Inter',sans-serif] ${
+      className={`onboarding-flow relative flex w-full min-h-screen font-sans ${
         flowPhase === "journey" ? "h-[100dvh] max-h-[100dvh] overflow-hidden" : ""
       }`}
     >

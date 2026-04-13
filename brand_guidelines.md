@@ -26,7 +26,7 @@ Minimal. Neutral. Precise.
 - UI should remain ~90% neutral.
 
 ## 3. Typography
-- **Font**: Inter
+- **Font**: Urbanist
 - Single font system only.
 - No decorative styles.
 - Maintain high readability.

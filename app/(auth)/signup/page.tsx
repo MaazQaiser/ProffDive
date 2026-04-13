@@ -14,7 +14,7 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <div className="min-h-screen flex w-full font-['Inter',sans-serif]">
+    <div className="flex min-h-screen w-full font-sans">
       {/* Left Side - Auth Panel */}
       <div className="flex-1 flex flex-col bg-gradient-to-b from-[#FAFEFF] to-[#CFDCE1] relative">
         <div className="flex-1 flex flex-col items-center justify-start pt-16 px-8 lg:px-[80px]">

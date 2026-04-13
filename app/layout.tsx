@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Urbanist } from "next/font/google";
 import "./globals.css";
 import { UserProvider } from "@/lib/user-context";
 import { ProofyChatDockGate } from "@/components/proofy/ProofyChatDockGate";
 
-const inter = Inter({
-  variable: "--font-inter",
+const urbanist = Urbanist({
   subsets: ["latin"],
+  display: "swap",
+  variable: "--font-urbanist",
 });
 
 export const metadata: Metadata = {
@@ -20,8 +21,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
-      <body suppressHydrationWarning className="min-h-full flex flex-col tracking-tight bg-background text-foreground">
+    <html lang="en" suppressHydrationWarning className={`${urbanist.variable} h-full antialiased`}>
+      <body suppressHydrationWarning className="min-h-full flex flex-col tracking-tight bg-background font-sans text-foreground">
         <UserProvider>
           {children}
           <ProofyChatDockGate />

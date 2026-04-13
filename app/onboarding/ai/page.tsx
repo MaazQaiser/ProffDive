@@ -376,7 +376,7 @@ export default function ProofyOnboardingPage() {
   }, [phase, goPhase]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-[#F0FBFD] via-[#E8F4F8] to-[#CFDCE1] font-['Inter',sans-serif]">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-[#F0FBFD] via-[#E8F4F8] to-[#CFDCE1] font-sans">
       <header className="shrink-0 flex items-center justify-between px-4 py-3 border-b border-white/40 bg-white/30 backdrop-blur-md">
         <Link href="/login" className="text-[13px] text-[#64748B] hover:text-[#0087A8]">
           ← Back

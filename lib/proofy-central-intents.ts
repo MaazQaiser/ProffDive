@@ -186,7 +186,7 @@ export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
         type: "assistant_text",
         text: "Once it's set up, your practice, training, and mocks will all be tied to that role — so nothing's wasted.",
       },
-      { type: "navigate", href: "/storyboard/new" },
+      { type: "navigate", href: "/storyboard" },
     ];
   }
 

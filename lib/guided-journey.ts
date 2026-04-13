@@ -44,7 +44,7 @@ export const GUIDED_JOURNEY_TARGETS: Record<
   story: {
     routePrefix: "/storyboard",
     spotlightTargetId: "story-start",
-    nextRoute: "/storyboard/new",
+    nextRoute: "/storyboard",
   },
   mock: {
     routePrefix: "/mock",
@@ -189,12 +189,16 @@ export function syncJourneyToRoute(pathname: string): GuidedJourneyState {
   if (!st.active || st.skipped) return st;
 
   // Route-based transitions:
-  // - training -> story when entering /storyboard/new or /storyboard/new?...
+  // - training -> story when entering /storyboard hub or /storyboard/new?...
   // - story -> mock when entering /mock/setup...
   // - mock -> report when entering /report/...
   // - report -> done when entering /report/... (we treat as completion on entry)
   const p = pathname || "";
-  const isStoryNew = p === "/storyboard/new" || p.startsWith("/storyboard/new?");
+  const isStoryNew =
+    p === "/storyboard" ||
+    p.startsWith("/storyboard?") ||
+    p === "/storyboard/new" ||
+    p.startsWith("/storyboard/new?");
   const isMock = p === "/mock" || p.startsWith("/mock/");
   const isMockSetup = p === "/mock/setup" || p.startsWith("/mock/setup?");
   const isReport = p.startsWith("/report/");

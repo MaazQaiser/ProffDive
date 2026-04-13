@@ -1,7 +1,9 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { Urbanist } from "next/font/google";
 import { useParams } from "next/navigation";
 import {
   Brain,
@@ -42,6 +44,24 @@ import {
 import { TRAININGS, PILLAR_COLORS, type Pillar } from "@/lib/trainings-data";
 import { ProofyChatDock } from "@/components/proofy/ProofyChatDock";
 
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const glassPanel =
+  "relative overflow-hidden border-[0.5px] border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+const glassCard = `${glassPanel} rounded-[24px]`;
+const glassCardMd = `${glassPanel} rounded-[16px]`;
+const glassCardLg = `${glassPanel} rounded-[20px]`;
+
+const cardInset =
+  "pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]";
+
+const stickyBar =
+  "relative overflow-hidden rounded-[16px] border-[0.5px] border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.82)_0%,rgba(255,255,255,0.94)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.08)] backdrop-blur-[21px]";
+
 function useIsClient() {
   return useSyncExternalStore(
     () => () => {},
@@ -50,26 +70,8 @@ function useIsClient() {
   );
 }
 
-const glassCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.58)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.72)",
-  boxShadow: "0 4px 24px rgba(0,0,0,0.05), inset 0 1px 0 rgba(255,255,255,0.90)",
-  borderRadius: 20,
-};
-
-const stickyCard: React.CSSProperties = {
-  background: "rgba(255,255,255,0.85)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.75)",
-  borderRadius: 12,
-  boxShadow: "0 2px 20px rgba(0,0,0,0.06)",
-};
-
-const IB = "1px solid rgba(0,0,0,0.06)";
-const TEAL = "#0087A8";
+const IB = "1px solid #E2E8F0";
+const TEAL = "#0A89A9";
 
 function stripOuterQuotes(s: string): string {
   const t = s.trim();
@@ -99,14 +101,14 @@ function StatusBadge({ score }: { score: number }) {
   const isReady = score >= 3.5;
   if (isReady) {
     return (
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[11px] font-bold">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[14px] font-bold">
         <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
         Ready
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-[11px] font-bold">
+    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-[14px] font-bold">
       <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
       Borderline
     </span>
@@ -119,48 +121,40 @@ function stickyBadge(score: number) {
   return { dot: "#F87171", bg: "rgba(248,113,113,0.12)", text: "#DC2626", label: "Not Ready" };
 }
 
-const DRIVER_LABEL_TO_ID: Record<string, DriverDef["id"]> = {
-  Thinking: "thinking",
-  Action: "action",
-  People: "people",
-  Mastery: "mastery",
-};
-
 const tagBase =
-  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-wide shrink-0";
+  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-medium tracking-[0px] shrink-0";
 
 const focusFacetTagClass =
-  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#0F172A]/10 bg-white text-[#475569] text-[11px] font-semibold tracking-normal normal-case shrink-0 max-w-[min(100%,17rem)] truncate";
+  "inline-flex max-w-[min(100%,17rem)] shrink-0 items-center gap-1.5 truncate rounded-full border border-slate-200/90 bg-white/90 px-2.5 py-1 text-[14px] font-semibold tracking-[0px] text-[#475569] normal-case backdrop-blur-sm";
 
 function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
   const [open, setOpen] = useState(false);
   const sc = getScoreColor(q.score);
-  const pillarId = DRIVER_LABEL_TO_ID[q.driver];
-  const pillarDetail = pillarId ? COMPETENCY_DETAILS[pillarId] : null;
   const focusFacetLabel = focusFacetLabelForQuestionIndex(qi);
+  const answerText = (q.answer ?? q.youSaid)?.trim() ?? "";
 
   return (
     <div
-      style={{ ...glassCard, borderRadius: 16 }}
-      className="mb-4 overflow-hidden border border-white/40 hover:border-[#0087A8]/30 transition-all"
+      className={`${glassCardMd} group relative mb-4 overflow-hidden transition-shadow hover:shadow-[0_8px_28px_rgba(0,0,0,0.08)]`}
     >
-      <div className="p-5 space-y-4">
+      <span aria-hidden className={cardInset} />
+      <div className="relative z-[1] space-y-4 p-5">
         <div className="flex flex-wrap items-center gap-2">
           <span className={focusFacetTagClass} title={focusFacetLabel}>
             {focusFacetLabel}
           </span>
           <span
-            className={`${tagBase} border-black/[0.06] bg-white text-[#0F172A]`}
+            className={`${tagBase} border-slate-200/80 bg-white/90 text-[#1E293B]`}
             style={{ boxShadow: `inset 0 0 0 1px ${q.driverAccent}33` }}
           >
             <span style={{ width: 6, height: 6, borderRadius: 99, background: q.driverAccent }} />
             {q.driver}
           </span>
-          <span className={`${tagBase} border-[#0F172A]/8 bg-[#0F172A]/[0.02] text-[#475569]`}>
+          <span className={`${tagBase} border-slate-200/70 bg-white/50 text-[#475569]`}>
             <Timer size={12} className="text-[#475569]/50" />
             {q.taken}
           </span>
-          <span className={`${tagBase} border-[#0F172A]/10 bg-white font-mono tabular-nums`} style={{ color: sc }}>
+          <span className={`${tagBase} border-slate-200/80 bg-white/90 tabular-nums`} style={{ color: sc }}>
             {q.score}
             <span className="text-[#475569]/35 font-sans">/5</span>
           </span>
@@ -170,13 +164,13 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex w-full items-start gap-3 text-left rounded-xl -mx-1 px-1 py-1 hover:bg-[#0F172A]/[0.02] transition-colors"
+          className="-mx-1 flex w-full items-start gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-white/50"
           aria-expanded={open}
         >
-          <span className="shrink-0 w-8 h-8 flex items-center justify-center text-[12px] font-bold bg-[#0F172A]/5 rounded-[10px] text-[#0F172A]/50">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-slate-100/80 text-[12px] font-bold text-[#94A3B8]">
             {qi + 1}
           </span>
-          <p className="flex-1 min-w-0 text-[16px] font-bold text-[#0F172A] leading-snug pr-2">&ldquo;{q.q}&rdquo;</p>
+          <p className="min-w-0 flex-1 pr-2 text-[16px] font-semibold leading-snug text-[#1E293B]">&ldquo;{q.q}&rdquo;</p>
           <ChevronDown
             size={20}
             className={`shrink-0 text-[#475569]/40 mt-0.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
@@ -186,51 +180,15 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
       </div>
 
       {open ? (
-        <div className="border-t border-black/[0.06] bg-white/35 px-5 py-6 space-y-8">
-          {pillarDetail ? (
-            <div className="p-4 rounded-[14px] border border-black/[0.06] bg-white/60">
-              <p className="text-[11px] font-bold tracking-[0.12em] text-[#475569]/45 mb-2">Competency area</p>
-              <p className="text-[15px] font-bold text-[#0F172A]">
-                {pillarDetail.pillar}{" "}
-                <span className="text-[#475569]/60 font-semibold">({pillarDetail.subtitle})</span>
-              </p>
-              <ul className="mt-3 space-y-2">
-                {pillarDetail.skills.map((s, si) => {
-                  const pillarScore = pillarId ? MOCK_DRIVERS.find((d) => d.id === pillarId)?.score ?? q.score : q.score;
-                  const sub = mockSubSkillScore(pillarScore, si);
-                  return (
-                    <li key={s} className="text-[13px] text-[#475569] flex items-center justify-between gap-3 flex-wrap">
-                      <span className="flex items-center gap-2 min-w-0">
-                        <span className="w-1 h-1 rounded-full shrink-0 bg-[#0087A8]" />
-                        {s}
-                      </span>
-                      <span className="font-mono font-bold tabular-nums text-[#0F172A] text-[12px] shrink-0">{sub.toFixed(1)}/5</span>
-                    </li>
-                  );
-                })}
-              </ul>
+        <div className="space-y-8 border-t border-[#E2E8F0] bg-white/35 px-5 py-6">
+          {answerText ? (
+            <div>
+              <p className="text-[12px] tracking-[0.08em] font-bold text-[#475569]/40 mb-3">Your answer</p>
+              <blockquote className="m-0 border-l-[3px] border-slate-200/90 pl-4">
+                <p className="text-[15px] leading-[1.65] text-[#334155] font-normal not-italic">{answerText}</p>
+              </blockquote>
             </div>
           ) : null}
-
-          <div>
-            <p className="text-[12px] tracking-[0.08em] font-bold text-[#475569]/40 mb-4">Competency analysis</p>
-            <div className="flex flex-col gap-4">
-              {q.car.map((c) => (
-                <div key={c.label} className="flex items-start gap-3">
-                  <div
-                    className={`w-5 h-5 rounded-[6px] flex items-center justify-center shrink-0 mt-0.5 ${
-                      c.ok ? "bg-[#10B981]/10 text-[#10B981]" : "bg-[#EF4444]/10 text-[#EF4444]"
-                    }`}
-                  >
-                    {c.ok ? "✓" : "✕"}
-                  </div>
-                  <p className="text-[13px] text-[#475569] leading-relaxed">
-                    <strong className="text-[#0F172A]">{c.label}</strong> — {c.note}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
 
           <div>
             <p className="text-[12px] tracking-[0.08em] font-bold text-[#475569]/40 mb-4">Areas for improvement</p>
@@ -239,7 +197,7 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
                 <div key={imp.heading} className="flex items-start gap-2.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B] mt-[7px] shrink-0" />
                   <p className="text-[13px] text-[#475569] leading-relaxed">
-                    <strong className="text-[#0F172A]">{imp.heading}</strong> — {imp.detail}
+                    <strong className="text-[#1E293B]">{imp.heading}</strong> — {imp.detail}
                   </p>
                 </div>
               ))}
@@ -258,21 +216,25 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
   const det = COMPETENCY_DETAILS[d.id];
 
   return (
-    <div style={glassCard} className="p-6 flex flex-col gap-4 border border-white/40 hover:border-[#0087A8]/20 transition-colors">
+    <div
+      className={`${glassCardMd} relative flex flex-col gap-4 p-6 transition-shadow hover:shadow-[0_8px_28px_rgba(0,0,0,0.08)]`}
+    >
+      <span aria-hidden className={cardInset} />
+      <div className="relative z-[1] flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <div className="w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0" style={{ background: `${d.accent}10` }}>
           <Icon size={20} style={{ color: d.accent }} />
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-[28px] font-bold font-mono tabular-nums leading-none" style={{ color: sc }}>
+          <span className="text-[28px] font-medium tabular-nums leading-none tracking-normal" style={{ color: sc }}>
             {d.score.toFixed(1)}
           </span>
-          <span className="text-[12px] font-medium text-[#475569]/30">/5</span>
+          <span className="text-[16px] font-medium text-[#475569]/30">/5</span>
         </div>
       </div>
 
       <div>
-        <h3 className="text-[16px] font-bold text-[#0F172A] mb-1">{d.title}</h3>
+        <h3 className="mb-1 text-[16px] font-medium text-[#1E293B]">{d.title}</h3>
         <p className="text-[11px] text-[#475569]/55 font-semibold tracking-wide">
           {det.pillar} · {det.subtitle}
         </p>
@@ -282,14 +244,14 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
         <StatusBadge score={d.score} />
       </div>
 
-      <div className="h-[6px] w-full bg-[#0F172A]/5 rounded-full overflow-hidden">
+      <div className="h-[6px] w-full overflow-hidden rounded-full bg-slate-100">
         <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${d.pct}%`, background: d.accent }} />
       </div>
 
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-center gap-2 h-10 rounded-[10px] border border-[#0F172A]/10 text-[12px] font-bold text-[#0087A8] hover:bg-[#0087A8]/5 transition-colors"
+        className="flex h-10 w-full items-center justify-center gap-2 rounded-full border border-slate-200/90 bg-white/50 text-[12px] font-semibold text-[#0A89A9] transition-colors hover:bg-white/80"
         aria-expanded={open}
       >
         {open ? "Hide breakdown" : "See the breakdown"}
@@ -297,7 +259,7 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
       </button>
 
       {open ? (
-        <div className="border-t border-black/[0.06] pt-4 space-y-3 -mb-1">
+        <div className="-mb-1 space-y-3 border-t border-[#E2E8F0] pt-4">
           <p className="text-[11px] font-bold tracking-[0.12em] text-[#475569]/45">Competency breakdown</p>
           <ul className="space-y-2.5">
             {det.skills.map((s, si) => {
@@ -306,13 +268,13 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
               return (
                 <li
                   key={s}
-                  className="flex items-center justify-between gap-3 text-[13px] text-[#475569] rounded-lg border border-black/[0.05] bg-white/50 px-3 py-2"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[#E2E8F0] bg-white/60 px-3 py-2 text-[13px] text-[#475569]"
                 >
                   <span className="flex items-center gap-2 min-w-0">
                     <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: d.accent }} />
-                    <span className="font-medium text-[#0F172A]">{s}</span>
+                    <span className="font-medium text-[#1E293B]">{s}</span>
                   </span>
-                  <span className="font-mono font-bold tabular-nums text-[13px] shrink-0" style={{ color: ssc }}>
+                  <span className="font-bold tabular-nums text-[13px] shrink-0" style={{ color: ssc }}>
                     {sub.toFixed(1)}/5
                   </span>
                 </li>
@@ -321,6 +283,7 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
           </ul>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
@@ -377,33 +340,35 @@ export default function ReportPage() {
   const spotlightQuestionNumber = MOCK_SESSION_AI_COACHING.questionIndex + 1;
 
   return (
-    <div className="min-h-screen">
+    <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden`}>
       {/* Fixed bar below app nav (h-14) */}
       <div
-        className={`fixed left-0 right-0 z-40 px-6 md:px-10 lg:px-14 pt-2 transition-all duration-300 ease-out ${
-          showSticky ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-2 pointer-events-none"
+        className={`fixed left-0 right-0 z-40 px-6 pt-2 transition-all duration-300 ease-out md:px-8 ${
+          showSticky ? "pointer-events-auto translate-y-0 opacity-100" : "pointer-events-none -translate-y-2 opacity-0"
         }`}
         style={{ top: "3.5rem" }}
         aria-hidden={!showSticky}
       >
-        <div className="max-w-[1240px] mx-auto" style={stickyCard}>
-          <div className="flex items-center gap-4 md:gap-6 flex-wrap py-3 px-5 md:px-6">
+        <div className="mx-auto max-w-[1440px]">
+          <div className={`${stickyBar} border-[0.5px]`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] flex flex-wrap items-center gap-4 px-5 py-3 md:gap-6 md:px-6">
             <div className="flex items-end gap-1.5">
-              <span className="text-[26px] font-bold font-mono text-[#0F172A]">{overall.toFixed(1)}</span>
-              <span className="text-[12px] pb-0.5 text-[#475569]/40">/5.0</span>
+              <span className="text-[26px] font-bold tabular-nums text-[#1E293B]">{overall.toFixed(1)}</span>
+              <span className="pb-0.5 text-[12px] text-[#64748B]">/5.0</span>
             </div>
-            <div className="w-px h-7 bg-black/[0.06] hidden sm:block" />
+            <div className="hidden h-7 w-px bg-[#E2E8F0] sm:block" />
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: stickyB.dot }} />
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: stickyB.dot }} />
               <span
-                className="text-[12px] font-bold tracking-wide px-2.5 py-1 rounded-md"
+                className="rounded-md px-2.5 py-1 text-[12px] font-semibold tracking-wide"
                 style={{ background: stickyB.bg, color: stickyB.text }}
               >
                 {stickyB.label}
               </span>
             </div>
-            <div className="w-px h-7 bg-black/[0.06] hidden md:block" />
-            <div className="hidden md:flex items-center gap-4 text-[11px] text-[#475569]/50">
+            <div className="hidden h-7 w-px bg-[#E2E8F0] md:block" />
+            <div className="hidden items-center gap-4 text-[11px] text-[#64748B] md:flex">
               <span className="flex items-center gap-1.5">
                 <Mic size={11} /> Audio
               </span>
@@ -411,89 +376,113 @@ export default function ReportPage() {
                 <Video size={11} /> Video
               </span>
             </div>
-            <div className="ml-auto flex items-center gap-3 text-[11px] text-[#475569]/50">
+            <div className="ml-auto flex items-center gap-3 text-[11px] text-[#64748B]">
               <span>
                 {dynamicSession.questionCount} questions · {dynamicSession.duration}
               </span>
-              <Link href="#recording" className="font-bold text-[#0087A8] hover:opacity-80">
+              <Link href="#recording" className="font-semibold text-[#0A89A9] hover:opacity-80">
                 Recording
               </Link>
+            </div>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="max-w-[1240px] mx-auto px-6 md:px-10 lg:px-14 py-12 space-y-12">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+      <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
+        <div
+          className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45"
+          aria-hidden
+        >
+          <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
+        </div>
+
+        <div className="relative z-[1] space-y-10 pb-16 md:space-y-12">
+        <div className="flex flex-col justify-between gap-8 md:flex-row md:items-end">
           <div className="space-y-4">
-            <Link href="/mock" className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity">
-              <ArrowLeft size={16} /> Back to Sessions
+            <Link
+              href="/mock"
+              className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
+            >
+              <ArrowLeft size={16} strokeWidth={2} /> Back to sessions
             </Link>
             <div>
-              <div className="flex flex-wrap items-center gap-3 mb-1">
-                <h1 className="text-[36px] font-bold tracking-tight text-[#0F172A] leading-tight">
-                  {`Analytics & AI Coaching of your session — ${dynamicSession.role}`}
-                </h1>
-                <div className="px-3 py-1 rounded-full bg-[#0F172A]/5 text-[#475569] text-[11px] font-bold mt-2">V1.2</div>
-                <span className="text-[12px] text-[#475569]/50 mt-2 font-mono">#{id}</span>
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="rounded-full border border-slate-200/80 bg-white/60 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#64748B]">
+                  V1.2
+                </span>
+                <span className="text-[12px] text-[#94A3B8]">#{id}</span>
               </div>
-              <div className="flex flex-wrap items-center gap-3 text-[#475569]/60 text-[14px]">
+              <h1 className="max-w-[min(100%,960px)] text-[28px] font-normal leading-snug tracking-tight text-[#334155] md:text-[34px]">
+                <span className="text-[#0A89A9]">Session report</span>
+                <span> — analytics &amp; coaching for </span>
+                <span className="text-[#0A89A9]">{dynamicSession.role}</span>
+              </h1>
+              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[14px] text-[#64748B]">
                 <span>{dynamicSession.interviewName}</span>
-                <span>·</span>
+                <span className="text-[#CBD5E1]" aria-hidden>
+                  ·
+                </span>
                 <span>{dynamicSession.date}</span>
-                <span>·</span>
-                <span>{dynamicSession.duration} Duration</span>
+                <span className="text-[#CBD5E1]" aria-hidden>
+                  ·
+                </span>
+                <span>{dynamicSession.duration}</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-shrink-0 flex-wrap items-center gap-3">
             <button
               type="button"
-              className="h-11 px-6 rounded-[10px] border border-[#0F172A]/10 text-[14px] font-bold text-[#0F172A] hover:bg-[#0F172A]/5 transition-all"
+              className="h-11 rounded-full border border-slate-200/90 bg-white/70 px-6 text-[14px] font-medium text-[#475569] shadow-sm transition-colors hover:bg-white"
             >
               Download PDF
             </button>
             <Link
               href="/mock/setup"
-              className="h-11 px-8 rounded-[10px] bg-[#0087A8] text-white text-[14px] font-bold hover:opacity-90 transition-all flex items-center gap-2"
+              className="flex h-11 items-center gap-2 rounded-full bg-[#0A89A9] px-8 text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-opacity hover:opacity-95"
             >
-              Retake Session <ChevronRight size={16} />
+              Retake session <ChevronRight size={16} strokeWidth={2.5} />
             </Link>
           </div>
         </div>
 
-        <div ref={heroSectionRef} className="space-y-12">
+        <div ref={heroSectionRef} className="space-y-8 md:space-y-10">
         <div
           data-journey-id="report-overall"
-          style={glassCard}
-          className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 md:gap-20 relative overflow-hidden"
+          className={`${glassCard} relative flex flex-col items-center gap-10 overflow-hidden border-[0.5px] p-8 md:flex-row md:gap-16 md:p-12`}
         >
-          <div className="text-center md:text-left shrink-0">
-            <p className="text-[64px] font-black font-mono leading-none tabular-nums tracking-tighter" style={{ color: getScoreColor(overall) }}>
+          <span aria-hidden className={cardInset} />
+          <div className="relative z-[1] flex w-full shrink-0 flex-col items-center gap-10 md:flex-row md:gap-16">
+          <div className="shrink-0 text-center md:text-left">
+            <p
+              className="text-[56px] font-medium leading-none tabular-nums tracking-normal md:text-[64px]"
+              style={{ color: getScoreColor(overall) }}
+            >
               {overall.toFixed(1)}
             </p>
-            <p className="text-[12px] tracking-[0.12em] font-black text-[rgba(67,93,132,0.6)] mt-2">Out of 5.0</p>
+            <p className="mt-2 text-[12px] font-medium uppercase tracking-[0.12em] text-[#64748B]">Out of 5.0</p>
           </div>
 
-          <div className="flex-1 space-y-4">
-            <div className="flex items-center justify-center md:justify-start gap-3">
+          <div className="min-w-0 flex-1 space-y-4">
+            <div className="flex flex-wrap items-center justify-center gap-3 md:justify-start">
               <StatusBadge score={overall} />
-              <span className="text-[11px] font-bold text-[#475569]/40 tracking-[0.08em]">Overall verdict</span>
+              <span className="text-[11px] font-medium uppercase tracking-[0.08em] text-[#94A3B8]">Overall verdict</span>
             </div>
-            <h2 className="text-[28px] md:text-[24px] font-bold text-[#0F172A] leading-tight max-w-xl">
+            <h2 className="max-w-xl text-[22px] font-medium leading-tight text-[#1E293B] md:text-[24px]">
               Strong in People — Action and Mastery are holding your score back.
             </h2>
-            <p className="text-[14px] text-[#475569] leading-relaxed max-w-2xl">
+            <p className="max-w-2xl text-[14px] leading-relaxed text-[#64748B]">
               Your People answers showed real evidence of influence and collaboration. Where you&apos;re losing points is Action — your answers described what happened but not what you specifically decided and why. Fix that and your score moves from 3.4 to 4.0+.
             </p>
           </div>
 
-          <div className="shrink-0 p-6 rounded-[16px] bg-[#0F172A]/[0.03] border border-black/[0.04] w-full md:w-auto">
-            <p className="text-[12px] tracking-[0.12em] font-bold text-[#475569]/60 mb-3">Your profile</p>
+          <div className="w-full shrink-0 rounded-[16px] border border-[#E2E8F0] bg-white/45 p-6 backdrop-blur-sm md:w-auto">
+            <p className="mb-3 text-[12px] font-medium uppercase tracking-[0.08em] text-[#64748B]">Your profile</p>
             <div className="space-y-4">
               <div>
-                <p className="text-[16px] font-bold text-[#0F172A]">{dynamicSession.role}</p>
+                <p className="text-[16px] font-semibold text-[#1E293B]">{dynamicSession.role}</p>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 {dynamicSession.pillars.map((p) => (
@@ -504,9 +493,10 @@ export default function ReportPage() {
               </div>
             </div>
           </div>
+          </div>
         </div>
 
-        <div data-journey-id="report-pillars" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div data-journey-id="report-pillars" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {MOCK_DRIVERS.map((d) => (
             <DriverPillarCard key={d.id} d={d} />
           ))}
@@ -514,31 +504,30 @@ export default function ReportPage() {
 
         <div className="flex justify-center">
           <details
-            className="group w-full max-w-3xl rounded-[16px] border border-[#0F172A]/08 overflow-hidden [&>summary::-webkit-details-marker]:hidden"
-            style={glassCard}
+            className={`${glassCardMd} group relative w-full max-w-3xl overflow-hidden border-[0.5px] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)] [&>summary::-webkit-details-marker]:hidden`}
           >
-            <summary className="flex cursor-pointer list-none items-center justify-center gap-2 h-11 px-6 text-[13px] font-bold text-[#0F172A] hover:bg-[#0F172A]/[0.03] transition-colors">
+            <summary className="relative z-[1] flex h-11 cursor-pointer list-none items-center justify-center gap-2 px-6 text-[13px] font-medium text-[#1E293B] transition-colors hover:bg-white/40">
               <ChevronDown
                 size={16}
-                className="text-[#0087A8] shrink-0 transition-transform duration-200 group-open:rotate-180"
+                className="shrink-0 text-[#0A89A9] transition-transform duration-200 group-open:rotate-180"
                 aria-hidden
               />
               View all competency areas
             </summary>
-            <div className="px-5 md:px-6 pb-6 pt-2 border-t border-black/[0.06] space-y-5">
-              <p className="text-[12px] text-[#475569]/70 text-center md:text-left">
+            <div className="relative z-[1] space-y-5 border-t border-[#E2E8F0] px-5 pb-6 pt-2 md:px-6">
+              <p className="text-center text-[12px] text-[#64748B] md:text-left">
                 Power dimensions and sub-skills measured in this session — each pillar has an overall score; expand driver cards above for per–sub-skill scores.
               </p>
               {MOCK_DRIVERS.map((d) => {
                 const det = COMPETENCY_DETAILS[d.id];
                 return (
-                  <div key={d.id} className="rounded-[14px] border border-black/[0.06] bg-white/50 p-5">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
-                      <h3 className="text-[15px] font-bold text-[#0F172A]">
+                  <div key={d.id} className="rounded-[14px] border border-[#E2E8F0] bg-white/55 p-5">
+                    <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                      <h3 className="text-[15px] font-semibold text-[#1E293B]">
                         {det.pillar}{" "}
                         <span className="text-[#475569]/60 font-semibold text-[13px]">({det.subtitle})</span>
                       </h3>
-                      <span className="text-[14px] font-mono font-bold tabular-nums" style={{ color: getScoreColor(d.score) }}>
+                      <span className="text-[14px] font-bold tabular-nums" style={{ color: getScoreColor(d.score) }}>
                         {d.score.toFixed(1)} / 5
                       </span>
                     </div>
@@ -551,7 +540,7 @@ export default function ReportPage() {
                               <span className="w-1 h-1 rounded-full shrink-0" style={{ background: d.accent }} />
                               {s}
                             </span>
-                            <span className="font-mono font-bold tabular-nums text-[12px] shrink-0" style={{ color: getScoreColor(sub) }}>
+                            <span className="font-bold tabular-nums text-[12px] shrink-0" style={{ color: getScoreColor(sub) }}>
                               {sub.toFixed(1)}/5
                             </span>
                           </li>
@@ -568,9 +557,12 @@ export default function ReportPage() {
 
         <section data-journey-id="report-summary" className="space-y-6">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0F172A]">What Proofy saw in your session</h2>
+            <h2 className="text-[24px] font-medium text-[#1E293B]">What Proofy saw in your session</h2>
+            <p className="mt-1 text-[12px] text-[#64748B]">Summary of strengths, gaps, and how you showed up.</p>
           </div>
-          <div style={glassCard} className="p-8 border border-white/40 space-y-6">
+          <div className={`${glassCard} relative space-y-6 border-[0.5px] p-8`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] space-y-6">
             <p className="text-[16px] text-[#475569] leading-relaxed">{summaryBody}</p>
             <div className="flex flex-wrap gap-3">
               <div className="flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#10B981]/10 border border-[#10B981]/20">
@@ -587,11 +579,13 @@ export default function ReportPage() {
               </div>
             </div>
           </div>
+          </div>
         </section>
 
         <div data-journey-id="report-questions" className="pt-4">
           <div className="mb-8">
-            <h2 className="text-[24px] font-bold text-[#0F172A]">Your answers — question by question</h2>
+            <h2 className="text-[24px] font-medium text-[#1E293B]">Your answers — question by question</h2>
+            <p className="mt-1 text-[12px] text-[#64748B]">Expand each row for competency analysis and improvements.</p>
           </div>
           <div className="flex flex-col">
             {MOCK_QUESTIONS.map((q, qi) => (
@@ -602,12 +596,14 @@ export default function ReportPage() {
 
         <section id="recording" data-journey-id="report-recording" className="scroll-mt-32 space-y-4">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0F172A]">Recording &amp; transcript</h2>
-            <p className="text-[14px] text-[#475569]/60 mt-1">Replay your session and review the full conversation.</p>
+            <h2 className="text-[24px] font-medium text-[#1E293B]">Recording &amp; transcript</h2>
+            <p className="mt-1 text-[14px] text-[#64748B]">Replay your session and review the full conversation.</p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
-            <div style={glassCard} className="overflow-hidden border border-white/40 rounded-[16px]">
+          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1fr_360px]">
+            <div className={`${glassCardMd} relative overflow-hidden border-[0.5px]`}>
+              <span aria-hidden className={cardInset} />
+              <div className="relative z-[1] overflow-hidden rounded-[inherit]">
               <div
                 className="relative flex items-center justify-center"
                 style={{ aspectRatio: "16/9", background: "var(--bg-gradient)" }}
@@ -626,7 +622,7 @@ export default function ReportPage() {
                   <Play size={24} style={{ color: "#FFF", marginLeft: 3 }} />
                 </button>
                 <div className="absolute bottom-4 right-4 px-2.5 py-1 rounded-md" style={{ background: "rgba(0,0,0,0.55)" }}>
-                  <span className="text-[11px] font-mono font-semibold text-white">{dynamicSession.duration}</span>
+                  <span className="text-[11px] font-semibold text-white">{dynamicSession.duration}</span>
                 </div>
                 <div
                   className="absolute bottom-3 left-3 flex items-center justify-center rounded-lg border border-white/15"
@@ -640,8 +636,8 @@ export default function ReportPage() {
                   <div className="h-full rounded-full w-[38%]" style={{ background: TEAL }} />
                 </div>
                 <div className="flex justify-between mt-2">
-                  <span className="text-[12px] font-mono text-[#475569]/40">11:42</span>
-                  <span className="text-[12px] font-mono text-[#475569]/40">{dynamicSession.duration}</span>
+                  <span className="text-[12px] text-[#475569]/40">11:42</span>
+                  <span className="text-[12px] text-[#475569]/40">{dynamicSession.duration}</span>
                 </div>
               </div>
               <div className="flex items-center justify-center gap-4 py-3 px-5">
@@ -675,37 +671,40 @@ export default function ReportPage() {
                   </select>
                 </div>
               </div>
+              </div>
             </div>
 
             <div
-              style={{ ...glassCard, maxHeight: 430, overflow: "hidden", display: "flex", flexDirection: "column" }}
-              className="border border-white/40 rounded-[16px]"
+              className={`${glassCardMd} relative flex max-h-[430px] flex-col overflow-hidden border-[0.5px]`}
             >
-              <div style={{ padding: "11px 18px", borderBottom: IB, background: "rgba(0,0,0,0.015)", flexShrink: 0 }}>
-                <p className="text-[12px] tracking-[0.1em] font-bold text-[#475569]/50">Full transcript</p>
+              <span aria-hidden className={cardInset} />
+              <div className="relative z-[1] flex min-h-0 flex-1 flex-col">
+              <div className="flex-shrink-0 border-b px-[18px] py-2.5" style={{ borderColor: "#E2E8F0", background: "rgba(255,255,255,0.45)" }}>
+                <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">Full transcript</p>
               </div>
-              <div className="flex-1 overflow-y-auto py-1">
+              <div className="min-h-0 flex-1 overflow-y-auto py-1">
                 {MOCK_TRANSCRIPT.map((t, i) => (
                   <div key={i} style={{ padding: "10px 18px", borderBottom: i < MOCK_TRANSCRIPT.length - 1 ? IB : undefined }}>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span
-                        className="text-[9px] font-bold tracking-wide"
+                        className="text-[12px] font-bold tracking-wide"
                         style={{ color: t.role === "interviewer" ? TEAL : "rgba(15,15,15,0.40)" }}
                       >
                         {t.speaker}
                       </span>
-                      <span className="text-[9px] font-mono text-[#475569]/40">{t.time}</span>
+                      <span className="text-[9px] text-[#475569]/40">{t.time}</span>
                       {t.flag && (
-                        <span className="text-[8px] font-semibold px-1.5 py-0.5 ml-auto rounded bg-amber-100 text-amber-900">
+                        <span className="text-[12px] font-semibold px-1.5 py-0.5 ml-auto rounded bg-amber-100 text-amber-900">
                           {t.flag}
                         </span>
                       )}
                     </div>
-                    <p className={`text-[12px] leading-relaxed ${t.role === "interviewer" ? "text-[#0F172A]" : "text-[#475569]"}`}>
+                    <p className={`text-[16px] leading-relaxed ${t.role === "interviewer" ? "text-[#1E293B]" : "text-[#475569]"}`}>
                       {t.text}
                     </p>
                   </div>
                 ))}
+              </div>
               </div>
             </div>
           </div>
@@ -717,30 +716,32 @@ export default function ReportPage() {
           data-journey-id="report-ai-coaching"
         >
           <div className="flex flex-wrap items-center gap-3">
-            <div className="w-10 h-10 rounded-[12px] bg-[#0087A8]/10 flex items-center justify-center shrink-0">
-              <Sparkles size={20} className="text-[#0087A8]" />
+            <div className="w-10 h-10 rounded-[12px] bg-[#0A89A9]/10 flex items-center justify-center shrink-0">
+              <Sparkles size={20} className="text-[#0A89A9]" />
             </div>
             <div>
-              <h2 className="text-[24px] font-bold text-[#0F172A]">How to improve your weakest answer</h2>
-              <p className="text-[14px] text-[#475569]/60 mt-0.5">
+              <h2 className="text-[24px] font-medium text-[#1E293B]">How to improve your weakest answer</h2>
+              <p className="mt-0.5 text-[14px] text-[#64748B]">
                 Delivery, language, and a sharper version of your highest-priority gap answer.
               </p>
             </div>
           </div>
 
-          <div style={glassCard} className="p-0 border border-white/40 overflow-hidden rounded-[20px]">
+          <div className={`${glassCardLg} relative overflow-hidden border-[0.5px] p-0`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] overflow-hidden rounded-[inherit]">
             {coachingAi ? (
-              <div className="border-b border-black/[0.06]">
-                <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-5 bg-[#0F172A]/[0.02]">
+              <div className="border-b border-[#E2E8F0]">
+                <div className="bg-slate-50/50 px-5 pb-5 pt-6 sm:px-8 sm:pt-8">
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                     <span
-                      className="inline-flex items-center justify-center min-w-[2.75rem] h-9 px-2.5 rounded-[10px] bg-[#0087A8] text-white text-[13px] font-bold tabular-nums shadow-sm"
+                      className="inline-flex items-center justify-center min-w-[2.75rem] h-9 px-2.5 rounded-[10px] bg-[#0A89A9] text-white text-[13px] font-bold tabular-nums shadow-sm"
                       title={`Question ${spotlightQuestionNumber}`}
                     >
                       Q{spotlightQuestionNumber}
                     </span>
                     <span
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-black/[0.06] bg-white/80 text-[11px] font-bold tracking-wide text-[#475569]"
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/90 px-3 py-1 text-[11px] font-semibold tracking-wide text-[#475569]"
                     >
                       <span
                         className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -754,40 +755,40 @@ export default function ReportPage() {
                     </span>
                   </div>
                   <p className="text-[11px] font-bold tracking-[0.1em] text-[#475569]/45 mb-2">Interview question</p>
-                  <p className="text-[17px] sm:text-[19px] font-semibold text-[#0F172A] leading-[1.45] max-w-3xl">
+                  <p className="text-[17px] sm:text-[19px] font-semibold text-[#1E293B] leading-[1.45] max-w-3xl">
                     {coachingAi.q}
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 lg:divide-x divide-black/[0.06]">
+                <div className="grid grid-cols-1 divide-[#E2E8F0] lg:grid-cols-2 lg:divide-x">
                   <div className="p-5 sm:p-8 sm:pt-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-[#0F172A]/6 flex items-center justify-center shrink-0">
-                        <Mic size={16} className="text-[#475569]" aria-hidden />
+                    <div className="mb-4 flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100/90">
+                        <Mic size={16} className="text-[#64748B]" aria-hidden />
                       </div>
                       <div>
-                        <p className="text-[13px] font-bold text-[#0F172A]">Your answer</p>
-                        <p className="text-[11px] text-[#475569]/55">What you said</p>
+                        <p className="text-[13px] font-semibold text-[#1E293B]">Your answer</p>
+                        <p className="text-[11px] text-[#94A3B8]">What you said</p>
                       </div>
                     </div>
-                    <blockquote className="pl-4 border-l-[3px] border-[#0F172A]/12 m-0">
+                    <blockquote className="m-0 border-l-[3px] border-slate-200/90 pl-4">
                       <p className="text-[15px] leading-[1.7] text-[#334155] font-normal not-italic">
                         {stripOuterQuotes(coachingAi.youSaid ?? "")}
                       </p>
                     </blockquote>
                   </div>
-                  <div className="p-5 sm:p-8 sm:pt-6 bg-[#0087A8]/[0.04] lg:bg-[#0087A8]/[0.06]">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-lg bg-[#0087A8]/15 flex items-center justify-center shrink-0">
-                        <Sparkles size={16} className="text-[#0087A8]" aria-hidden />
+                  <div className="bg-[#0A89A9]/[0.05] p-5 sm:p-8 sm:pt-6 lg:bg-[#0A89A9]/[0.07]">
+                    <div className="mb-4 flex items-center gap-2">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0A89A9]/15">
+                        <Sparkles size={16} className="text-[#0A89A9]" aria-hidden />
                       </div>
                       <div>
-                        <p className="text-[13px] font-bold text-[#0F172A]">Coach rewrite</p>
-                        <p className="text-[11px] text-[#475569]/55">How it should sound</p>
+                        <p className="text-[13px] font-semibold text-[#1E293B]">Coach rewrite</p>
+                        <p className="text-[11px] text-[#64748B]">How it should sound</p>
                       </div>
                     </div>
-                    <blockquote className="pl-4 border-l-[3px] border-[#0087A8] m-0">
-                      <p className="text-[15px] leading-[1.7] text-[#0F172A] font-normal not-italic">
+                    <blockquote className="pl-4 border-l-[3px] border-[#0A89A9] m-0">
+                      <p className="text-[15px] leading-[1.7] text-[#1E293B] font-normal not-italic">
                         {stripOuterQuotes(coachingAi.aiSaid ?? "")}
                       </p>
                     </blockquote>
@@ -796,12 +797,12 @@ export default function ReportPage() {
 
                 {coachingAi.aiTips && coachingAi.aiTips.length > 0 ? (
                   <div className="px-5 sm:px-8 pb-6 sm:pb-8 pt-0">
-                    <div className="rounded-[14px] border border-[#0087A8]/20 bg-[#0087A8]/[0.06] px-4 py-4 sm:px-5 sm:py-5">
-                      <p className="text-[11px] font-bold tracking-[0.1em] text-[#0087A8] mb-3">Why this version is stronger</p>
+                    <div className="rounded-[14px] border border-[#0A89A9]/20 bg-[#0A89A9]/[0.06] px-4 py-4 sm:px-5 sm:py-5">
+                      <p className="text-[11px] font-bold tracking-[0.1em] text-[#0A89A9] mb-3">Why this version is stronger</p>
                       <ul className="space-y-2.5">
                         {coachingAi.aiTips.map((tip) => (
                           <li key={tip} className="flex gap-3 text-[14px] text-[#334155] leading-snug">
-                            <CheckCircle size={16} className="text-[#0087A8] shrink-0 mt-0.5" aria-hidden />
+                            <CheckCircle size={16} className="text-[#0A89A9] shrink-0 mt-0.5" aria-hidden />
                             <span>{tip}</span>
                           </li>
                         ))}
@@ -815,60 +816,63 @@ export default function ReportPage() {
             <div className="p-5 sm:p-8 space-y-6 sm:space-y-8">
               <p className="text-[11px] font-bold tracking-[0.1em] text-[#475569]/45">Delivery &amp; language</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
-                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Body language</p>
+                <div className="rounded-[14px] border border-[#E2E8F0] bg-white/55 p-5">
+                  <p className="mb-3 text-[12px] font-semibold text-[#1E293B]">Body language</p>
                   <ul className="space-y-3">
                     {MOCK_SESSION_AI_COACHING.bodyLanguage.map((line) => (
-                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0087A8]/25">
+                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0A89A9]/25">
                         {line}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
-                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Grammar &amp; phrasing</p>
+                <div className="rounded-[14px] border border-[#E2E8F0] bg-white/55 p-5">
+                  <p className="mb-3 text-[12px] font-semibold text-[#1E293B]">Grammar &amp; phrasing</p>
                   <ul className="space-y-3">
                     {MOCK_SESSION_AI_COACHING.grammar.map((line) => (
-                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0087A8]/25">
+                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0A89A9]/25">
                         {line}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
-                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Gestures &amp; interview presence</p>
+                <div className="rounded-[14px] border border-[#E2E8F0] bg-white/55 p-5">
+                  <p className="mb-3 text-[12px] font-semibold text-[#1E293B]">Gestures &amp; interview presence</p>
                   <ul className="space-y-3">
                     {MOCK_SESSION_AI_COACHING.deliveryEthics.map((line) => (
-                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0087A8]/25">
+                      <li key={line} className="text-[14px] text-[#475569] leading-[1.6] pl-3 border-l-2 border-[#0A89A9]/25">
                         {line}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
-                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">Filler words &amp; pacing</p>
-                  <p className="text-[14px] text-[#475569] leading-[1.65] mb-6">{MOCK_SESSION_AI_COACHING.fillerWords}</p>
-                  <p className="text-[12px] font-bold text-[#0F172A] mb-3">On-camera presence</p>
+                <div className="rounded-[14px] border border-[#E2E8F0] bg-white/55 p-5">
+                  <p className="mb-3 text-[12px] font-semibold text-[#1E293B]">Filler words &amp; pacing</p>
+                  <p className="mb-6 text-[14px] leading-[1.65] text-[#475569]">{MOCK_SESSION_AI_COACHING.fillerWords}</p>
+                  <p className="mb-3 text-[12px] font-semibold text-[#1E293B]">On-camera presence</p>
                   <p className="text-[14px] text-[#475569] leading-[1.65]">{MOCK_SESSION_AI_COACHING.appearanceTip}</p>
                 </div>
               </div>
+            </div>
             </div>
           </div>
         </section>
 
         <section className="space-y-8 pt-4">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0F172A]">What to work on next</h2>
-            <p className="text-[14px] text-[#475569]/60 mt-1">
+            <h2 className="text-[24px] font-medium text-[#1E293B]">What to work on next</h2>
+            <p className="mt-1 text-[14px] text-[#64748B]">
               Based on your session — Proofy&apos;s picks for your next training.
             </p>
           </div>
 
-          <div className="relative w-full overflow-hidden rounded-xl border border-[#0F172A]/10 bg-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.06)] p-8">
+          <div className={`${glassCard} relative border-[0.5px] p-8`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1]">
             <div className="flex flex-col md:flex-row md:items-stretch gap-8 group">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-4">
-                  <Zap size={14} className="text-[#0087A8]" fill="#0087A8" />
+                  <Zap size={14} className="text-[#0A89A9]" fill="#0A89A9" />
                   <span className="text-[12px] font-semibold tracking-[0.08em] text-[#044859]/80">Featured</span>
                 </div>
                 <h3 className="text-[24px] font-semibold leading-tight text-[#044757] mb-3">
@@ -879,7 +883,7 @@ export default function ReportPage() {
                 </p>
                 <Link
                   href={REC_TRAINING_FEATURED.href}
-                  className="relative inline-flex h-12 px-8 rounded-xl items-center justify-center overflow-hidden text-[14px] font-semibold text-[#0087A8] hover:opacity-95 transition-opacity shadow-[0_4px_20px_rgba(0,0,0,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0087A8]"
+                  className="relative inline-flex h-12 items-center justify-center overflow-hidden rounded-full px-8 text-[14px] font-semibold text-[#0A89A9] shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-opacity hover:opacity-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A89A9]"
                 >
                   <span aria-hidden className="absolute inset-0 rounded-[inherit] bg-white/90 backdrop-blur-[21px]" />
                   <span
@@ -895,21 +899,26 @@ export default function ReportPage() {
                   alt=""
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 />
-                <div className="absolute inset-0 bg-[#0F172A]/25" />
+                <div className="absolute inset-0 bg-slate-900/25" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-[21px] flex items-center justify-center border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.08)] text-[#0087A8]">
-                    <Play fill="#0087A8" size={20} className="ml-1" />
+                  <div className="w-12 h-12 rounded-full bg-white/90 backdrop-blur-[21px] flex items-center justify-center border border-white/60 shadow-[0_4px_20px_rgba(0,0,0,0.08)] text-[#0A89A9]">
+                    <Play fill="#0A89A9" size={20} className="ml-1" />
                   </div>
                 </div>
               </div>
             </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {suggestedTrainings.map((t) => {
               const pillarColor = PILLAR_COLORS[t.pillar as Pillar];
               return (
-                <Link key={t.slug} href={`/trainings/${t.slug}`} className="group block" style={glassCard}>
+                <Link
+                  key={t.slug}
+                  href={`/trainings/${t.slug}`}
+                  className={`${glassCardMd} group relative block overflow-hidden border-[0.5px] transition-shadow hover:shadow-[0_8px_28px_rgba(0,0,0,0.08)]`}
+                >
                   <div className="relative overflow-hidden rounded-t-[16px] aspect-[2/1]">
                     <img
                       src={`https://images.unsplash.com/photo-${t.unsplashId}?auto=format&fit=crop&w=600&q=80`}
@@ -930,11 +939,11 @@ export default function ReportPage() {
                         <BookOpen size={9} /> {t.duration}
                       </span>
                     </div>
-                    <h3 className="text-[14px] font-bold leading-snug text-[#0F172A]">{t.title}</h3>
+                    <h3 className="text-[14px] font-bold leading-snug text-[#1E293B]">{t.title}</h3>
                     <p className="text-[12px] leading-snug line-clamp-2 text-[#475569]/80">{t.description}</p>
                     <div className="flex items-center gap-1.5 pt-1">
-                      <span className="text-[11px] font-bold text-[#0087A8]">Start training</span>
-                      <ArrowRight size={11} className="text-[#0087A8] transition-transform group-hover:translate-x-1 duration-300" />
+                      <span className="text-[11px] font-bold text-[#0A89A9]">Start training</span>
+                      <ArrowRight size={11} className="text-[#0A89A9] transition-transform group-hover:translate-x-1 duration-300" />
                     </div>
                   </div>
                 </Link>
@@ -945,6 +954,7 @@ export default function ReportPage() {
 
         <ProofyChatDock layout="inline" />
         <div className="h-12" />
+        </div>
       </div>
     </div>
   );

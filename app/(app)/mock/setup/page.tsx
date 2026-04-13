@@ -2,19 +2,22 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Brain, Zap, Users, Target, ClipboardList, Timer, X, ChevronDown, Camera, FileText, Briefcase, ArrowRight, Settings2, Circle } from "lucide-react";
+import Image from "next/image";
+import { Urbanist } from "next/font/google";
+import { Brain, Zap, Users, Target, Timer, X, ChevronDown, Camera, FileText, Briefcase, ArrowLeft, ArrowRight, Circle } from "lucide-react";
 import { JdResumeInput } from "@/components/JdResumeInput";
 import { useUser } from "@/lib/user-context";
 
-const G: React.CSSProperties = {
-  background: "rgba(255,255,255,0.60)",
-  backdropFilter: "blur(20px)",
-  WebkitBackdropFilter: "blur(20px)",
-  border: "1px solid rgba(255,255,255,0.72)",
-  borderRadius: 20,
-  boxShadow: "0 4px 24px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.88)",
-};
-const D = "1px solid rgba(0,0,0,0.06)";
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const glassCard =
+  "relative overflow-hidden rounded-[24px] border-[0.5px] border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+const cardInset =
+  "pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]";
 
 const STORIES = [
   { id: "a", title: "Global expansion strategy", tag: "Strategy" },
@@ -38,116 +41,107 @@ const AVAILABLE_ROLES = [
   "Data Analyst",
 ] as const;
 
-// ── Consent Modal ──────────────────────────────────
+// ── Consent Modal (dashboard-aligned glass) ───────
 function ConsentModal({ onAccept, onClose }: { onAccept: () => void; onClose: () => void }) {
   const [noRecord, setNoRecord] = useState(false);
   const [noCamera, setNoCamera] = useState(false);
 
-  const SOLID: React.CSSProperties = {
-    background: "#FFFFFF",
-    borderRadius: 24,
-    maxWidth: 460,
-    width: "100%",
-    overflow: "hidden",
-    boxShadow: "0 24px 64px rgba(0,0,0,0.16), 0 4px 16px rgba(0,0,0,0.06)",
-  };
-  const SD = "1px solid #F0F0F6";
+  const toggleTrack = (on: boolean) =>
+    `flex h-[22px] w-[38px] shrink-0 items-center rounded-full p-0.5 transition-colors ${
+      on ? "justify-end bg-red-400" : "justify-start bg-slate-200/90"
+    }`;
+  const toggleKnob = "h-[18px] w-[18px] rounded-full bg-white shadow";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6"
-      style={{ background: "rgba(15,15,15,0.40)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)" }}>
-      <div style={SOLID} className="animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between px-7 pt-6 pb-5" style={{ borderBottom: SD }}>
-          <div>
-            <p className="text-[12px] uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: "rgba(15,15,15,0.35)" }}>Before we begin</p>
-            <h2 className="text-[18px] font-bold tracking-tight" style={{ color: "#0F0F0F" }}>Interview Consent</h2>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6 backdrop-blur-sm"
+      role="presentation"
+    >
+      <div
+        className="relative w-full max-w-[460px] animate-in overflow-hidden rounded-[24px] border border-slate-200/90 bg-white shadow-[0_24px_64px_rgba(15,23,42,0.12),0_4px_16px_rgba(15,23,42,0.06)] fade-in zoom-in-95 duration-200"
+      >
+        <div className="relative z-[1]">
+          <div className="flex items-center justify-between border-b border-[#E2E8F0] px-7 pb-5 pt-6">
+            <div>
+              <p className="mb-1 text-[12px] font-medium uppercase tracking-[0.14em] text-[#94A3B8]">Before we begin</p>
+              <h2 className="text-[20px] font-medium tracking-tight text-[#1E293B]">Interview consent</h2>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200/80 bg-white/70 text-[#64748B] shadow-sm transition-colors hover:bg-white"
+              aria-label="Close"
+            >
+              <X size={16} strokeWidth={2} />
+            </button>
           </div>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center transition-colors hover:bg-gray-100"
-            style={{ borderRadius: 8, background: "#F4F4F8", border: "none", cursor: "pointer" }}>
-            <X size={14} style={{ color: "rgba(15,15,15,0.50)" }} />
-          </button>
-        </div>
 
-        {/* Consent points */}
-        <div className="px-7 py-5 space-y-4" style={{ borderBottom: SD }}>
-          {[
-            "Structure your answers using the CAR method (Context, Action, Result).",
-            "Keep responses clear and concise (1–2 minutes max).",
-            "Focus on your individual contribution, not just the team.",
-            "Position yourself properly if your camera is on — sit centered, well-lit, and not too far.",
-            "Ensure a clean, plain background with minimal distractions.",
-          ].map((t, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <span style={{ width: 6, height: 6, borderRadius: 99, background: "#0087A8", flexShrink: 0, marginTop: 5, display: "inline-block" }} />
-              <p className="text-[13px] leading-relaxed" style={{ color: "#374151" }}>{t}</p>
-            </div>
-          ))}
-        </div>
+          <div className="space-y-4 border-b border-[#E2E8F0] px-7 py-5">
+            {[
+              "Structure your answers using the CAR method (Context, Action, Result).",
+              "Keep responses clear and concise (1–2 minutes max).",
+              "Focus on your individual contribution, not just the team.",
+              "Position yourself properly if your camera is on — sit centered, well-lit, and not too far.",
+              "Ensure a clean, plain background with minimal distractions.",
+            ].map((t, i) => (
+              <div key={i} className="flex items-start gap-3">
+                <span
+                  className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[#0A89A9]"
+                  aria-hidden
+                />
+                <p className="text-[13px] leading-relaxed text-[#475569]">{t}</p>
+              </div>
+            ))}
+          </div>
 
-        {/* Optional overrides */}
-        <div className="px-7 py-4 space-y-3" style={{ borderBottom: SD, background: "#FAFAFA" }}>
-          <p className="text-[12px] uppercase tracking-[0.16em] font-bold" style={{ color: "rgba(15,15,15,0.30)" }}>Session options</p>
+          <div className="space-y-3 border-b border-[#E2E8F0] bg-slate-50 px-7 py-4">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#94A3B8]">Session options</p>
 
-          {/* Cancel recording toggle */}
-          <button onClick={() => setNoRecord(!noRecord)}
-            className="w-full flex items-center gap-3 text-left transition-colors"
-            style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <div style={{
-              width: 38, height: 22, borderRadius: 999,
-              background: noRecord ? "#F87171" : "rgba(0,0,0,0.10)",
-              display: "flex", alignItems: "center", padding: "0 2px",
-              transition: "background 180ms", flexShrink: 0,
-            }}>
-              <div style={{
-                width: 18, height: 18, borderRadius: 999, background: "#FFF",
-                transform: noRecord ? "translateX(16px)" : "translateX(0)",
-                transition: "transform 180ms",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
-              }} />
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold" style={{ color: "#0F0F0F" }}>Cancel recording</p>
-              <p className="text-[11px]" style={{ color: "rgba(15,15,15,0.40)" }}>Session runs without audio / video capture</p>
-            </div>
-          </button>
+            <button
+              type="button"
+              onClick={() => setNoRecord(!noRecord)}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-transparent text-left transition-colors hover:bg-white/50"
+            >
+              <span className={toggleTrack(noRecord)} aria-hidden>
+                <span className={toggleKnob} />
+              </span>
+              <div>
+                <p className="text-[13px] font-semibold text-[#1E293B]">Cancel recording</p>
+                <p className="text-[11px] text-[#64748B]">Session runs without audio / video capture</p>
+              </div>
+            </button>
 
-          {/* Turn off camera toggle */}
-          <button onClick={() => setNoCamera(!noCamera)}
-            className="w-full flex items-center gap-3 text-left transition-colors"
-            style={{ background: "none", border: "none", cursor: "pointer" }}>
-            <div style={{
-              width: 38, height: 22, borderRadius: 999,
-              background: noCamera ? "#F87171" : "rgba(0,0,0,0.10)",
-              display: "flex", alignItems: "center", padding: "0 2px",
-              transition: "background 180ms", flexShrink: 0,
-            }}>
-              <div style={{
-                width: 18, height: 18, borderRadius: 999, background: "#FFF",
-                transform: noCamera ? "translateX(16px)" : "translateX(0)",
-                transition: "transform 180ms",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.18)",
-              }} />
-            </div>
-            <div>
-              <p className="text-[13px] font-semibold" style={{ color: "#0F0F0F" }}>Turn off camera</p>
-              <p className="text-[11px]" style={{ color: "rgba(15,15,15,0.40)" }}>Disables gesture & body movement analysis</p>
-            </div>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => setNoCamera(!noCamera)}
+              className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-transparent bg-transparent text-left transition-colors hover:bg-white/50"
+            >
+              <span className={toggleTrack(noCamera)} aria-hidden>
+                <span className={toggleKnob} />
+              </span>
+              <div>
+                <p className="text-[13px] font-semibold text-[#1E293B]">Turn off camera</p>
+                <p className="text-[11px] text-[#64748B]">Disables gesture and body movement analysis</p>
+              </div>
+            </button>
+          </div>
 
-        {/* Footer actions */}
-        <div className="px-7 py-5 flex gap-3">
-          <button onClick={onClose}
-            className="h-11 px-5 text-[13px] font-medium transition-colors hover:bg-gray-100"
-            style={{ borderRadius: 10, background: "#F4F4F8", color: "#374151", border: "none", cursor: "pointer" }}>
-            Go back
-          </button>
-          <button onClick={onAccept}
-            className="flex-1 h-11 text-[13px] font-bold text-white transition-opacity hover:opacity-90"
-            style={{ borderRadius: 10, background: "#0087A8", border: "none", cursor: "pointer" }}>
-            I understand — Start →
-          </button>
+          <div className="flex gap-3 px-7 py-5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="h-11 shrink-0 rounded-full border border-slate-200/90 bg-white/70 px-5 text-[13px] font-medium text-[#475569] shadow-sm transition-colors hover:bg-white"
+            >
+              Go back
+            </button>
+            <button
+              type="button"
+              onClick={onAccept}
+              className="h-11 flex-1 rounded-full bg-[#0A89A9] text-[13px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-opacity hover:opacity-90"
+            >
+              I understand — start
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -210,270 +204,354 @@ function MockSetupInner() {
   }
 
   return (
-    <>
-      {showConsent && (
+    <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden`}>
+      {showConsent ? (
         <ConsentModal
-          onAccept={() => { setShowConsent(false); router.push("/mock/live"); }}
+          onAccept={() => {
+            setShowConsent(false);
+            router.push("/mock/live");
+          }}
           onClose={() => setShowConsent(false)}
         />
-      )}
+      ) : null}
 
-      {/* Single centered narrow container */}
-      <div className="max-w-[560px] mx-auto px-6 py-12 md:py-20">
-        
-        {/* ① Page Header */}
-        <div className="mb-10">
-          <p className="text-[12px] uppercase tracking-[0.18em] font-bold mb-2" style={{ color: "rgba(15,15,15,0.35)" }}>Practice Session</p>
-          {mode === "full" && (
-            <p className="mb-2 inline-block rounded-full bg-[#0087A8]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#0087A8]">
-              Full session
-            </p>
-          )}
-          {mode === "specific" && (
-            <p className="mb-2 inline-block rounded-full bg-amber-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-800">
-              Specific practice
-            </p>
-          )}
-          <h1 className="text-3xl font-bold tracking-tight text-[#0F0F0F] mb-2">You&apos;re almost ready.</h1>
-          <p className="text-[14px] leading-relaxed text-black/50 max-w-sm">
-            {mode === "specific"
-              ? "Focused prep — adjust pillars if you want, then start when you’re ready."
-              : "Your storyboard is attached. Pick your focus, select optional settings, and go."}
-          </p>
+      <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
+        <div
+          className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45"
+          aria-hidden
+        >
+          <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
         </div>
 
-        {/* ② Role pill (story picker + role dropdown) — z-index above pillar card so menu isn’t covered */}
-        <div
-          className="relative z-20 flex flex-col mb-8 transition-colors"
-          style={{ ...G, borderRadius: 16, overflow: "visible" }}
-        >
-          <div className="flex items-center justify-between p-4 hover:bg-white/40 rounded-[16px]">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="w-8 h-8 shrink-0 rounded-full bg-[#0087A8]/10 flex items-center justify-center text-[#0087A8]">
-                <Briefcase size={14} />
+        <div className="relative z-[1] mx-auto w-full max-w-[720px] space-y-5 pb-16">
+          <header className="relative z-[1] flex flex-col items-center space-y-4 text-center">
+            <Link
+              href="/mock"
+              className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
+            >
+              <ArrowLeft size={16} strokeWidth={2} aria-hidden />
+              Back to practice
+            </Link>
+            <section className="flex w-full flex-col items-center">
+              <p className="mb-2 text-[12px] font-medium uppercase tracking-[0.14em] text-[#94A3B8]">Practice session</p>
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-2">
+                {mode === "full" ? (
+                  <span className="inline-flex rounded-full border border-[#0A89A9]/20 bg-[linear-gradient(90.31deg,rgba(209,250,229,0.45)_0%,rgba(236,253,245,0.5)_99.92%)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#047857]">
+                    Full session
+                  </span>
+                ) : null}
+                {mode === "specific" ? (
+                  <span className="inline-flex rounded-full border border-amber-200/80 bg-[linear-gradient(90.31deg,rgba(255,233,197,0.45)_0%,rgba(255,242,221,0.4)_99.92%)] px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#B45309]">
+                    Specific practice
+                  </span>
+                ) : null}
               </div>
-              <div className="min-w-0">
-                <p className="text-[13px] font-bold text-[#0F0F0F]">{user.role || "Target Role"}</p>
-                {isEditingStory ? (
-                  <p className="text-[11px] text-black/50 font-medium">Select a storyboard to practice</p>
+              <h1 className="max-w-[min(100%,920px)] text-center text-[30px] font-normal leading-snug sm:text-[34px]">
+                <span className="text-[#334155]">You&apos;re </span>
+                <span className="text-[#0A89A9]">almost ready</span>
+                <span className="text-[#334155]"> — configure your mock, then start.</span>
+              </h1>
+              <p className="mx-auto mt-3 max-w-xl text-center text-[14px] font-normal leading-relaxed text-[#64748B]">
+                {mode === "specific"
+                  ? "Focused prep: adjust pillars if you want, then start when you are ready."
+                  : "Your storyboard is attached. Pick your focus, add optional context, and go."}
+              </p>
+            </section>
+          </header>
+          <div className={`${glassCard} relative z-20 overflow-visible border-[0.5px]`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] flex flex-col rounded-[24px]">
+              <div className="flex items-center justify-between p-4 transition-colors hover:bg-white/30 sm:p-5">
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] border border-slate-200/80 bg-white/70 text-[#0A89A9] shadow-sm">
+                    <Briefcase size={18} strokeWidth={2} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-normal text-[#64748B]">Preparing as</p>
+                    <p className="text-[16px] font-medium text-[#1E293B]">{user.role || user.targetRole || "Target role"}</p>
+                    {isEditingStory ? (
+                      <p className="mt-0.5 text-[12px] font-normal text-[#94A3B8]">Select a storyboard to practice</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingStory(true)}
+                        className="mt-1 flex w-full max-w-full cursor-pointer items-center gap-2 rounded-lg text-left transition-colors hover:bg-white/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A89A9]/35"
+                        aria-label="Change storyboard story"
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 shrink-0 rounded-full ${selectedStory ? "bg-emerald-500" : "bg-amber-500"}`}
+                          aria-hidden
+                        />
+                        <p className="line-clamp-1 min-w-0 text-[12px] font-medium text-[#64748B]">
+                          {selectedStory ? selectedStory.title : "No attached story"}
+                        </p>
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {!isEditingStory ? (
+                  <div ref={roleMenuRef} className="relative z-30 shrink-0">
+                    <button
+                      type="button"
+                      aria-haspopup="listbox"
+                      aria-expanded={roleMenuOpen}
+                      aria-label="Choose role"
+                      onClick={() => setRoleMenuOpen((o) => !o)}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/70 px-3 py-1.5 text-[12px] font-medium text-[#0A89A9] shadow-sm transition-colors hover:border-[#0A89A9]/30 hover:bg-white"
+                    >
+                      Role
+                      <ChevronDown
+                        size={14}
+                        className={`text-[#64748B] transition-transform ${roleMenuOpen ? "rotate-180" : ""}`}
+                        aria-hidden
+                      />
+                    </button>
+                    {roleMenuOpen ? (
+                      <div
+                        role="listbox"
+                        aria-label="Available roles"
+                        className="absolute right-0 top-[calc(100%+8px)] z-[100] min-w-[220px] overflow-hidden rounded-[16px] border-[0.5px] border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.92)_0%,rgba(255,255,255,0.98)_99.92%)] py-1 shadow-[0_8px_28px_rgba(0,0,0,0.1)] backdrop-blur-[12px]"
+                      >
+                        {roleOptions.map((r) => {
+                          const active = currentRole === r;
+                          return (
+                            <button
+                              key={r}
+                              type="button"
+                              role="option"
+                              aria-selected={active}
+                              onClick={() => {
+                                updateUser({ role: r, targetRole: r });
+                                setRoleMenuOpen(false);
+                              }}
+                              className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-[13px] font-medium transition-colors ${
+                                active ? "bg-[#0A89A9]/10 text-[#0A89A9]" : "text-[#1E293B] hover:bg-white/80"
+                              }`}
+                            >
+                              {r}
+                              {active ? <span className="text-[12px] font-semibold text-[#0A89A9]">✓</span> : null}
+                            </button>
+                          );
+                        })}
+                        <div className="my-1 h-px bg-[#E2E8F0]" />
+                        <Link
+                          href="/onboarding"
+                          onClick={() => setRoleMenuOpen(false)}
+                          className="block px-3 py-2.5 text-[12px] font-semibold text-[#0A89A9] hover:bg-white/80"
+                        >
+                          + Add another role
+                        </Link>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   <button
                     type="button"
-                    onClick={() => setIsEditingStory(true)}
-                    className="mt-0.5 flex w-full max-w-full cursor-pointer items-center gap-2 rounded-md text-left transition-colors hover:bg-black/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0087A8]/40"
-                    aria-label="Change storyboard story"
+                    onClick={() => setIsEditingStory(false)}
+                    className="text-[12px] font-medium text-[#64748B] transition-colors hover:text-[#1E293B]"
                   >
-                    <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${selectedStory ? "bg-[#047857]" : "bg-[#D97706]"}`} />
-                    <p className="text-[11px] text-black/60 font-medium line-clamp-1 min-w-0">
-                      {selectedStory ? selectedStory.title : "No attached story"}
-                    </p>
+                    Cancel
                   </button>
                 )}
               </div>
-            </div>
-            {!isEditingStory ? (
-              <div ref={roleMenuRef} className="relative z-30 shrink-0">
-                <button
-                  type="button"
-                  aria-haspopup="listbox"
-                  aria-expanded={roleMenuOpen}
-                  aria-label="Choose role"
-                  onClick={() => setRoleMenuOpen((o) => !o)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-black/8 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-[#0087A8] shadow-sm transition-colors hover:bg-white hover:border-[#0087A8]/25"
-                >
-                  Role
-                  <ChevronDown size={12} className={`opacity-70 transition-transform ${roleMenuOpen ? "rotate-180" : ""}`} aria-hidden />
-                </button>
-                {roleMenuOpen ? (
-                  <div
-                    role="listbox"
-                    aria-label="Available roles"
-                    className="absolute right-0 top-[calc(100%+6px)] z-[100] min-w-[200px] rounded-xl border border-black/8 bg-white py-1 shadow-xl"
-                  >
-                    {roleOptions.map((r) => {
-                      const active = currentRole === r;
-                      return (
-                        <button
-                          key={r}
-                          type="button"
-                          role="option"
-                          aria-selected={active}
-                          onClick={() => {
-                            updateUser({ role: r, targetRole: r });
-                            setRoleMenuOpen(false);
-                          }}
-                          className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-[12px] font-medium transition-colors ${
-                            active ? "bg-[#0087A8]/10 text-[#0087A8]" : "text-[#0F0F0F] hover:bg-slate-50"
-                          }`}
-                        >
-                          {r}
-                          {active ? <span className="text-[11px] font-bold text-[#0087A8]">✓</span> : null}
-                        </button>
-                      );
-                    })}
-                    <div className="my-1 h-px bg-black/6" />
+
+              {isEditingStory ? (
+                <div className="animate-in slide-in-from-top-2 fade-in border-t border-[#E2E8F0] p-3 duration-200 sm:p-4">
+                  <div className="space-y-1">
+                    {STORIES.map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setStory(s.id);
+                          setIsEditingStory(false);
+                        }}
+                        className={`flex w-full flex-col gap-1 rounded-[16px] border px-4 py-3 text-left transition-colors ${
+                          s.id === story
+                            ? "border-[#0A89A9]/25 bg-[#0A89A9]/[0.06]"
+                            : "border-transparent hover:bg-white/60"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[14px] font-medium text-[#1E293B]">{s.title}</span>
+                          {s.id === story ? (
+                            <span className="shrink-0 text-[12px] font-semibold text-[#0A89A9]">Selected</span>
+                          ) : null}
+                        </div>
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-[#0A89A9]/70">
+                          {s.tag}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-3 border-t border-[#E2E8F0] px-2 pb-1 pt-3">
                     <Link
-                      href="/onboarding"
-                      onClick={() => setRoleMenuOpen(false)}
-                      className="block px-3 py-2.5 text-[11px] font-semibold text-[#0087A8] hover:bg-slate-50"
+                      href="/storyboard"
+                      className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#64748B] transition-colors hover:text-[#0A89A9]"
                     >
-                      + Add another role →
+                      + Create new story
                     </Link>
                   </div>
-                ) : null}
-              </div>
-            ) : (
-              <button onClick={() => setIsEditingStory(false)} className="text-[11px] font-semibold text-black/50 hover:text-black transition-colors">
-                Cancel
-              </button>
-            )}
-          </div>
-          
-          {isEditingStory && (
-            <div className="p-3 border-t animate-in slide-in-from-top-2 fade-in duration-200" style={{ borderColor: "rgba(0,0,0,0.06)" }}>
-              <div className="space-y-1">
-                {STORIES.map(s => (
-                   <button key={s.id} onClick={() => { setStory(s.id); setIsEditingStory(false); }}
-                     className={`w-full text-left px-4 py-3 rounded-xl transition-colors flex flex-col gap-1 ${s.id === story ? 'bg-[#0087A8]/5 border border-[#0087A8]/20' : 'hover:bg-white/60 border border-transparent'}`}>
-                     <div className="flex items-center justify-between">
-                       <span className="text-[13px] font-bold text-[#0F0F0F]">{s.title}</span>
-                       {s.id === story && <span className="text-[12px] font-bold text-[#0087A8]">✓ Selected</span>}
-                     </div>
-                     <span className="text-[12px] uppercase font-bold tracking-widest text-[#0087A8]/60 inline-block">{s.tag}</span>
-                   </button>
-                ))}
-              </div>
-              <div className="px-4 pt-3 pb-1 mt-2 border-t border-black/5">
-                <Link href="/storyboard" className="text-[11px] font-bold text-black/50 hover:text-black flex items-center gap-1 transition-colors">
-                   + Create new story
-                </Link>
-              </div>
+                </div>
+              ) : null}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* ③ Interview Focus */}
-        <div style={G} className="overflow-hidden mb-8">
-          <div className="px-6 pt-6 pb-6">
-            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-slate-400 mb-5">Pillar Overview</p>
-            
-            <div className="space-y-1">
-              {PILLARS.map(p => {
-                 const on = pillars.has(p.id);
-                 const Icon = p.icon;
-                 return (
-                   <button key={p.id} onClick={() => toggleP(p.id)}
-                     className={`w-full text-left px-3.5 py-2.5 transition-all flex items-center justify-between rounded-xl ${on ? "bg-[#0087A8]/[0.06]" : "bg-transparent hover:bg-slate-50"}`}
-                   >
-                     <div className="flex items-center gap-3">
-                       {/* Custom Radio */}
-                       {on ? (
-                         <div className={`w-[18px] h-[18px] rounded-full border-2 shrink-0 flex items-center justify-center border-[#0087A8]`}>
-                            <div className="w-[6px] h-[6px] rounded-full bg-[#0087A8]" />
-                         </div>
-                       ) : (
-                         <Circle size={18} className="text-slate-300 shrink-0" />
-                       )}
+          <div className={glassCard}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] px-5 pb-5 pt-6 sm:px-6">
+              <div className="mb-4 text-center">
+                <h2 className="text-[20px] font-medium text-[#1E293B]">Pillar focus</h2>
+                <p className="mt-1 text-[12px] font-normal text-[#64748B]">Choose which interview areas to include.</p>
+              </div>
 
-                       {/* Icon + Label */}
-                       <div className="flex items-center gap-2">
-                          <Icon size={14} className={on ? "text-[#0087A8]" : "text-slate-400"} />
-                          <span className={`text-[13px] font-bold ${on ? "text-slate-900" : "text-slate-400"}`}>
+              <div className="grid grid-cols-2 gap-2">
+                {PILLARS.map((p) => {
+                  const on = pillars.has(p.id);
+                  const Icon = p.icon;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => toggleP(p.id)}
+                      className={`flex h-full min-h-[52px] w-full items-center justify-between gap-2 rounded-[14px] px-3 py-2.5 text-left transition-colors ${
+                        on ? "bg-white/50 shadow-sm" : "hover:bg-white/40"
+                      }`}
+                    >
+                      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+                        {on ? (
+                          <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full border-2 border-[#0A89A9]">
+                            <div className="h-[6px] w-[6px] rounded-full bg-[#0A89A9]" />
+                          </div>
+                        ) : (
+                          <Circle size={18} className="shrink-0 text-slate-300" strokeWidth={1.75} />
+                        )}
+                        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
+                          <Icon
+                            size={16}
+                            className={`shrink-0 ${on ? "text-[#0A89A9]" : "text-[#94A3B8]"}`}
+                            strokeWidth={1.8}
+                          />
+                          <span
+                            className={`truncate text-[13px] font-medium sm:text-[14px] ${on ? "text-[#1E293B]" : "text-[#94A3B8]"}`}
+                          >
                             {p.label}
                           </span>
-                       </div>
-                     </div>
-
-                     {/* Count */}
-                     <span className={`text-[12px] font-bold tabular-nums ${on ? "text-[#0087A8]" : "text-slate-300"}`}>
-                        0/{p.id === 'mastery' ? '4' : '3'}
-                     </span>
-                   </button>
-                 )
-              })}
+                        </div>
+                      </div>
+                      <span
+                        className={`shrink-0 text-[11px] font-semibold tabular-nums sm:text-[12px] ${on ? "text-[#0A89A9]" : "text-slate-300"}`}
+                      >
+                        0/{p.id === "mastery" ? "4" : "3"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-          </div>
-          
-          <div className="px-6 py-4 flex items-center justify-between bg-white/40" style={{borderTop: D}}>
-             <div className="flex items-center gap-2.5">
-                <Timer size={14} color="#0087A8" />
-                <span className="text-[13px] font-bold text-[#0F0F0F]">~{total} min total setup time</span>
-             </div>
-             {all ? (
-                <span className="text-[12px] font-bold uppercase tracking-widest text-[#0087A8]">Full Interview</span>
-             ) : (
-                <button 
-                  onClick={() => setPillars(new Set(PILLARS.map(p => p.id)))}
-                  className="text-[11px] font-bold text-[#0087A8] hover:opacity-70 transition-opacity">
-                  Select All
-                </button>
-             )}
-          </div>
-        </div>
-
-        {/* ④ Session Options */}
-        <div className="mb-10 p-6 space-y-6 text-left" style={{...G, borderRadius: 20}}>
-           {/* Job Description */}
-           <div>
-              <div className="flex items-center gap-2.5 mb-3">
-                 <FileText size={15} className="text-black/50" />
-                 <p className="text-[13px] font-bold text-[#0F0F0F] flex-1">Job Description</p>
-                 {!showJD && (
-                   <button onClick={() => setShowJD(true)} className="text-[11px] font-semibold text-[#0087A8] hover:opacity-70">
-                     + Add
-                   </button>
-                 )}
+            <div className="relative z-[1] flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0] bg-white/35 px-5 py-4 backdrop-blur-sm sm:px-6">
+              <div className="flex items-center gap-2">
+                <Timer size={16} className="shrink-0 text-[#0A89A9]" strokeWidth={2} />
+                <span className="text-[13px] font-medium text-[#1E293B]">~{total} min estimated</span>
               </div>
-              {showJD ? (
-                <JdResumeInput
-                  label="Job Description"
-                  placeholder="Paste or upload a JD for tailored questions..."
-                  value={jd}
-                  onChange={setJd}
-                  onRemove={() => { setShowJD(false); setJd(""); }}
-                  compact
-                />
+              {all ? (
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[#0A89A9]">Full interview</span>
               ) : (
-                <p className="text-[11px] text-black/35">Paste or upload a JD to get sharper, role-specific questions.</p>
+                <button
+                  type="button"
+                  onClick={() => setPillars(new Set(PILLARS.map((p) => p.id)))}
+                  className="text-[12px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
+                >
+                  Select all
+                </button>
               )}
-           </div>
-           
-           <div style={{height: 1, background: "rgba(0,0,0,0.06)"}} />
-           
-           {/* Camera Toggle */}
-           <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                 <Camera size={15} className="text-black/50" />
-                 <div>
-                   <p className="text-[13px] font-bold text-[#0F0F0F]">{camera ? "Camera on" : "Enable camera"}</p>
-                   <p className="text-[11px] text-black/40 mt-0.5">Enable camera so you can get analytics of your body gestures as well</p>
-                 </div>
+            </div>
+          </div>
+
+          <div className={`${glassCard} space-y-6 p-5 text-left sm:p-6`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] space-y-6">
+              <div>
+                <div className="mb-3 flex items-center gap-2.5">
+                  <FileText size={16} className="text-[#64748B]" strokeWidth={2} />
+                  <p className="flex-1 text-[16px] font-medium text-[#1E293B]">Job description</p>
+                  {!showJD ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowJD(true)}
+                      className="text-[12px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
+                    >
+                      + Add
+                    </button>
+                  ) : null}
+                </div>
+                {showJD ? (
+                  <JdResumeInput
+                    label="Job Description"
+                    placeholder="Paste or upload a JD for tailored questions..."
+                    value={jd}
+                    onChange={setJd}
+                    onRemove={() => {
+                      setShowJD(false);
+                      setJd("");
+                    }}
+                    compact
+                  />
+                ) : (
+                  <p className="text-[12px] leading-relaxed text-[#64748B]">
+                    Paste or upload a JD to get sharper, role-specific questions.
+                  </p>
+                )}
               </div>
-              <button 
-                onClick={() => setCamera(!camera)} 
-                style={{ width: 44, height: 24, borderRadius: 999, background: camera ? "#0087A8" : "rgba(0,0,0,0.12)", display: "flex", alignItems: "center", padding: "0 2px", transition: "background 200ms", flexShrink: 0 }}>
-                <div style={{ width: 20, height: 20, borderRadius: 999, background: "#FFF", transform: camera ? "translateX(20px)" : "translateX(0)", transition: "transform 200ms", boxShadow: "0 1px 3px rgba(0,0,0,0.15)" }} />
-              </button>
-           </div>
-        </div>
 
-        {/* ⑤ CTA Block */}
-        <div className="flex flex-col items-center gap-4">
-           <button 
+              <div className="h-px w-full bg-[#E2E8F0]" />
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-start gap-2.5">
+                  <Camera size={16} className="mt-0.5 shrink-0 text-[#64748B]" strokeWidth={2} />
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium text-[#1E293B]">{camera ? "Camera on" : "Enable camera"}</p>
+                    <p className="mt-0.5 text-[12px] leading-relaxed text-[#64748B]">
+                      Optional: capture video for gesture and presence analytics.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={camera}
+                  onClick={() => setCamera(!camera)}
+                  className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${
+                    camera ? "bg-[#0A89A9]" : "bg-slate-200"
+                  }`}
+                >
+                  <span
+                    className={`block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      camera ? "translate-x-5" : "translate-x-0"
+                    }`}
+                    aria-hidden
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-4 pt-2">
+            <button
+              type="button"
               data-journey-id="mock-start"
-              onClick={() => setShowConsent(true)} 
-              className="w-full sm:w-[320px] h-12 rounded-xl bg-[#0087A8] text-white text-[14px] font-bold hover:bg-[#006E89] hover:-translate-y-0.5 active:translate-y-0 transition-all shadow-lg shadow-[#0087A8]/20 flex items-center justify-center gap-2">
-              Start interview <ArrowRight size={16} />
-           </button>
-           
-           <Link href="/mock" className="text-[12px] font-semibold text-black/30 hover:text-black/60 transition-colors uppercase tracking-widest px-4 py-2">
-              ← Back
-           </Link>
-        </div>
+              onClick={() => setShowConsent(true)}
+              className="flex h-12 w-full max-w-[360px] items-center justify-center gap-2 rounded-full bg-[#0A89A9] text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-[transform,opacity] hover:opacity-95 active:scale-[0.99]"
+            >
+              Start interview
+              <ArrowRight size={16} strokeWidth={2.5} aria-hidden />
+            </button>
 
+          </div>
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -481,7 +559,9 @@ export default function MockSetup() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-[560px] px-6 py-24 text-center text-[14px] text-black/40">
+        <div
+          className={`${urbanist.className} mx-auto max-w-[1440px] px-6 py-24 text-center text-[14px] text-[#94A3B8]`}
+        >
           Loading setup…
         </div>
       }

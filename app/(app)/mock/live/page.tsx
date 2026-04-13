@@ -103,8 +103,9 @@ export default function LiveInterviewPage() {
   const totalPct = Math.min(100, (elapsed / TOTAL_SEC) * 100);
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-hidden"
-      style={{ background:"#0C0E12", fontFamily:"'Inter',sans-serif" }}>
+    <div
+      className="fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[#0C0E12] font-sans"
+    >
 
       {/* ── TOP BAR ─────────────────────────────────── */}
       <div className="flex items-center justify-between shrink-0 z-20"
@@ -123,13 +124,13 @@ export default function LiveInterviewPage() {
         <div className="flex items-center gap-6">
           <div className="flex items-center gap-2">
             <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color:"rgba(255,255,255,0.28)" }}>Question</span>
-            <span className="text-[13px] font-bold font-mono" style={{ color:"#FFF" }}>{qIndex+1} / {QUESTIONS.length}</span>
+            <span className="text-[13px] font-bold" style={{ color:"#FFF" }}>{qIndex+1} / {QUESTIONS.length}</span>
           </div>
           <div style={{ width:1,height:16,background:"rgba(255,255,255,0.10)",display:"inline-block" }} />
           {/* Overall timer — counts down */}
           <div className="flex items-center gap-2">
             <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color:"rgba(255,255,255,0.28)" }}>Remaining</span>
-            <span className="text-[13px] font-bold font-mono" style={{ color: remaining < 300 ? "#F87171" : "#FFF" }}>
+            <span className="text-[13px] font-bold" style={{ color: remaining < 300 ? "#F87171" : "#FFF" }}>
               {fmt(Math.max(0, remaining))}
             </span>
           </div>
@@ -155,7 +156,7 @@ export default function LiveInterviewPage() {
           <span className="text-[12px] uppercase tracking-widest font-bold" style={{ color: overTime?"#F87171":"rgba(255,255,255,0.30)" }}>
             {overTime ? "Over time —" : "Q timer"}
           </span>
-          <span className="text-[13px] font-bold font-mono" style={{ color: overTime?"#F87171":"#FFF" }}>{fmt(qElapsed)}</span>
+          <span className="text-[13px] font-bold" style={{ color: overTime?"#F87171":"#FFF" }}>{fmt(qElapsed)}</span>
           <span className="text-[12px]" style={{ color:"rgba(255,255,255,0.22)" }}>/ {fmt(q.idealSec)} ideal</span>
           {/* mini progress */}
           <div style={{ width:80,height:2,borderRadius:99,background:"rgba(255,255,255,0.10)" }}>

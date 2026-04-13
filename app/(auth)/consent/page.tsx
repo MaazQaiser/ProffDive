@@ -30,7 +30,7 @@ export default function ConsentPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full font-['Inter',sans-serif]">
+    <div className="relative flex min-h-screen w-full font-sans">
       <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-gradient-to-b from-[#FAFEFF] to-[#CFDCE1] pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-10">
         <div
           className={`${urbanist.className} relative flex min-h-0 flex-1 flex-col items-center px-6 pb-16 pt-0 sm:px-10 sm:pb-20 lg:px-[80px] lg:pb-24`}

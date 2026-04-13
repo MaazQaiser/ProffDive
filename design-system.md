@@ -87,7 +87,7 @@ Full scale: `50 → 900` from `#E6F6FA` to `#00282F`.
 
 ## 3. Typography
 
-> Font family: **Inter** (Google Fonts)
+> Font family: **Urbanist** (Google Fonts, `next/font`)
 
 | Role | Size | Weight | Class |
 |---|---|---|---|

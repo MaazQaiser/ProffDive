@@ -655,7 +655,7 @@ Each card:
 ### [NEW] Next.js Project Bootstrap
 
 #### [NEW] `package.json`
-Tailwind CSS v3, shadcn/ui, Framer Motion, next-fonts (Inter)
+Tailwind CSS v3, shadcn/ui, Framer Motion, next-fonts (Urbanist)
 
 #### [NEW] `tailwind.config.ts`
 Custom color tokens (Anthropic colors), font family (Poppins, Lora), grain textures.
@@ -754,7 +754,7 @@ npm run dev
 ```
 
 ### Design QA Checklist
-- [ ] Inter font loads correctly (not system fallback)
+- [ ] Urbanist font loads correctly (not system fallback)
 - [ ] Bold display text hits `font-black` weight at hero
 - [ ] Color tokens applied consistently (no raw hex in components)
 - [ ] All CTAs have hover states (scale + shadow)

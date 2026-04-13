@@ -172,7 +172,7 @@ export const JOURNEY_WIDGETS: {
     id: "storyboard",
     title: "Curated storyboard",
     body: "Shape CAR stories that match your target roles.",
-    href: "/storyboard/new",
+    href: "/storyboard",
     voice: ["storyboard", "curated", "stories", "car", "second"],
   },
   {

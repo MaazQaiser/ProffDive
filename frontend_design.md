@@ -7,7 +7,7 @@ Build distinctive, production-grade frontend interfaces that avoid generic aesth
 Standard UI patterns can feel uninspired. This skill pushes for bold aesthetic directions (brutally minimal, maximalist chaos, etc.).
 
 ## Design Principles
-- **Typography**: Use characterful, unique font pairings. Avoid Inter/Arial.
+- **Typography**: Use characterful, unique font pairings. The product standard is Urbanist; avoid piling on extra families without intent.
 - **Color**: Commit to a cohesive theme with sharp accents. Use CSS variables.
 - **Motion**: Prioritize high-impact, well-orchestrated moments (staggered reveals).
 - **Backgrounds**: Use textures, gradient meshes, or noise overlays for depth.

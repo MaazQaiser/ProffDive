@@ -22,7 +22,7 @@ export default function LoginPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen flex w-full font-['Inter',sans-serif]">
+    <div className="flex min-h-screen w-full font-sans">
       {/* Left Side - Auth Panel */}
       <div className="flex-1 flex flex-col bg-gradient-to-b from-[#FAFEFF] to-[#CFDCE1] relative">
         <div className="flex-1 flex flex-col items-start justify-center px-8 lg:px-[172px]">

@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { Urbanist } from "next/font/google";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Edit3, Info, Loader2, Save } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import { StoryGenerationLoadingScreen } from "@/components/StoryGenerationLoadingScreen";
 import { Chip } from "@/components/Chip";
 import {
-  STORYBOARD_CRAFTING_STORAGE_KEY,
   TEAL,
   buildInitialSections,
   hydrateCraftSectionsFromLocalStorage,
@@ -18,13 +19,22 @@ import {
   type CarBlock,
   type CraftSection,
 } from "@/lib/storyboard-crafting";
+import { findExperienceContext, resolveCraftStorageKeyForExperienceId } from "@/lib/storyboard-library";
 import { readJourneyState, completeJourneyStep } from "@/lib/guided-journey";
+
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
 
 const MAX_REGENS_PER_SECTION = 3;
 const BORDER_HALF = "0.5px solid var(--color-border-tertiary)";
 const CARD_RADIUS = 10;
 const BTN_RADIUS = 8;
-const CONTENT_MAX_W = 720;
+const CONTENT_MAX_W = 840;
+/** Storyboard hub / dashboard — top tool row */
+const CRAFT_TOPBAR_ROW =
+  "relative flex w-full items-center justify-between gap-3 rounded-[16px] bg-transparent p-0";
 const GLASS: React.CSSProperties = {
   background: "rgba(255,255,255,0.60)",
   backdropFilter: "blur(20px)",
@@ -119,6 +129,8 @@ function proofySuggestion(sectionName: string): string {
 export default function CraftingPage() {
   const router = useRouter();
   const { user } = useUser();
+  const craftKeyRef = useRef<string>(resolveCraftStorageKeyForExperienceId(null));
+  const experienceIdRef = useRef<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
 
   useEffect(() => {
@@ -131,10 +143,19 @@ export default function CraftingPage() {
       return;
     }
   }, []);
-  const [sections, setSections] = useState<CraftSection[]>(() => {
-    const hydrated = hydrateCraftSectionsFromLocalStorage();
-    return hydrated ?? buildInitialSections();
-  });
+
+  const [sections, setSections] = useState<CraftSection[]>(() => buildInitialSections());
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const exp = params.get("experienceId")?.trim() || null;
+    experienceIdRef.current = exp;
+    const key = resolveCraftStorageKeyForExperienceId(exp);
+    craftKeyRef.current = key;
+    const ctx = exp ? findExperienceContext(exp) : null;
+    const hydrated = hydrateCraftSectionsFromLocalStorage(key);
+    setSections(hydrated ?? buildInitialSections(ctx?.experienceLabel));
+  }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftPrompt, setDraftPrompt] = useState("");
   const [saveToast, setSaveToast] = useState<string | null>(null);
@@ -147,7 +168,7 @@ export default function CraftingPage() {
     setSections((prev) => {
       const next = typeof updater === "function" ? updater(prev) : updater;
       try {
-        localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(next));
+        localStorage.setItem(craftKeyRef.current, JSON.stringify(next));
       } catch {
         /* ignore */
       }
@@ -205,7 +226,7 @@ export default function CraftingPage() {
 
   const saveStoryboard = () => {
     try {
-      localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(sections));
+      localStorage.setItem(craftKeyRef.current, JSON.stringify(sections));
       const st = readJourneyState();
       if (st.active && !st.skipped && st.stepId === "story") {
         completeJourneyStep("story");
@@ -213,7 +234,8 @@ export default function CraftingPage() {
       } else {
         setSaveToast("Storyboard saved");
         setTimeout(() => setSaveToast(null), 2500);
-        router.push("/storyboard/1");
+        const exp = experienceIdRef.current;
+        router.push(exp ? `/storyboard/${exp}` : "/storyboard");
       }
     } catch {
       setSaveToast("Could not save");
@@ -223,6 +245,7 @@ export default function CraftingPage() {
 
   const roleTitle = user.role?.trim() || "Your storyboard";
   const roleStoryLabel = `${roleTitle} story`;
+  const firstName = useMemo(() => user.name?.trim().split(" ")[0] || "Maaz", [user.name]);
 
   const sectionMeta = useMemo(() => {
     const items = sections.map((s) => {
@@ -261,43 +284,39 @@ export default function CraftingPage() {
 
   return (
     <div
-      className="min-h-[calc(100vh-64px)] animate-in fade-in duration-500"
+      className={`${urbanist.className} relative min-h-[calc(100vh-64px)] overflow-x-hidden animate-in fade-in duration-500`}
       style={{ background: "var(--color-background-secondary)" }}
     >
-      {/* Subbar */}
-      <div className="bg-white" style={{ borderBottom: BORDER_HALF }}>
-        <div className="mx-auto" style={{ maxWidth: CONTENT_MAX_W, padding: "0.75rem 2rem" }}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 min-w-0">
+      <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
+        <div
+          className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45"
+          aria-hidden
+        >
+          <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
+        </div>
+
+        {/* Subbar — dashboard / storyboard hub shell + glass row */}
+        <div className="relative z-[1] mb-6">
+          <div className={CRAFT_TOPBAR_ROW}>
+            <div className="flex min-w-0 items-center gap-2 sm:gap-3">
               <Link
                 href="/storyboard"
-                className="inline-flex items-center gap-2 text-[12px] font-medium"
-                style={{ color: "var(--color-text-tertiary)" }}
+                className="inline-flex shrink-0 items-center gap-2 text-[13px] font-semibold text-[#64748B] transition-colors hover:text-[#1E293B]"
               >
-                <ArrowLeft size={14} />
+                <ArrowLeft size={16} aria-hidden />
                 StoryBoard
               </Link>
-              <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
+              <span className="shrink-0 text-[13px] font-medium text-[#94A3B8]" aria-hidden>
                 /
               </span>
               <span
-                className="truncate text-[14px] font-medium"
-                style={{ color: "var(--color-text-primary)" }}
+                className="min-w-0 truncate text-[14px] font-medium text-[#1E293B]"
                 title={roleStoryLabel}
               >
                 {roleStoryLabel}
               </span>
-              <span
-                className="shrink-0 inline-flex items-center px-2.5 py-0.5"
-                style={{
-                  background: "#E6F1FB",
-                  color: TEAL,
-                  borderRadius: 20,
-                  fontSize: 10,
-                  fontWeight: 600,
-                }}
-              >
-                13 sections
+              <span className="inline-flex shrink-0 items-center rounded-full bg-[#E6F1FB] px-2.5 py-0.5 text-[14px] font-semibold text-[#0087A8]">
+                {sections.length} sections
               </span>
             </div>
 
@@ -305,18 +324,16 @@ export default function CraftingPage() {
               type="button"
               onClick={saveStoryboard}
               data-journey-id="story-save"
-              className="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 text-[12px] font-semibold text-white"
-              style={{ background: TEAL, borderRadius: BTN_RADIUS }}
+              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#0A89A9] px-5 py-2.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
             >
-              <Save size={14} />
+              <Save size={16} aria-hidden />
               Save storyboard
             </button>
           </div>
         </div>
-      </div>
 
       {saveToast && (
-        <div className="mx-auto" style={{ maxWidth: CONTENT_MAX_W, padding: "0.75rem 2rem 0" }}>
+        <div className="relative z-[1] mx-auto w-full" style={{ maxWidth: CONTENT_MAX_W, padding: "0 0 0.75rem" }}>
           <div
             className="text-center text-[12px] font-medium bg-white"
             style={{ border: BORDER_HALF, borderRadius: 10, padding: "10px 12px" }}
@@ -327,22 +344,22 @@ export default function CraftingPage() {
         </div>
       )}
 
-      {/* Story opening */}
-      <div className="mx-auto text-center" style={{ maxWidth: CONTENT_MAX_W, padding: "1.75rem 2rem 1rem" }}>
-        <h1 className="text-[22px] font-medium" style={{ color: "var(--color-text-primary)" }}>
-          {user.name || "Maaz"}, here&apos;s your {roleTitle} story.
-        </h1>
-        <p
-          className="mt-2 text-[13px] mx-auto"
-          style={{ color: "var(--color-text-secondary)", lineHeight: 1.7 }}
-        >
-          Read through it like an interviewer would. Each section below is a structured answer built from your real
-          experiences — ready to use in your mock interview and beyond.
-        </p>
-      </div>
+      {/* Story opening — dashboard hero typography (Urbanist, slate + brand teal) */}
+      <section className="relative z-[1] mx-auto flex w-full flex-col items-center py-4 text-center" style={{ maxWidth: CONTENT_MAX_W }}>
+        <div className="flex w-full flex-col items-center pt-1">
+          <h1 className="max-w-[min(100%,840px)] text-[28px] font-normal leading-snug md:text-[34px] md:leading-normal">
+            <span className="text-[#334155]">{firstName}, your </span>
+            <span className="text-[#0A89A9]">{roleTitle}</span>
+            <span className="text-[#334155]">
+              {" "}
+              story is ready — read it, own it, then walk into your mock with it.
+            </span>
+          </h1>
+        </div>
+      </section>
 
       {/* Overall score strip */}
-      <div className="mx-auto" style={{ maxWidth: CONTENT_MAX_W, padding: "0 2rem" }}>
+      <div className="relative z-[1] mx-auto w-full" style={{ maxWidth: CONTENT_MAX_W, padding: "0 0 0.75rem" }}>
         <div
           data-journey-id="story-score-strip"
           className="bg-white flex items-center justify-between gap-3"
@@ -350,13 +367,13 @@ export default function CraftingPage() {
         >
           <div className="min-w-0">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-[12px]" style={{ color: "var(--color-text-secondary)" }}>
+              <span className="text-[14px]" style={{ color: "var(--color-text-secondary)" }}>
                 Overall story strength
               </span>
-              <span className="text-[14px] font-medium tabular-nums" style={{ color: "#BA7517" }}>
+              <span className="text-[18px] font-bold tabular-nums" style={{ color: "#BA7517" }}>
                 {overallScore.toFixed(1)} / 5
               </span>
-              <span className="text-[11px]" style={{ color: "var(--color-text-tertiary)" }}>
+              <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
                 {overallLabel}
               </span>
             </div>
@@ -373,7 +390,7 @@ export default function CraftingPage() {
       </div>
 
       {/* Section cards */}
-      <div className="mx-auto" style={{ maxWidth: CONTENT_MAX_W, padding: "12px 2rem 2rem" }}>
+      <div className="relative z-[1] mx-auto w-full" style={{ maxWidth: CONTENT_MAX_W, padding: "12px 0 2rem" }}>
         <div className="flex flex-col" style={{ gap: 12 }}>
           {sections.map((section, idx) => {
             const sectionNumber = idx + 1;
@@ -422,16 +439,16 @@ export default function CraftingPage() {
                         {sectionNumber}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-start justify-between gap-2 min-w-0">
+                        <div className="flex items-start justify-center gap-2 min-w-0">
                           <p
-                            className="text-[16px] font-medium truncate min-w-0"
+                            className="text-[20px] font-medium truncate min-w-0"
                             style={{ color: "var(--color-text-primary)" }}
                             title={sectionName}
                           >
                             {sectionName}
                           </p>
                           <span
-                            className="shrink-0 inline-flex items-center px-2.5 py-0.5 text-[10px] font-medium"
+                            className="shrink-0 inline-flex items-center px-2.5 py-0.5 text-[14px] font-medium"
                             style={{ background: "#E6F1FB", color: TEAL, borderRadius: 20 }}
                           >
                             {pillarLabel}
@@ -449,7 +466,7 @@ export default function CraftingPage() {
                       <span className="text-[12px]" style={{ color: "var(--color-text-tertiary)" }}>
                         Evidence strength
                       </span>
-                      <span className="text-[18px] font-medium tabular-nums" style={{ color: scoreColor }}>
+                      <span className="text-[24px] font-bold tabular-nums" style={{ color: scoreColor }}>
                         {score.toFixed(1)}
                       </span>
                       <span className="relative group inline-flex">
@@ -507,7 +524,7 @@ export default function CraftingPage() {
                   >
                     <Info size={14} strokeWidth={2} />
                   </span>
-                  <span className="min-w-0">{purposeLineFor(sectionName)}</span>
+                  <span className="min-w-0 text-[14px]">{purposeLineFor(sectionName)}</span>
                 </div>
 
                 {/* Generated content (always visible) */}
@@ -558,7 +575,7 @@ export default function CraftingPage() {
                           }}
                         />
                         <p
-                          className="text-[12px]"
+                          className="text-[16px]"
                           style={{ color: "var(--color-text-secondary)", lineHeight: 1.6 }}
                         >
                           {proofySuggestion(sectionName)}
@@ -663,6 +680,7 @@ export default function CraftingPage() {
           })}
         </div>
       </div>
+      </div>
     </div>
   );
 }
@@ -689,11 +707,11 @@ function CarBlock({
             display: "inline-block",
           }}
         />
-        <span className="text-[12px] font-medium" style={{ color: "var(--color-text-tertiary)" }}>
+        <span className="text-[14px] font-medium" style={{ color: "var(--color-text-tertiary)" }}>
           {label}
         </span>
       </div>
-      <div className="text-[14px]" style={{ color: "var(--color-text-secondary)", lineHeight: 1.7 }}>
+      <div className="text-[16px]" style={{ color: "var(--color-text-secondary)", lineHeight: 1.7 }}>
         {text}
       </div>
     </div>

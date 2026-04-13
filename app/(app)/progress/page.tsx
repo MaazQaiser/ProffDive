@@ -54,7 +54,7 @@ export default function ProgressPage() {
                   <span style={{ width: 7, height: 7, borderRadius: 99, background: d.dot, display: "inline-block", flexShrink: 0 }} />
                   <span className="text-[13px] font-bold" style={{ color: "#0F0F0F" }}>{d.name}</span>
                 </div>
-                <span className="text-[12px] font-mono" style={{ color: "rgba(15,15,15,0.50)" }}>
+                <span className="text-[12px]" style={{ color: "rgba(15,15,15,0.50)" }}>
                   {d.before} → <strong style={{ color: "#0F0F0F" }}>{d.after}</strong> <span style={{ color: "rgba(15,15,15,0.30)" }}>/5</span>
                 </span>
               </div>
@@ -92,7 +92,7 @@ export default function ProgressPage() {
                 </div>
                 <p className="text-[12px] pl-4" style={{ color: "rgba(15,15,15,0.30)" }}>{m.date}</p>
               </div>
-              <span className="text-[16px] font-bold font-mono shrink-0" style={{ color: "#0F0F0F" }}>{m.score}<span style={{ fontSize: 12, color: "rgba(15,15,15,0.30)", fontWeight: 400 }}>/5</span></span>
+              <span className="text-[16px] font-bold shrink-0" style={{ color: "#0F0F0F" }}>{m.score}<span style={{ fontSize: 12, color: "rgba(15,15,15,0.30)", fontWeight: 400 }}>/5</span></span>
             </Link>
           ))}
           <div className="px-5 py-4">

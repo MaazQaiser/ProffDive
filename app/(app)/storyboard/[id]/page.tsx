@@ -1,16 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
+import { Urbanist } from "next/font/google";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Download, Edit3, Info, Save } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Download, Edit3, Info, Save } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import { CarBlockStack } from "@/components/storyboard-car-block-stack";
 import { StoryboardMindMap } from "@/components/storyboard/StoryboardMindMap";
 import {
-  TEAL,
-  STORYBOARD_CRAFTING_STORAGE_KEY,
-  STORYBOARD_GLASS_CARD,
   buildInitialSections,
   buildResumeExportText,
   hydrateCraftSectionsFromLocalStorage,
@@ -21,6 +20,24 @@ import {
   type CarBlock,
   type CraftSection,
 } from "@/lib/storyboard-crafting";
+import { findExperienceContext, resolveCraftStorageKeyForExperienceId } from "@/lib/storyboard-library";
+
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const glassCard =
+  "relative overflow-hidden rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+const ACCENT = "#0A89A9";
+
+/** Match dashboard score heat */
+function scoreBandColor(v: number): string {
+  if (v < 2.5) return "#EF4444";
+  if (v < 3.5) return "#D97706";
+  return "#059669";
+}
 
 function purposeLineFor(sectionName: string): string {
   const map: Record<string, string> = {
@@ -44,20 +61,31 @@ function purposeLineFor(sectionName: string): string {
 export default function StoryboardReadonlyPage() {
   const params = useParams<{ id: string }>();
   const { user } = useUser();
+  const experienceId = params?.id ? String(params.id) : "";
+  const craftKeyRef = useRef(resolveCraftStorageKeyForExperienceId(experienceId || null));
   const [sections, setSections] = useState<CraftSection[]>(buildInitialSections);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftCar, setDraftCar] = useState<CarBlock>({ context: "", action: "", result: "" });
   const [view, setView] = useState<"mindmap" | "panel">("mindmap");
 
+  const experienceCtx = useMemo(
+    () => (experienceId ? findExperienceContext(experienceId) : null),
+    [experienceId]
+  );
+
   useEffect(() => {
-    const hydrated = hydrateCraftSectionsFromLocalStorage();
-    if (hydrated) setSections(hydrated);
-  }, []);
+    const id = params?.id ? String(params.id) : "";
+    const key = resolveCraftStorageKeyForExperienceId(id || null);
+    craftKeyRef.current = key;
+    const ctx = id ? findExperienceContext(id) : null;
+    const hydrated = hydrateCraftSectionsFromLocalStorage(key);
+    setSections(hydrated ?? buildInitialSections(ctx?.experienceLabel));
+  }, [params?.id]);
 
   const persistSections = useCallback((next: CraftSection[]) => {
     setSections(next);
     try {
-      localStorage.setItem(STORYBOARD_CRAFTING_STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(craftKeyRef.current, JSON.stringify(next));
     } catch {
       /* ignore */
     }
@@ -83,9 +111,10 @@ export default function StoryboardReadonlyPage() {
     setEditingId(null);
   };
 
-  const storyboardId = params?.id ? String(params.id) : "storyboard";
-  const roleTitle = user.role?.trim() || "Your storyboard";
+  const storyboardId = experienceId || "storyboard";
+  const roleTitle = experienceCtx?.roleTitle ?? user.role?.trim() ?? "Your storyboard";
   const userName = user.name?.trim() || "";
+  const firstName = useMemo(() => user.name?.trim().split(" ")[0] || "Maaz", [user.name]);
 
   const downloadResume = () => {
     const text = buildResumeExportText(sections, storyboardId);
@@ -100,63 +129,79 @@ export default function StoryboardReadonlyPage() {
     URL.revokeObjectURL(url);
   };
 
-  const viewWrapClass = "max-w-3xl";
-
   const mindMapRole = useMemo(() => {
-    return user.role?.trim() || roleTitle || "Role";
-  }, [roleTitle, user.role]);
+    return experienceCtx?.roleTitle || user.role?.trim() || roleTitle || "Role";
+  }, [experienceCtx?.roleTitle, roleTitle, user.role]);
 
   return (
-    <div
-      className="min-h-[calc(100vh-64px)] animate-in fade-in duration-500"
-      style={{ background: "var(--color-background-secondary)" }}
-    >
-      <div className={`${viewWrapClass} mx-auto px-6 py-10 pb-28`}>
-        <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
-          <Link
-            href="/storyboard"
-            className="flex items-center gap-2 text-sm font-semibold transition-opacity hover:opacity-60"
-            style={{ color: "var(--color-text-tertiary)" }}
-          >
-            <ArrowLeft size={16} /> Back to Hub
-          </Link>
-          <div className="flex items-center gap-2 flex-wrap justify-end">
+    <div className={`${urbanist.className} relative min-h-[calc(100vh-64px)] overflow-x-hidden animate-in fade-in duration-500`}>
+      <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6 pb-28">
+        <div className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45" aria-hidden>
+          <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
+        </div>
+
+        <header className="relative z-[1] mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+            <Link
+              href="/storyboard"
+              className="proofy-dock-round-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-[80px] border border-slate-300 bg-white/60 shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)] backdrop-blur-[21px] transition-colors hover:bg-white/80"
+              aria-label="Back to storyboards"
+            >
+              <ArrowLeft size={16} className="text-slate-600" strokeWidth={2} aria-hidden />
+            </Link>
+            <div className="flex min-w-0 flex-wrap items-center gap-2 text-[14px] leading-tight">
+              <Link href="/storyboard" className="shrink-0 font-medium text-[#64748B] transition-colors hover:text-[#1E293B]">
+                StoryBoard
+              </Link>
+              <span className="shrink-0 text-[#CBD5E1]" aria-hidden>
+                /
+              </span>
+              <span className="min-w-0 truncate font-semibold text-[#1E293B]" title={`${roleTitle} story`}>
+                {roleTitle} story
+              </span>
+              <span className="inline-flex shrink-0 items-center rounded-full border border-white/90 bg-[linear-gradient(90.31deg,rgba(177,226,255,0.35)_0%,rgba(230,248,255,0.55)_99.92%)] px-2.5 py-0.5 text-[14px] font-semibold text-[#0A89A9]">
+                {sections.length} sections
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => setView((v) => (v === "mindmap" ? "panel" : "mindmap"))}
-              className="px-4 py-2 rounded-xl bg-white text-[12px] font-bold hover:opacity-90 transition-opacity"
-              style={{ border: "0.5px solid var(--color-border-tertiary)", color: "var(--color-text-primary)" }}
+              className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white/60 px-4 py-2 text-[13px] font-medium text-[#475569] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] transition-[background-color,box-shadow] hover:bg-white/80"
             >
               {view === "mindmap" ? "Panel view" : "Bird’s-eye view"}
+              <ArrowUpRight size={14} className="text-[#94A3B8]" aria-hidden />
             </button>
             <button
               type="button"
               onClick={downloadResume}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white text-[12px] font-bold hover:opacity-90 transition-opacity"
-              style={{ border: "0.5px solid var(--color-border-tertiary)", color: "var(--color-text-primary)" }}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/60 px-4 py-2 text-[13px] font-medium text-[#475569] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] transition-[background-color,box-shadow] hover:bg-white/80"
             >
-              <Download size={14} />
+              <Download size={14} strokeWidth={2} aria-hidden />
               Download resume
             </button>
           </div>
-        </div>
+        </header>
 
-        <div className="text-center max-w-[700px] mx-auto mb-10 mt-2 flex flex-col items-center">
-          <h1 className="text-[26px] md:text-[34px] font-medium tracking-tight" style={{ color: "var(--color-text-primary)" }}>
-            {(userName || "Maaz") + ", here's your " + roleTitle + " story."}
+        <section className="relative z-[1] mb-6 flex flex-col items-center gap-3 px-4 text-center">
+          <h1 className="max-w-[min(100%,920px)] text-[28px] font-normal leading-snug md:text-[34px]">
+            <span className="text-[#334155]">{firstName}</span>
+            <span className="text-[#334155]">, your </span>
+            <span className="text-[#334155]">{roleTitle}</span>
+            <span className="text-[#0A89A9]"> story is ready — </span>
+            <span className="text-[#334155]">
+              structured answers from your real experiences, built for your mock and beyond.
+            </span>
           </h1>
-          <p className="mt-3 text-[14px] leading-relaxed" style={{ color: "var(--color-text-secondary)" }}>
-            Read through it like an interviewer would. Each section below is a structured answer built from your real experiences — ready to use in
-            your mock interview and beyond.
-          </p>
-        </div>
+        </section>
 
         {view === "mindmap" ? (
-          <div className="mt-10">
+          <div className={`relative z-[1] mt-6 ${glassCard} border-[0.5px] p-3 sm:p-4`}>
             <StoryboardMindMap userName={userName} userRole={mindMapRole} sections={sections} />
           </div>
         ) : (
-          <div className="space-y-6 mt-10">
+          <div className="relative z-[1] mx-auto mt-6 max-w-3xl space-y-4">
             {sections.map((section, idx) => {
               const isEditing = editingId === section.id;
               const score = mockStoryScore(section.id);
@@ -168,21 +213,17 @@ export default function StoryboardReadonlyPage() {
                 .toLowerCase();
 
               return (
-                <div key={section.id} style={STORYBOARD_GLASS_CARD} className="overflow-hidden">
-                  <div className="p-6 md:p-8 flex flex-col" style={{ gap: 16 }}>
+                <div key={section.id} id={`storyboard-section-${section.id}`} className={`${glassCard} overflow-hidden border-[0.5px]`}>
+                  <div className="flex flex-col gap-4 p-6 md:p-8">
                     {/* Header row */}
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 min-w-0">
+                      <div className="flex min-w-0 items-start gap-3">
                         <div
-                          className="shrink-0 grid place-items-center"
+                          className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md text-[11px] font-semibold"
                           style={{
-                            width: 22,
-                            height: 22,
-                            borderRadius: 6,
-                            background: "#E6F1FB",
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: TEAL,
+                            background: "linear-gradient(90.31deg, rgba(209, 250, 229, 0.5) 0%, rgba(236, 253, 245, 0.65) 99.92%)",
+                            color: ACCENT,
+                            border: "0.5px solid rgba(10, 137, 169, 0.2)",
                           }}
                           aria-hidden="true"
                         >
@@ -190,45 +231,34 @@ export default function StoryboardReadonlyPage() {
                         </div>
 
                         <div className="min-w-0">
-                          <div className="flex items-start justify-between gap-2 min-w-0">
-                            <p
-                              className="text-[13px] font-medium truncate min-w-0"
-                              style={{ color: "var(--color-text-primary)" }}
-                              title={sectionName}
-                            >
+                          <div className="flex min-w-0 items-start justify-between gap-2">
+                            <p className="min-w-0 truncate text-[15px] font-medium text-[#1E293B]" title={sectionName}>
                               {sectionName}
                             </p>
-                            <span
-                              className="shrink-0 inline-flex items-center px-2.5 py-0.5 text-[10px] font-medium"
-                              style={{ background: "#E6F1FB", color: TEAL, borderRadius: 20 }}
-                            >
+                            <span className="inline-flex shrink-0 items-center rounded-full border border-white/90 bg-[linear-gradient(90.31deg,rgba(177,226,255,0.35)_0%,rgba(230,248,255,0.55)_99.92%)] px-2.5 py-0.5 text-[10px] font-medium capitalize text-[#0A89A9]">
                               {pillarLabel}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      <div className="shrink-0 flex items-center gap-3">
+                      <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-3">
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px]" style={{ color: "var(--color-text-tertiary)" }}>
-                            Evidence strength
-                          </span>
-                          <span className="text-[16px] font-medium tabular-nums" style={{ color: "var(--color-text-primary)" }}>
+                          <span className="text-[10px] text-[#64748B]">Evidence strength</span>
+                          <span className="text-[18px] font-semibold tabular-nums" style={{ color: scoreBandColor(score) }}>
                             {score.toFixed(1)}
                           </span>
-                          <span className="relative group inline-flex">
+                          <span className="group relative inline-flex">
                             <button
                               type="button"
-                              className="p-1 rounded"
+                              className="rounded p-1 text-[#94A3B8] transition-colors hover:text-[#64748B]"
                               aria-label="About evidence strength score"
-                              style={{ color: "var(--color-text-tertiary)" }}
                             >
                               <Info size={14} strokeWidth={2} />
                             </button>
                             <span
                               role="tooltip"
-                              className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-[220px] rounded-[10px] bg-white px-3 py-2 text-[11px] font-medium opacity-0 translate-y-1 transition-all group-hover:opacity-100 group-hover:translate-y-0 group-focus-within:opacity-100 group-focus-within:translate-y-0"
-                              style={{ border: "0.5px solid var(--color-border-tertiary)", color: "var(--color-text-secondary)" }}
+                              className="pointer-events-none absolute right-0 top-full z-20 mt-2 w-[220px] translate-y-1 rounded-[12px] border border-[#E2E8F0] bg-white/95 px-3 py-2 text-[11px] font-medium text-[#475569] opacity-0 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-sm transition-all group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
                             >
                               A quick signal for how credible and interview-ready this section feels. Green ≥ 3.5, amber
                               2.5–3.4, red &lt; 2.5.
@@ -240,26 +270,16 @@ export default function StoryboardReadonlyPage() {
                           <button
                             type="button"
                             onClick={() => openEdit(section.id)}
-                            className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium bg-white"
-                            style={{
-                              border: "0.5px solid var(--color-border-secondary)",
-                              borderRadius: 8,
-                              color: "var(--color-text-primary)",
-                            }}
+                            className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white/70 px-3 py-2 text-[12px] font-medium text-[#1E293B] shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:bg-white"
                           >
-                            <Edit3 size={14} />
+                            <Edit3 size={14} strokeWidth={2} aria-hidden />
                             Edit
                           </button>
                         ) : (
                           <button
                             type="button"
                             onClick={closeEdit}
-                            className="bg-white px-3.5 py-2 text-[12px] font-medium"
-                            style={{
-                              border: "0.5px solid var(--color-border-secondary)",
-                              borderRadius: 8,
-                              color: "var(--color-text-tertiary)",
-                            }}
+                            className="rounded-full border border-slate-300 bg-white/70 px-3.5 py-2 text-[12px] font-medium text-[#64748B] backdrop-blur-[21px] transition-colors hover:bg-white"
                           >
                             Close
                           </button>
@@ -267,24 +287,18 @@ export default function StoryboardReadonlyPage() {
                       </div>
                     </div>
 
+                    <div className="h-px w-full bg-[#E2E8F0]" aria-hidden />
+
                     {/* Purpose line strip */}
-                    <div
-                      className="text-[12px] italic flex items-start gap-2"
-                      style={{
-                        padding: "10px 16px",
-                        borderTop: "0.5px solid var(--color-border-tertiary)",
-                        color: "var(--color-text-tertiary)",
-                        background: "#E6F1FB",
-                      }}
-                    >
-                      <span className="shrink-0 inline-flex mt-[1px]" aria-hidden="true" style={{ color: TEAL }}>
+                    <div className="flex items-start gap-2 rounded-[16px] border border-[#E2E8F0] bg-[linear-gradient(90.31deg,rgba(177,226,255,0.2)_0%,rgba(255,255,255,0.5)_99.92%)] px-4 py-2.5 text-[12px] italic text-[#64748B]">
+                      <span className="mt-[1px] inline-flex shrink-0 text-[#0A89A9]" aria-hidden="true">
                         <Info size={14} strokeWidth={2} />
                       </span>
                       <span className="min-w-0">{purposeLineFor(sectionName)}</span>
                     </div>
 
                     {/* CAR blocks */}
-                    <div className="flex flex-col" style={{ padding: "12px 16px 14px", gap: 12 }}>
+                    <div className="flex flex-col gap-3 rounded-[16px] border border-[#E2E8F0]/80 bg-white/30 px-4 py-3">
                       {!isEditing ? (
                         isIntroSection(section.id) ? (
                           <CarBlockStack label="Introduction" accent="teal" text={section.car.context} />
@@ -324,62 +338,42 @@ export default function StoryboardReadonlyPage() {
 
                       {showProofyNudge && (
                         <div
-                          style={{
-                            background: "#E6F1FB",
-                            border: "0.5px solid var(--color-border-tertiary)",
-                            borderRadius: 10,
-                            padding: "10px 12px",
-                          }}
+                          className="rounded-[12px] border border-[#E2E8F0] bg-[linear-gradient(90.31deg,rgba(177,226,255,0.35)_0%,rgba(255,255,255,0.65)_99.92%)] p-3 shadow-[0_4px_20px_rgba(0,0,0,0.04)]"
                           role="status"
                         >
                           <div className="flex items-center gap-2">
-                            <span aria-hidden="true" className="inline-flex" style={{ color: TEAL }}>
+                            <span aria-hidden="true" className="inline-flex text-[#0A89A9]">
                               <Info size={14} strokeWidth={2} />
                             </span>
-                            <span className="text-[11px] font-semibold" style={{ color: "var(--color-text-primary)" }}>
-                              AI coach suggestion
-                            </span>
+                            <span className="text-[11px] font-semibold text-[#1E293B]">AI coach suggestion</span>
                           </div>
 
                           <div className="mt-2 flex items-start gap-2">
                             <div
                               aria-hidden="true"
-                              style={{
-                                width: 3,
-                                alignSelf: "stretch",
-                                borderRadius: 999,
-                                background: TEAL,
-                              }}
+                              className="w-[3px] shrink-0 self-stretch rounded-full bg-[#0A89A9]"
                             />
-                            <p className="text-[12px]" style={{ color: "var(--color-text-secondary)", lineHeight: 1.6 }}>
-                              {PROOFY_LOW_SCORE_MESSAGE}
-                            </p>
+                            <p className="text-[12px] leading-relaxed text-[#475569]">{PROOFY_LOW_SCORE_MESSAGE}</p>
                           </div>
                         </div>
                       )}
                     </div>
 
                     {isEditing && (
-                      <div className="flex justify-end gap-2 pt-1">
+                      <div className="flex justify-end gap-2 border-t border-[#E2E8F0] pt-4">
                         <button
                           type="button"
                           onClick={closeEdit}
-                          className="bg-white px-3.5 py-2 text-[12px] font-medium"
-                          style={{
-                            border: "0.5px solid var(--color-border-secondary)",
-                            borderRadius: 8,
-                            color: "var(--color-text-tertiary)",
-                          }}
+                          className="rounded-full border border-slate-300 bg-white/70 px-3.5 py-2 text-[12px] font-medium text-[#64748B] backdrop-blur-[21px] transition-colors hover:bg-white"
                         >
                           Cancel
                         </button>
                         <button
                           type="button"
                           onClick={() => saveSection(section.id)}
-                          className="inline-flex items-center gap-2 px-3.5 py-2 text-[12px] font-semibold text-white"
-                          style={{ background: TEAL, borderRadius: 8 }}
+                          className="inline-flex items-center gap-2 rounded-full bg-[#0A89A9] px-3.5 py-2 text-[12px] font-semibold text-white shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-[filter] hover:brightness-105"
                         >
-                          <Save size={14} /> Save section
+                          <Save size={14} strokeWidth={2} aria-hidden /> Save section
                         </button>
                       </div>
                     )}
@@ -390,7 +384,7 @@ export default function StoryboardReadonlyPage() {
           </div>
         )}
 
-        <p className="text-center text-[11px] mt-8" style={{ color: "var(--color-text-tertiary)" }}>
+        <p className="relative z-[1] mt-8 text-center text-[11px] text-[#94A3B8]">
           Pillars: Thinking (3) · Action (3) · People (3) · Mastery (3) · plus Core Introduction.
         </p>
       </div>
@@ -411,12 +405,12 @@ function StoryboardCarField({
 }) {
   return (
     <div>
-      <label className="text-[11px] font-bold uppercase tracking-widest text-slate-400 block mb-1.5">{label}</label>
+      <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-widest text-[#94A3B8]">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
-        className="w-full p-3 text-[13px] rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#0087A8]/15 resize-none"
+        className="w-full resize-none rounded-[16px] border border-[#E2E8F0] bg-white/90 p-3 text-[13px] text-[#1E293B] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#0A89A9]/20"
       />
     </div>
   );

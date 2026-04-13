@@ -22,12 +22,13 @@ const urbanist = Urbanist({
 });
 
 const BRAND = "#0087A8";
-const BORDER_SUBTLE = "rgba(15,23,42,0.08)";
 
-/** Matches Proofy dock / Insphere glass (see ProofyChatDock). */
-const GUIDE_CARD_GLASS =
-  "linear-gradient(90.2deg, rgba(255,255,255,0.24) 0%, rgba(163, 237, 255, 0.6) 99.92%)";
-const GUIDE_CARD_GLASS_INSET = "inset -5px -5px 250px 0px rgba(255,255,255,0.02)";
+/** Floating AI coach + spotlight. Set `true` to restore the guided journey panel. */
+const SHOW_PROOFY_GUIDE_UI = false;
+
+/** Same glass as `glassCard` on NewUserDashboard (readiness + pillars section). No position — compose with `relative` or `absolute`. */
+const DASHBOARD_GLASS_SURFACE =
+  "overflow-hidden rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
 
 export function JourneyController() {
   const router = useRouter();
@@ -175,42 +176,36 @@ export function JourneyController() {
             ? reportTargets[Math.min(reportTargets.length - 1, Math.max(0, reportIdx))] ?? spotlightTargetId
             : spotlightTargetId;
 
-  useEffect(() => {
-    if (!mounted) return;
-    if (!active || skipped) return;
-    // When the journey is active but the user is off-track, gently bring them back.
-    if (stepId === "training" && pathname.startsWith("/trainings/") && !pathname.startsWith("/trainings/interview-essentials")) {
-      router.replace("/trainings/interview-essentials");
-    }
-  }, [mounted, active, skipped, stepId, pathname, router]);
-
   const shouldRender = mounted && active && !skipped && stepId !== "done";
   if (!shouldRender) return null;
 
   return (
     <>
-      <ProofyGuideWidget
-        stepId={stepId}
-        open={guideOpen}
-        setOpen={setGuideOpen}
-        showPartnerTip={showPartnerTip}
-        completed={completed}
-        reportIdx={reportIdx}
-        reportTotal={reportTargets.length}
-        onReportPrev={() => setReportIdx((i) => Math.max(0, i - 1))}
-        onReportNext={() => setReportIdx((i) => Math.min(reportTargets.length - 1, i + 1))}
-        isStoryWalkthrough={isStoryWalkthrough}
-        storyIdx={storyIdx}
-        storyTotal={storyTargets.length}
-        onStoryPrev={() => setStoryIdx((i) => Math.max(0, i - 1))}
-        onStoryNext={() => setStoryIdx((i) => Math.min(storyTargets.length - 1, i + 1))}
-        onGoNext={() => {
-          if (stepId === "training") router.push("/trainings/interview-essentials");
-          if (stepId === "story") router.push("/storyboard");
-          if (stepId === "mock") router.push("/mock");
-        }}
-      />
-      {guideOpen &&
+      {SHOW_PROOFY_GUIDE_UI ? (
+        <ProofyGuideWidget
+          stepId={stepId}
+          open={guideOpen}
+          setOpen={setGuideOpen}
+          showPartnerTip={showPartnerTip}
+          completed={completed}
+          reportIdx={reportIdx}
+          reportTotal={reportTargets.length}
+          onReportPrev={() => setReportIdx((i) => Math.max(0, i - 1))}
+          onReportNext={() => setReportIdx((i) => Math.min(reportTargets.length - 1, i + 1))}
+          isStoryWalkthrough={isStoryWalkthrough}
+          storyIdx={storyIdx}
+          storyTotal={storyTargets.length}
+          onStoryPrev={() => setStoryIdx((i) => Math.max(0, i - 1))}
+          onStoryNext={() => setStoryIdx((i) => Math.min(storyTargets.length - 1, i + 1))}
+          onGoNext={() => {
+            if (stepId === "training") router.push("/trainings/interview-essentials");
+            if (stepId === "story") router.push("/storyboard");
+            if (stepId === "mock") router.push("/mock");
+          }}
+        />
+      ) : null}
+      {SHOW_PROOFY_GUIDE_UI &&
+      guideOpen &&
       effectiveTargetId &&
       !(
         stepId === "story" &&
@@ -308,7 +303,7 @@ function ProofyGuideWidget({
         <div className="relative">
           {showPartnerTip && (
             <div
-              className="card absolute left-0 bottom-[60px] w-[260px] px-3 py-2.5"
+              className={`absolute left-0 bottom-[60px] w-[260px] border-[0.5px] px-3 py-2.5 ${DASHBOARD_GLASS_SURFACE}`}
               style={{ borderRadius: 14 }}
             >
               <p
@@ -350,22 +345,9 @@ function ProofyGuideWidget({
           </button>
         </div>
       ) : (
-        <div className="relative w-[320px] overflow-hidden rounded-[24px] border-[0.5px] border-white shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-0 rounded-[24px] backdrop-blur-[21px]"
-            style={{ backgroundImage: GUIDE_CARD_GLASS }}
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-[-0.5px] rounded-[24px]"
-            style={{ boxShadow: GUIDE_CARD_GLASS_INSET }}
-          />
+        <div className={`relative pointer-events-auto w-[320px] border-[0.5px] ${DASHBOARD_GLASS_SURFACE}`}>
           <div className="relative z-[1] overflow-hidden rounded-[24px]">
-          <div
-            className="flex items-center justify-between gap-3 px-4 py-3"
-            style={{ borderBottom: `0.5px solid ${BORDER_SUBTLE}` }}
-          >
+          <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] px-4 py-3">
             <div className="min-w-0">
               <p
                 style={{
@@ -505,10 +487,7 @@ function ProofyGuideWidget({
             )}
           </div>
 
-          <div
-            className="flex items-center justify-between gap-3 px-4 py-3"
-            style={{ borderTop: `0.5px solid ${BORDER_SUBTLE}` }}
-          >
+          <div className="flex items-center justify-between gap-3 border-t border-[#E2E8F0] px-4 py-3">
             {stepId === "report" ? (
               <>
                 <div className="flex items-center gap-2">

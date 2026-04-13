@@ -75,7 +75,7 @@ export default function LiveInterview() {
           <span className="text-muted tracking-widest uppercase">
             Q {qIndex + 1} / {QUESTIONS.length}
           </span>
-          <span className="font-mono">{formatTime(time)}</span>
+          <span>{formatTime(time)}</span>
         </div>
       </header>
 

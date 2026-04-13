@@ -11,20 +11,20 @@ export function CarBlockStack({
 }) {
   const dot =
     accent === "teal"
-      ? "bg-[#0087A8]"
+      ? "bg-[#0A89A9]"
       : accent === "emerald"
         ? "bg-emerald-500"
         : "bg-slate-300";
   const labelColor =
-    accent === "teal" ? "text-[#0087A8]" : accent === "emerald" ? "text-emerald-600" : "text-slate-400";
+    accent === "teal" ? "text-[#0A89A9]" : accent === "emerald" ? "text-emerald-600" : "text-slate-400";
 
   return (
-    <div className="space-y-2 pb-5 border-b border-slate-100 last:border-b-0 last:pb-0">
+    <div className="space-y-2 border-b border-[#E2E8F0]/80 pb-5 last:border-b-0 last:pb-0">
       <div className="flex items-center gap-2">
         <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
         <p className={`text-[12px] font-bold uppercase tracking-widest ${labelColor}`}>{label}</p>
       </div>
-      <p className="text-[14px] leading-relaxed text-slate-600 pl-3.5 border-l-2 border-slate-100">{text}</p>
+      <p className="border-l-2 border-[#E2E8F0] pl-3.5 text-[14px] leading-relaxed text-[#475569]">{text}</p>
     </div>
   );
 }

@@ -7,6 +7,15 @@ import type { CSSProperties } from "react";
 
 export const STORYBOARD_CRAFTING_STORAGE_KEY = "proofdive_crafting_storyboard";
 
+export function craftStorageKeyForExperience(experienceId: string): string {
+  return `${STORYBOARD_CRAFTING_STORAGE_KEY}:${experienceId}`;
+}
+
+/** Scoped key when building a journey; falls back to legacy global key. */
+export function getCraftStorageKeyForSession(experienceId: string | null | undefined): string {
+  return experienceId ? craftStorageKeyForExperience(experienceId) : STORYBOARD_CRAFTING_STORAGE_KEY;
+}
+
 export const TEAL = "#0087A8";
 
 export const STORYBOARD_GLASS_CARD: CSSProperties = {
@@ -58,13 +67,11 @@ export const SECTION_DEFS: { id: string; pillar: string; title: string }[] = [
   { id: "mastery-innovation", pillar: "Power of Mastery (Technical)", title: "SkillForge" },
 ];
 
-function seedIntroCar(): CarBlock {
-  return {
-    context:
-      "Write one short paragraph: your role, scope, and a line that previews the competency stories you will cover in this storyboard.",
-    action: "",
-    result: "",
-  };
+function seedIntroCar(journeyLabel?: string): CarBlock {
+  const context = journeyLabel?.trim()
+    ? `Write one short paragraph for "${journeyLabel.trim()}": your role in this context, scope, and how this journey shows up in interviews.`
+    : "Write one short paragraph: your role, scope, and a line that previews the competency stories you will cover in this storyboard.";
+  return { context, action: "", result: "" };
 }
 
 function seedCar(title: string): CarBlock {
@@ -75,10 +82,10 @@ function seedCar(title: string): CarBlock {
   };
 }
 
-export function buildInitialSections(): CraftSection[] {
+export function buildInitialSections(journeyLabel?: string): CraftSection[] {
   return SECTION_DEFS.map((d) => ({
     ...d,
-    car: isIntroSection(d.id) ? seedIntroCar() : seedCar(d.title),
+    car: isIntroSection(d.id) ? seedIntroCar(journeyLabel) : seedCar(d.title),
     history: [],
     prompt: "",
     regenerationsUsed: 0,
@@ -117,10 +124,11 @@ function normalizeSectionRow(s: CraftSection): CraftSection {
 }
 
 /** Returns null if missing or invalid shape. */
-export function hydrateCraftSectionsFromLocalStorage(): CraftSection[] | null {
+export function hydrateCraftSectionsFromLocalStorage(storageKey?: string): CraftSection[] | null {
   if (typeof window === "undefined") return null;
+  const key = storageKey ?? STORYBOARD_CRAFTING_STORAGE_KEY;
   try {
-    const raw = localStorage.getItem(STORYBOARD_CRAFTING_STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as CraftSection[];
     if (!Array.isArray(parsed) || parsed.length !== SECTION_DEFS.length) return null;
@@ -128,6 +136,71 @@ export function hydrateCraftSectionsFromLocalStorage(): CraftSection[] | null {
   } catch {
     return null;
   }
+}
+
+/** Hub / library UI — derived from scoped craft JSON in localStorage (client-only). */
+export type ExperienceCraftUiStatus = "ready_to_craft" | "drafted" | "ready_to_practice";
+
+const CRAFT_COMPLETE_MIN_CHARS = 40;
+
+export function readExperienceCraftUiStatus(experienceId: string): ExperienceCraftUiStatus {
+  if (typeof window === "undefined" || !experienceId) return "ready_to_craft";
+  const key = craftStorageKeyForExperience(experienceId);
+  const raw = window.localStorage.getItem(key);
+  if (!raw?.trim()) return "ready_to_craft";
+  const sections = hydrateCraftSectionsFromLocalStorage(key);
+  if (!sections) return "drafted";
+  const nonIntro = sections.filter((s) => !isIntroSection(s.id));
+  if (nonIntro.length === 0) return "drafted";
+  const allComplete = nonIntro.every(
+    (s) =>
+      s.car.context.trim().length >= CRAFT_COMPLETE_MIN_CHARS &&
+      s.car.action.trim().length >= CRAFT_COMPLETE_MIN_CHARS &&
+      s.car.result.trim().length >= CRAFT_COMPLETE_MIN_CHARS
+  );
+  return allComplete ? "ready_to_practice" : "drafted";
+}
+
+export function craftStatusLabel(status: ExperienceCraftUiStatus): string {
+  switch (status) {
+    case "ready_to_craft":
+      return "Ready to craft";
+    case "drafted":
+      return "Drafted";
+    case "ready_to_practice":
+      return "Ready to practice";
+  }
+}
+
+export function craftCtaLabel(status: ExperienceCraftUiStatus): string {
+  switch (status) {
+    case "ready_to_craft":
+      return "Craft story";
+    case "drafted":
+      return "Continue crafting";
+    case "ready_to_practice":
+      return "View story";
+  }
+}
+
+/** Primary navigation for a journey from the storyboard hub. */
+export function craftActionHref(experienceId: string, roleTitle: string, status: ExperienceCraftUiStatus): string {
+  const roleQ = encodeURIComponent(roleTitle.trim() || "My role");
+  const idQ = encodeURIComponent(experienceId);
+  if (status === "ready_to_practice") return `/storyboard/${experienceId}`;
+  if (status === "drafted") return `/storyboard/crafting?experienceId=${idQ}`;
+  return `/storyboard/new?experienceId=${idQ}&role=${roleQ}`;
+}
+
+/** 0 experiences → 10% placeholder; otherwise average of per-journey progress weights. */
+export function roleCraftProgressPercent(role: { experiences: { id: string }[] }): number {
+  if (role.experiences.length === 0) return 10;
+  let sum = 0;
+  for (const e of role.experiences) {
+    const s = readExperienceCraftUiStatus(e.id);
+    sum += s === "ready_to_practice" ? 100 : s === "drafted" ? 52 : 18;
+  }
+  return Math.max(10, Math.min(100, Math.round(sum / role.experiences.length)));
 }
 
 export function buildResumeExportText(sections: CraftSection[], storyboardId: string): string {

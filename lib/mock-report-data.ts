@@ -5,6 +5,8 @@
 
 export interface ReportQuestion {
   q: string;
+  /** Candidate reply shown when the row is expanded (falls back to `youSaid` when absent). */
+  answer?: string;
   driver: string;
   driverAccent: string;
   score: number;
@@ -154,6 +156,8 @@ export const MOCK_CAR_ROWS: CarRow[] = [
 export const MOCK_QUESTIONS: ReportQuestion[] = [
   {
     q: "Tell me about a time you solved a complex problem.",
+    answer:
+      "I had to untangle a billing discrepancy that was affecting enterprise customers. I mapped the data flow, found a race in our sync job, and coordinated a fix with finance.",
     driver: "Thinking",
     driverAccent: "#D97706",
     score: 3.6,
@@ -199,6 +203,8 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   },
   {
     q: "Give me an example of how you handled a conflict with a stakeholder.",
+    answer:
+      "The product lead and I disagreed on prioritization. I ran a structured session with data on each option and we aligned on a roadmap.",
     driver: "People",
     driverAccent: "#16A34A",
     score: 4.1,
@@ -218,6 +224,8 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   },
   {
     q: "What's the most technically complex thing you've worked on?",
+    answer:
+      "A real-time analytics pipeline — we had to balance throughput with correctness. We shipped in stages and added fail-safes.",
     driver: "Mastery",
     driverAccent: "#059669",
     score: 3.2,
@@ -235,6 +243,8 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   },
   {
     q: "Tell me about a time you had to work with incomplete or ambiguous information.",
+    answer:
+      "We were launching in a new region with unclear regulatory guidance. I pulled together legal, ops, and sales into a weekly decision log and shipped a phased rollout so we could adapt as rules clarified.",
     driver: "Thinking",
     driverAccent: "#D97706",
     score: 3.4,
@@ -252,6 +262,8 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   },
   {
     q: "Describe a time you influenced someone without formal authority.",
+    answer:
+      "Engineering wanted to pause a redesign; I didn’t own the roadmap. I built a lightweight prototype that showed the UX win in one sprint, and the PM agreed to slot it into the next release.",
     driver: "People",
     driverAccent: "#16A34A",
     score: 3.9,
@@ -268,6 +280,8 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   },
   {
     q: "Tell me about a time you delivered results under a tight deadline.",
+    answer:
+      "We had two weeks to replace a vendor integration before contract end. I scoped the MVP, paired with another engineer on the riskiest path, and we cut scope on nice-to-haves to hit the date.",
     driver: "Action",
     driverAccent: "#0087A8",
     score: 3.0,
@@ -285,6 +299,8 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   },
   {
     q: "What’s a mistake you made at work, and what did you learn from it?",
+    answer:
+      "I once shipped a config change without a canary and caused a short outage. I owned the postmortem, added staged rollouts, and now I treat every change as production-critical until proven otherwise.",
     driver: "Mastery",
     driverAccent: "#059669",
     score: 3.5,

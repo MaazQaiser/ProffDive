@@ -24,24 +24,41 @@ export const nodeTypes: NodeTypes = {
 
 const HANDLE_STYLE = { opacity: 0, pointerEvents: "none" as const };
 
+/** Match dashboard / storyboard score heat */
+function scoreBandColor(v: number): string {
+  if (v < 2.5) return "#EF4444";
+  if (v < 3.5) return "#D97706";
+  return "#059669";
+}
+
+/** Glass surfaces aligned with `glassCard` on dashboard — score tints readiness bands */
+function nodeGlassShell(score: number | undefined): string {
+  const base =
+    "relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] border-[0.5px] border-white/90";
+  if (typeof score !== "number") {
+    return `${base} bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)]`;
+  }
+  if (score < 2.5) {
+    return `${base} bg-[linear-gradient(90.31deg,rgba(254,226,226,0.55)_0%,rgba(255,255,255,0.58)_99.92%)]`;
+  }
+  if (score < 3.5) {
+    return `${base} bg-[linear-gradient(90.31deg,rgba(255,233,197,0.5)_0%,rgba(255,255,255,0.58)_99.92%)]`;
+  }
+  return `${base} bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)]`;
+}
+
 function StoryboardMindMapNode({ data }: { data: StoryboardMindMapNodeData }) {
   const isLeaf = data.kind === "leaf";
   const isCenter = data.kind === "center";
   const expanded = Boolean(data.expanded);
   const score = typeof data.score === "number" ? data.score : undefined;
-  const lowScore = typeof score === "number" && score < 2.5;
 
   const isExpandable = isLeaf || isCenter;
   const canToggle = isExpandable && typeof data.onToggleNode === "function" && data.section;
 
   return (
     <div
-      className={[
-        "rounded-2xl border shadow-sm",
-        "backdrop-blur-[18px]",
-        lowScore ? "border-rose-200/70 bg-rose-50/50" : "border-white/70 bg-white/55",
-        isCenter ? "shadow-md" : "",
-      ].join(" ")}
+      className={[nodeGlassShell(score), isCenter ? "rounded-[24px]" : "rounded-[16px]"].join(" ")}
       style={{
         width: data.kind === "center" ? 440 : data.kind === "pillar" ? 240 : 300,
       }}
@@ -60,7 +77,7 @@ function StoryboardMindMapNode({ data }: { data: StoryboardMindMapNodeData }) {
         type="button"
         onClick={() => (canToggle ? data.onToggleNode?.(data.section!.id) : undefined)}
         className={[
-          "w-full text-left",
+          "w-full text-left transition-[filter] hover:brightness-[1.02]",
           isCenter ? "px-5 py-4" : "px-4 py-3",
           canToggle ? "cursor-pointer" : "cursor-default",
         ].join(" ")}
@@ -69,47 +86,69 @@ function StoryboardMindMapNode({ data }: { data: StoryboardMindMapNodeData }) {
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex items-start gap-3">
             {isCenter && (
-              <div className="mt-0.5 w-11 h-11 rounded-2xl bg-[#0087A8]/15 border border-[#0087A8]/20 flex items-center justify-center shrink-0">
-                <span className="text-[13px] font-extrabold tracking-tight text-[#0087A8]">
+              <div
+                className="mt-0.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-white/90 bg-[linear-gradient(90.31deg,rgba(177,226,255,0.35)_0%,rgba(230,248,255,0.55)_99.92%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+                aria-hidden
+              >
+                <span className="text-[13px] font-semibold tracking-tight text-[#0A89A9]">
                   {data.avatarInitials || "You"}
                 </span>
               </div>
             )}
             <div className="min-w-0">
               <div
-                className={`${
-                  isCenter ? "text-[24px]" : "text-[16px]"
-                } font-extrabold tracking-tight text-slate-900 leading-snug`}
+                className={[
+                  "leading-snug tracking-tight",
+                  isCenter && "text-[22px] font-medium text-[#1E293B] md:text-[24px]",
+                  data.kind === "pillar" && "text-[16px] font-medium text-[#475569]",
+                  isLeaf && "text-[16px] font-semibold text-[#1E293B]",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {data.label}
               </div>
               {data.subtitle && (
-                <div className="text-[14px] font-semibold text-slate-500 mt-1 truncate">
-                  {data.subtitle}
-                </div>
+                <div className="mt-1 truncate text-[12px] font-normal text-[#64748B]">{data.subtitle}</div>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
-            {typeof score === "number" && (
-              <div
-                className={[
-                  "rounded-xl border px-2 py-1",
-                  lowScore ? "border-rose-200/70 bg-rose-100/60" : "border-slate-200/70 bg-white/60",
-                ].join(" ")}
-              >
-                <div className="text-[14px] font-extrabold tabular-nums text-slate-900 leading-none">{score.toFixed(1)}</div>
-              </div>
+          <div className="flex shrink-0 items-center gap-2">
+            {typeof score === "number" &&
+              (isLeaf ? (
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-[10px] font-medium text-[#64748B]">Evidence strength</span>
+                  <span
+                    className="text-[18px] font-semibold tabular-nums leading-none"
+                    style={{ color: scoreBandColor(score) }}
+                  >
+                    {score.toFixed(1)}
+                  </span>
+                </div>
+              ) : (
+                <p className="flex items-end">
+                  <span
+                    className="text-[24px] font-semibold leading-none tabular-nums"
+                    style={{ color: scoreBandColor(score) }}
+                  >
+                    {score.toFixed(1)}
+                  </span>
+                  <span className="text-[16px] font-normal leading-none text-[#64748B]">/05</span>
+                </p>
+              ))}
+            {isExpandable && (
+              <span className="text-[#94A3B8]" aria-hidden>
+                {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+              </span>
             )}
-            {isExpandable && <span className="text-slate-400">{expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>}
           </div>
         </div>
       </button>
 
       {isExpandable && expanded && data.section && (
         <div className="px-4 pb-4">
-          <div className="rounded-xl border border-white/70 bg-white/50 px-3 py-3">
+          <div className="rounded-[16px] border border-[#E2E8F0] bg-white/40 px-4 py-3 shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-[21px]">
             {isIntroSection(data.section.id) ? (
               <Block label="Introduction" text={data.section.car.context} />
             ) : (
@@ -131,8 +170,8 @@ function StoryboardMindMapNode({ data }: { data: StoryboardMindMapNodeData }) {
 function Block({ label, text }: { label: string; text: string }) {
   return (
     <div>
-      <div className="text-[12px] font-bold uppercase tracking-widest text-slate-400">{label}</div>
-      <div className="text-[12px] leading-relaxed text-slate-700 mt-1 whitespace-pre-wrap">{(text ?? "").trim()}</div>
+      <div className="text-[11px] font-semibold uppercase tracking-widest text-[#94A3B8]">{label}</div>
+      <div className="mt-1 whitespace-pre-wrap text-[12px] leading-relaxed text-[#475569]">{(text ?? "").trim()}</div>
     </div>
   );
 }

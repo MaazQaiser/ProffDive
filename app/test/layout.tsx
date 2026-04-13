@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export default function TestLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen relative" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="relative min-h-screen font-sans">
 
       {/* Subtle background — barely tinted, not rainbow */}
       <div className="fixed inset-0 -z-10" style={{

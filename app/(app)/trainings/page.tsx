@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Urbanist } from "next/font/google";
 import { Brain, Play, Users, Wrench, Zap } from "lucide-react";
 import { ChipStatic } from "@/components/Chip";
-import { useUser } from "@/lib/user-context";
 
 const urbanist = Urbanist({
   subsets: ["latin"],
@@ -16,6 +15,14 @@ const glassCard =
   "relative overflow-hidden rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
 
 type DriverKey = "Thinking" | "Action" | "People" | "Mastery";
+
+/** Matches `app/(app)/trainings/driver/[driver]/page.tsx` slugs */
+const DRIVER_SLUG: Record<DriverKey, string> = {
+  Thinking: "think",
+  Action: "act",
+  People: "people",
+  Mastery: "mastery",
+};
 
 const DRIVERS: {
   key: DriverKey;
@@ -90,18 +97,15 @@ function CompTag({ children }: { children: string }) {
 }
 
 export default function TrainingsPage() {
-  const { user } = useUser();
-  const firstName = (user.name ?? "").trim().split(/\s+/)[0] || "there";
-
   return (
-    <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden pb-16`}>
+    <div className={`${urbanist.className} relative min-h-screen overflow-x-clip pb-28 sm:pb-32`}>
       <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
         <section className="relative z-[1] flex flex-col items-center gap-6 px-4 py-2 sm:px-8 sm:py-3">
           {/* Hero + featured course — same stack as dashboard (centered title, card below) */}
           <div className="mb-2 flex w-full flex-col items-center gap-6 lg:mb-4">
             <div className="flex flex-col items-center pt-3">
               <h1 className="max-w-[540px] text-center text-[34px] font-normal leading-normal text-[#334155]">
-                Hi {firstName}, ready to learn{" "}
+                Hi Maaz, ready to learn{" "}
                 <span className="text-[#0A89A9]">what interviewers actually want?</span>
               </h1>
             </div>
@@ -150,7 +154,12 @@ export default function TrainingsPage() {
             {DRIVERS.map((d) => {
               const Icon = d.Icon;
               return (
-                <article key={d.key} className={`${glassCard} p-5 text-left`}>
+                <Link
+                  key={d.key}
+                  href={`/trainings/driver/${DRIVER_SLUG[d.key]}`}
+                  className={`${glassCard} block p-5 text-left no-underline transition-[box-shadow,transform] duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(0,0,0,0.1)] active:translate-y-0 active:shadow-[0_4px_20px_rgba(0,0,0,0.06)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0A89A9] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)]`}
+                  style={{ color: "inherit" }}
+                >
                   <div className="mb-3 flex items-start gap-3">
                     <div
                       className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
@@ -173,7 +182,7 @@ export default function TrainingsPage() {
                     ))}
                   </div>
                   <span className="text-[12px] font-semibold text-[#0A89A9]">3 courses →</span>
-                </article>
+                </Link>
               );
             })}
           </div>

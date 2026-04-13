@@ -108,7 +108,7 @@
   --color-success:      var(--ready-text);
   --color-warning:      var(--borderline-text);
   --color-error:        var(--not-ready-text);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-urbanist), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ── Base ── */
@@ -116,24 +116,26 @@ html, body {
   background: var(--bg-gradient);
   background-attachment: fixed;
   color: var(--text-1);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-urbanist), ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ── Global input/button radii ── */
 @layer base {
-  input[type="text"],
+  input[type="text"]:not(.storyboard-underline-input),
   input[type="email"],
   input[type="password"],
   input[type="search"],
   input[type="number"],
-  textarea,
+  textarea:not(.storyboard-underline-textarea),
   select {
     border-radius: var(--r-input) !important;
     background: rgba(0,0,0,0.04) !important;
     border: 1px solid rgba(0,0,0,0.07) !important;
     color: var(--text-1) !important;
   }
-  input:focus, textarea:focus, select:focus {
+  input:focus:not(.storyboard-underline-input),
+  textarea:not(.storyboard-underline-textarea):focus,
+  select:focus {
     outline: none !important;
     border-color: rgba(0,135,168,0.40) !important;
     box-shadow: 0 0 0 3px rgba(0,135,168,0.10) !important;
@@ -146,6 +148,74 @@ html, body {
   a.btn {
     border-radius: var(--r-button);
   }
+}
+
+/* Opt out of global input fill + focus ring — Storyboard experience composer (must beat base !important) */
+input.storyboard-underline-input[type="text"],
+input#storyboard-plan-experience-input.storyboard-underline-input[type="text"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--text-1) !important;
+}
+input.storyboard-underline-input[type="text"]:focus,
+input.storyboard-underline-input[type="text"]:focus-visible,
+input#storyboard-plan-experience-input.storyboard-underline-input[type="text"]:focus,
+input#storyboard-plan-experience-input.storyboard-underline-input[type="text"]:focus-visible {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Storyboard flow — multiline composer matching underline input treatment */
+textarea.storyboard-underline-textarea {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+  color: var(--text-1) !important;
+  border-radius: 0 !important;
+}
+textarea.storyboard-underline-textarea:focus,
+textarea.storyboard-underline-textarea:focus-visible {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  border: none !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  border-image: none !important;
+  box-shadow: none !important;
+  outline: none !important;
 }
 
 /*

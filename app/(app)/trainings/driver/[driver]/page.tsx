@@ -1,28 +1,34 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  ArrowRight,
-  BookOpen,
-  Clock,
-  Heart,
-  SendHorizontal,
-  Target,
-  X,
-  Zap,
-} from "lucide-react";
+import { Urbanist } from "next/font/google";
+import { ArrowLeft, ArrowRight, Brain, Clock, Target, Users, Zap } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 
-const TEAL = "#0087A8";
-const BTN_RADIUS = 8;
-const CARD_RADIUS = 10;
-const COURSE_RADIUS = 12;
-const BORDER = "rgba(15,23,42,0.12)";
-const BORDER_HALF: React.CSSProperties = { borderWidth: 0.5 };
-const CONTENT_MAX_W = 860;
-const CONTENT_PAD: React.CSSProperties = { padding: "1.75rem 2rem" };
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const glassPanel =
+  "relative overflow-hidden border-[0.5px] border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+const glassCard = `${glassPanel} rounded-[24px]`;
+const glassCardMd = `${glassPanel} rounded-[16px]`;
+
+const cardInset =
+  "pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]";
 
 type DriverId = "think" | "act" | "people" | "mastery";
+
+const DRIVER_START_SLUG: Record<DriverId, string> = {
+  think: "handling-ambiguity",
+  act: "behavioral-car-method",
+  people: "stakeholder-communication",
+  mastery: "success-drivers-deep-dive",
+};
 
 const DRIVER_META: Record<
   DriverId,
@@ -32,7 +38,6 @@ const DRIVER_META: Record<
     eyebrow: string;
     title: string;
     definition: string;
-    rightBg: string;
     badgeBg: string;
     badgeText: string;
     courses: Array<{
@@ -41,9 +46,7 @@ const DRIVER_META: Record<
       outcome: string;
       duration: string;
       active?: boolean;
-      visualBg: string;
     }>;
-    proofyPrompt: string;
   }
 > = {
   think: {
@@ -53,7 +56,6 @@ const DRIVER_META: Record<
     title: "How you think",
     definition:
       "Interviewers are always watching how you break down problems, structure your reasoning and make decisions under pressure — even when the question doesn't sound like a thinking question.",
-    rightBg: "#006A87",
     badgeBg: "#E6F1FB",
     badgeText: "#0C447C",
     courses: [
@@ -64,7 +66,6 @@ const DRIVER_META: Record<
           "After this you'll know how to structure any answer so your reasoning is clear, traceable, and impossible to argue with.",
         duration: "~12 min",
         active: true,
-        visualBg: "#005F7A",
       },
       {
         badge: "Strategic thinking",
@@ -72,7 +73,6 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll be able to show interviewers you think beyond the obvious — which is exactly what separates strong candidates.",
         duration: "~10 min",
-        visualBg: "#004D63",
       },
       {
         badge: "Creative thinking",
@@ -80,10 +80,8 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll know how to reframe a question in a way that makes your answer memorable — not just correct.",
         duration: "~9 min",
-        visualBg: "#004D63",
       },
     ],
-    proofyPrompt: "Ask Proofy — what does analytical thinking actually mean in an interview?",
   },
   act: {
     idx: 2,
@@ -92,7 +90,6 @@ const DRIVER_META: Record<
     title: "How you act",
     definition:
       "Interviewers watch how you move from intention to outcome: how you take initiative, keep momentum under pressure, and deliver real results — not just activity.",
-    rightBg: "#006A87",
     badgeBg: "#E1F5EE",
     badgeText: "#085041",
     courses: [
@@ -103,7 +100,6 @@ const DRIVER_META: Record<
           "After this you'll know how to show ownership and initiative without sounding reckless — the exact signal interviewers reward.",
         duration: "~11 min",
         active: true,
-        visualBg: "#005F7A",
       },
       {
         badge: "Resilience",
@@ -111,7 +107,6 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll be able to describe setbacks in a way that highlights composure, learning, and forward progress.",
         duration: "~10 min",
-        visualBg: "#004D63",
       },
       {
         badge: "Delivery",
@@ -119,10 +114,8 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll know how to present execution with clarity — scope, trade-offs, and results — so it feels undeniable.",
         duration: "~9 min",
-        visualBg: "#004D63",
       },
     ],
-    proofyPrompt: "Ask Proofy — how do I show drive without sounding arrogant?",
   },
   people: {
     idx: 3,
@@ -131,7 +124,6 @@ const DRIVER_META: Record<
     title: "How you work with people",
     definition:
       "Interviewers look for how you influence outcomes through others: communication, empathy, and leadership — especially when alignment is hard.",
-    rightBg: "#006A87",
     badgeBg: "#FBEAF0",
     badgeText: "#72243E",
     courses: [
@@ -142,7 +134,6 @@ const DRIVER_META: Record<
           "After this you'll know how to explain persuasion and alignment in a way that signals trust, clarity, and impact.",
         duration: "~11 min",
         active: true,
-        visualBg: "#005F7A",
       },
       {
         badge: "Empathy",
@@ -150,7 +141,6 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll be able to show empathy as a performance skill: sharper decisions, better collaboration, fewer rework loops.",
         duration: "~10 min",
-        visualBg: "#004D63",
       },
       {
         badge: "Leadership",
@@ -158,10 +148,8 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll know how to frame leadership as lifting team performance — not just managing people.",
         duration: "~9 min",
-        visualBg: "#004D63",
       },
     ],
-    proofyPrompt: "Ask Proofy — how do I talk about conflict without sounding negative?",
   },
   mastery: {
     idx: 4,
@@ -170,7 +158,6 @@ const DRIVER_META: Record<
     title: "How you master your craft",
     definition:
       "Interviewers evaluate whether you have depth: technical fluency, quality standards, and learning agility — the signals that you’ll grow fast once hired.",
-    rightBg: "#006A87",
     badgeBg: "#FAEEDA",
     badgeText: "#633806",
     courses: [
@@ -181,7 +168,6 @@ const DRIVER_META: Record<
           "After this you'll know how to explain expertise with precision and clarity — without rambling or over-technical jargon.",
         duration: "~11 min",
         active: true,
-        visualBg: "#005F7A",
       },
       {
         badge: "Craft & quality",
@@ -189,7 +175,6 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll be able to describe quality as a system: decisions, trade-offs, and standards that lead to reliable outcomes.",
         duration: "~10 min",
-        visualBg: "#004D63",
       },
       {
         badge: "Learning agility",
@@ -197,25 +182,17 @@ const DRIVER_META: Record<
         outcome:
           "After this you'll know how to frame learning as speed-to-impact — not just curiosity.",
         duration: "~9 min",
-        visualBg: "#004D63",
       },
     ],
-    proofyPrompt: "Ask Proofy — what does “craft” mean for my role?",
   },
 };
 
-function driverLabel(driver: DriverId) {
-  switch (driver) {
-    case "think":
-      return "THINKING";
-    case "act":
-      return "ACTION";
-    case "people":
-      return "PEOPLE";
-    case "mastery":
-      return "MASTERY";
-  }
-}
+const DRIVER_ICONS: Record<DriverId, LucideIcon> = {
+  think: Brain,
+  act: Zap,
+  people: Users,
+  mastery: Target,
+};
 
 function driverPillColors(driver: DriverId) {
   switch (driver) {
@@ -230,48 +207,19 @@ function driverPillColors(driver: DriverId) {
   }
 }
 
-function PillarIllustration({ driver }: { driver: DriverId }) {
-  const iconProps = { size: 96, className: "text-white/25" } as const;
-  const Icon =
-    driver === "think"
-      ? BookOpen
-      : driver === "act"
-        ? Zap
-        : driver === "people"
-          ? Heart
-          : Target;
-
-  return (
-    <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-      <div aria-hidden className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-white/10 blur-[0px]" />
-      <div aria-hidden className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-white/10" />
-      <Icon {...iconProps} />
-    </div>
-  );
-}
-
-function StartNudgeCard() {
-  return (
-    <div
-      className="bg-white border flex items-start gap-3"
-      style={{ borderRadius: CARD_RADIUS, borderColor: BORDER, ...BORDER_HALF, padding: "1rem 1.25rem" }}
-    >
-      <span className="mt-1.5 block h-2 w-2 rounded-full" style={{ background: TEAL }} aria-hidden />
-      <p className="text-[13px] text-slate-600 leading-relaxed">
-        <span className="font-semibold text-slate-900">
-          Start with course 1 — each course builds on the last.
-        </span>{" "}
-        Work through them in order for the best result.
-      </p>
-    </div>
-  );
+function normalizeDriver(raw: string | undefined): DriverId {
+  const s = (raw ?? "think").toLowerCase();
+  if (s === "think" || s === "act" || s === "people" || s === "mastery") return s;
+  return "think";
 }
 
 export default function DriverCoursesPage() {
   const params = useParams<{ driver?: string }>();
-  const driver = (params?.driver ?? "think") as DriverId;
-  const meta = DRIVER_META[driver] ?? DRIVER_META.think;
+  const driver = normalizeDriver(params?.driver);
+  const meta = DRIVER_META[driver];
   const tagColors = driverPillColors(driver);
+  const PillarIcon = DRIVER_ICONS[driver];
+  const startCourseHref = `/trainings/${DRIVER_START_SLUG[driver]}`;
 
   const courseThumbs: Record<DriverId, string[]> = {
     think: [
@@ -297,141 +245,141 @@ export default function DriverCoursesPage() {
   };
 
   return (
-    <div className="w-full">
-      {/* Banner */}
-      <div className="relative overflow-hidden" style={{ background: TEAL }}>
-        <div className="relative grid grid-cols-1 md:grid-cols-2">
-          <div
-            className="text-white"
-            style={{ padding: "1.75rem 0" }}
+    <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden`}>
+      <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
+        <div
+          className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45"
+          aria-hidden
+        >
+          <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
+        </div>
+
+        <div className="relative z-[1] space-y-8 pb-16 md:space-y-10">
+          <Link
+            href="/trainings"
+            className="inline-flex items-center gap-2 text-[13px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
           >
-            <div style={{ maxWidth: CONTENT_MAX_W, margin: "0 auto", padding: "0 2rem" }}>
-              <div className="text-[12px] flex items-center gap-2">
-                <Link href="/trainings" className="hover:opacity-80 transition-opacity" style={{ color: "rgba(255,255,255,0.6)" }}>
-                  ← Trainings
-                </Link>
-                <span style={{ color: "rgba(255,255,255,0.6)" }}>/</span>
-                <span className="text-white">{meta.breadcrumb}</span>
+            <ArrowLeft size={16} strokeWidth={2} />
+            Trainings
+          </Link>
+
+          {/* Hero — glass panel aligned with dashboard / trainings hub */}
+          <section className={`${glassCard} relative border-[0.5px] p-6 md:p-10`}>
+            <span aria-hidden className={cardInset} />
+            <div className="relative z-[1] grid grid-cols-1 gap-8 md:grid-cols-[1fr_auto] md:items-center md:gap-12">
+              <div className="min-w-0 space-y-4">
+                <p className="text-[12px] text-[#64748B]">
+                  <Link href="/trainings" className="text-[#94A3B8] transition-colors hover:text-[#0A89A9]">
+                    Trainings
+                  </Link>
+                  <span className="text-[#CBD5E1]" aria-hidden>
+                    {" "}
+                    /{" "}
+                  </span>
+                  <span className="text-[#475569]">{meta.breadcrumb}</span>
+                </p>
+
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#94A3B8]">
+                  Pillar {meta.idx} of 4
+                  <span className="text-[#1E293B]"> · {meta.eyebrow.split("·")[1]?.trim() ?? meta.eyebrow}</span>
+                </p>
+
+                <h1 className="max-w-[min(100%,640px)] text-[28px] font-medium leading-tight text-[#1E293B] md:text-[34px]">
+                  {meta.title}
+                </h1>
+
+                <p className="max-w-[min(100%,520px)] text-[14px] leading-relaxed text-[#64748B]">{meta.definition}</p>
               </div>
 
-              <p className="mt-3 text-[11px] uppercase tracking-[0.18em] font-semibold">
-                <span style={{ color: "rgba(255,255,255,0.60)" }}>
-                  Pillar {meta.idx} of 4 ·{" "}
-                </span>
-                <span style={{ color: "#FFFFFF", fontWeight: 900, letterSpacing: "0.22em" }}>
-                  {meta.eyebrow.split("·")[1]?.trim() ?? meta.eyebrow}
-                </span>
-              </p>
-
-              <h1 className="mt-2 text-[26px] font-medium leading-tight">{meta.title}</h1>
-
-              <p className="mt-3 text-[13px] leading-[1.7]" style={{ color: "rgba(255,255,255,0.78)", maxWidth: 400 }}>
-                {meta.definition}
-              </p>
+              <div
+                className="relative mx-auto flex h-[140px] w-[140px] shrink-0 items-center justify-center rounded-[24px] border border-[#0A89A9]/15 bg-[linear-gradient(145deg,rgba(10,137,169,0.12)_0%,rgba(255,255,255,0.65)_100%)] shadow-[0_4px_20px_rgba(10,137,169,0.08)] md:mx-0 md:h-[168px] md:w-[168px]"
+                aria-hidden
+              >
+                <span className="absolute inset-0 rounded-[inherit] shadow-[inset_-5px_-5px_80px_0px_rgba(255,255,255,0.35)]" />
+                <PillarIcon size={72} className="relative text-[#0A89A9]/35 md:size-[84px]" strokeWidth={1.5} />
+              </div>
             </div>
+          </section>
+
+          {/* Start nudge */}
+          <div className={`${glassCardMd} relative flex items-start gap-3 border-[0.5px] p-4 md:p-5`}>
+            <span aria-hidden className={cardInset} />
+            <span className="relative z-[1] mt-1.5 block h-2 w-2 shrink-0 rounded-full bg-[#0A89A9]" />
+            <p className="relative z-[1] text-[13px] leading-relaxed text-[#475569]">
+              <span className="font-semibold text-[#1E293B]">Start with course 1 — each course builds on the last.</span>{" "}
+              Work through them in order for the best result.
+            </p>
           </div>
 
-          <div className="min-h-[180px] md:min-h-[220px]" />
-        </div>
-      </div>
+          <div className="space-y-1">
+            <h2 className="text-[20px] font-medium text-[#1E293B]">3 courses · one per skill</h2>
+            <p className="max-w-2xl text-[14px] leading-relaxed text-[#64748B]">
+              Each course focuses on one specific thing interviewers evaluate. Short, focused, and directly tied to how
+              your mock interview answers get scored.
+            </p>
+          </div>
 
-      {/* Content */}
-      <div className="mx-auto" style={{ maxWidth: CONTENT_MAX_W, ...CONTENT_PAD }}>
-        <StartNudgeCard />
+          <div className="flex flex-col gap-4">
+            {meta.courses.map((c, idx) => (
+              <div
+                key={c.title}
+                className={[
+                  glassCardMd,
+                  "relative overflow-hidden border-[0.5px] transition-shadow",
+                  c.active
+                    ? "ring-1 ring-[#0A89A9]/25 shadow-[0_8px_28px_rgba(10,137,169,0.08)]"
+                    : "hover:shadow-[0_8px_28px_rgba(0,0,0,0.06)]",
+                ].join(" ")}
+              >
+                <span aria-hidden className={cardInset} />
+                <div className="relative z-[1] grid grid-cols-1 sm:grid-cols-[minmax(0,148px)_1fr]">
+                  <div className="relative aspect-[16/10] min-h-[120px] sm:aspect-auto sm:h-full sm:min-h-[168px]">
+                    <img
+                      src={courseThumbs[driver]?.[idx] ?? courseThumbs.think[0]}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                    <div className="absolute inset-0 bg-slate-900/15" />
+                  </div>
 
-        <div className="mt-6 space-y-1">
-          <p className="text-[15px] font-medium text-slate-900">3 courses · one per skill</p>
-          <p className="text-[13px] text-slate-500 leading-relaxed">
-            Each course focuses on one specific thing interviewers evaluate. Short, focused, and directly tied to how your mock interview answers get scored.
-          </p>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-2.5">
-          {meta.courses.map((c, idx) => (
-            <div
-              key={c.title}
-              className="bg-white border overflow-hidden transition-colors"
-              style={{
-                borderRadius: COURSE_RADIUS,
-                borderColor: c.active ? TEAL : BORDER,
-                borderWidth: c.active ? 1.5 : 0.5,
-                ...(c.active ? null : BORDER_HALF),
-              }}
-            >
-              <div className="grid grid-cols-[148px_1fr]">
-                <div className="relative">
-                  <img
-                    src={courseThumbs[driver]?.[idx] ?? courseThumbs.think[0]}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover"
-                    loading="lazy"
-                    decoding="async"
-                  />
-                  <div className="absolute inset-0 bg-slate-900/10" />
-                </div>
-
-                <div className="flex flex-col justify-between" style={{ padding: "1rem 1.25rem" }}>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex flex-col justify-between gap-3 p-4 sm:p-5">
+                    <div>
                       <span
-                        className="text-[10px] font-semibold uppercase tracking-[0.14em] px-2 py-0.5"
-                        style={{ borderRadius: 999, background: tagColors.bg, color: tagColors.text }}
+                        className="inline-flex rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                        style={{ background: tagColors.bg, color: tagColors.text }}
                       >
                         {c.badge}
                       </span>
+                      <p className="mt-2 text-[16px] font-semibold leading-snug text-[#1E293B]">{c.title}</p>
+                      <p className="mt-1.5 text-[13px] leading-relaxed text-[#64748B]">{c.outcome}</p>
                     </div>
 
-                    <p className="mt-2 text-[14px] font-medium text-slate-900 leading-snug">
-                      {c.title}
-                    </p>
-                    <p className="mt-1.5 text-[12px] text-slate-600 leading-relaxed">
-                      {c.outcome}
-                    </p>
-                  </div>
-
-                  <div className="mt-3 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4 text-[11px] text-slate-500">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock size={12} />
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0]/80 pt-3">
+                      <span className="inline-flex items-center gap-1.5 text-[12px] text-[#94A3B8]">
+                        <Clock size={14} className="shrink-0" aria-hidden />
                         {c.duration}
                       </span>
+                      {idx === 0 ? (
+                        <Link
+                          href={startCourseHref}
+                          className="inline-flex items-center gap-1 text-[13px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
+                        >
+                          Start course
+                          <ArrowRight size={16} strokeWidth={2} aria-hidden />
+                        </Link>
+                      ) : (
+                        <span className="text-[12px] font-medium text-[#CBD5E1]">Coming up</span>
+                      )}
                     </div>
-                    {idx === 0 ? (
-                      <Link
-                        href="/trainings/interview-essentials"
-                        className="text-[12px] font-medium inline-flex items-center gap-1"
-                        style={{ color: TEAL }}
-                      >
-                        Start course <ArrowRight size={14} />
-                      </Link>
-                    ) : (
-                      <span className="text-[12px]" style={{ color: "rgba(15,23,42,0.32)" }}>
-                        Coming up
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Proofy bar */}
-        <div
-          className="w-full border bg-white flex items-center gap-3"
-          style={{ marginTop: "1.5rem", borderRadius: CARD_RADIUS, borderColor: BORDER, ...BORDER_HALF, padding: "10px 14px" }}
-        >
-          <div
-            className="w-8 h-8 flex items-center justify-center shrink-0 text-white font-semibold"
-            style={{ background: TEAL, borderRadius: 999 }}
-          >
-            P
+            ))}
           </div>
-          <div className="flex-1 text-[12px] text-slate-500">{meta.proofyPrompt}</div>
-          <SendHorizontal size={16} style={{ color: TEAL }} />
         </div>
       </div>
     </div>
   );
 }
-
