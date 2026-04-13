@@ -2,16 +2,32 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { Urbanist } from "next/font/google";
 import {
   readJourneyState,
   syncJourneyToRoute,
   getSpotlightTargetForStep,
   skipJourney,
+  startJourney,
   completeJourneyStep,
   type GuidedJourneyStepId,
 } from "@/lib/guided-journey";
 import { GUIDED_JOURNEY_COPY } from "@/lib/proofy-script";
+import { useUser } from "@/lib/user-context";
 import { Check } from "lucide-react";
+
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const BRAND = "#0087A8";
+const BORDER_SUBTLE = "rgba(15,23,42,0.08)";
+
+/** Matches Proofy dock / Insphere glass (see ProofyChatDock). */
+const GUIDE_CARD_GLASS =
+  "linear-gradient(90.2deg, rgba(255,255,255,0.24) 0%, rgba(163, 237, 255, 0.6) 99.92%)";
+const GUIDE_CARD_GLASS_INSET = "inset -5px -5px 250px 0px rgba(255,255,255,0.02)";
 
 export function JourneyController() {
   const router = useRouter();
@@ -25,6 +41,7 @@ export function JourneyController() {
   const [guideOpen, setGuideOpen] = useState(false);
   const [showPartnerTip, setShowPartnerTip] = useState(false);
   const [reportIdx, setReportIdx] = useState(0);
+  const [storyIdx, setStoryIdx] = useState(0);
 
   useEffect(() => {
     setMounted(true);
@@ -38,6 +55,30 @@ export function JourneyController() {
     setSkipped(st.skipped);
     setCompleted(st.completed);
   }, [mounted, pathname]);
+
+  // When landing on the dashboard, always open the guide.
+  useEffect(() => {
+    if (!mounted) return;
+    if (!active || skipped) return;
+    if (pathname !== "/dashboard") return;
+    setGuideOpen(true);
+  }, [mounted, active, skipped, pathname]);
+
+  // Auto-start the journey for first-time (social-login) users who arrive on
+  // /dashboard without an already-active journey — covers direct navigation,
+  // demo resets, and sessions where onboarding completed before this fix.
+  useEffect(() => {
+    if (!mounted) return;
+    if (active || skipped) return;          // already running or user opted out
+    if (pathname !== "/dashboard") return;  // only the first-time dashboard
+    try {
+      const method = window.localStorage.getItem("proofdive_login_method");
+      if (method === "email") return;       // returning users never see the journey
+    } catch {
+      return;
+    }
+    startJourney("training");
+  }, [mounted, active, skipped, pathname]);
 
   useEffect(() => {
     const sync = (e?: Event) => {
@@ -98,6 +139,24 @@ export function JourneyController() {
     ],
     []
   );
+  const storyTargets = useMemo(
+    () => [
+      "story-score-strip",
+      "story-first-card",
+      "story-evidence-score",
+      "story-purpose-line",
+      "story-car-blocks",
+      "story-edit-btn",
+      "story-save",
+    ],
+    []
+  );
+  const isStoryWalkthrough = stepId === "story" && pathname.startsWith("/storyboard/crafting");
+
+  // Reset story walkthrough index when leaving the crafting page.
+  useEffect(() => {
+    if (!pathname.startsWith("/storyboard/crafting")) setStoryIdx(0);
+  }, [pathname]);
 
   const effectiveTargetId =
     stepId === "training" && !pathname.startsWith("/trainings/interview-essentials")
@@ -106,8 +165,8 @@ export function JourneyController() {
         ? "training-step-reading"
       : stepId === "story" && pathname.startsWith("/storyboard/new")
         ? "story-next"
-        : stepId === "story" && pathname.startsWith("/storyboard/crafting")
-          ? "story-save"
+        : isStoryWalkthrough
+          ? storyTargets[Math.min(storyTargets.length - 1, Math.max(0, storyIdx))]
           : stepId === "mock" && pathname.startsWith("/mock/setup")
             ? "mock-start"
             : stepId === "mock" && (pathname.startsWith("/mock/live") || pathname.startsWith("/mock/processing"))
@@ -140,6 +199,11 @@ export function JourneyController() {
         reportTotal={reportTargets.length}
         onReportPrev={() => setReportIdx((i) => Math.max(0, i - 1))}
         onReportNext={() => setReportIdx((i) => Math.min(reportTargets.length - 1, i + 1))}
+        isStoryWalkthrough={isStoryWalkthrough}
+        storyIdx={storyIdx}
+        storyTotal={storyTargets.length}
+        onStoryPrev={() => setStoryIdx((i) => Math.max(0, i - 1))}
+        onStoryNext={() => setStoryIdx((i) => Math.min(storyTargets.length - 1, i + 1))}
         onGoNext={() => {
           if (stepId === "training") router.push("/trainings/interview-essentials");
           if (stepId === "story") router.push("/storyboard");
@@ -150,11 +214,12 @@ export function JourneyController() {
       effectiveTargetId &&
       !(
         stepId === "story" &&
-        (pathname.startsWith("/storyboard/new") || pathname.startsWith("/storyboard/crafting"))
+        pathname.startsWith("/storyboard/new")
       ) ? (
         <JourneySpotlight
           targetId={effectiveTargetId}
           stepId={stepId}
+          storyIdx={isStoryWalkthrough ? storyIdx : undefined}
           walkthrough={
             stepId === "report"
               ? {
@@ -164,7 +229,15 @@ export function JourneyController() {
                   onNext: () => setReportIdx((i) => Math.min(reportTargets.length - 1, i + 1)),
                   onFinish: () => completeJourneyStep("report"),
                 }
-              : undefined
+              : isStoryWalkthrough
+                ? {
+                    idx: storyIdx,
+                    total: storyTargets.length,
+                    onPrev: () => setStoryIdx((i) => Math.max(0, i - 1)),
+                    onNext: () => setStoryIdx((i) => Math.min(storyTargets.length - 1, i + 1)),
+                    onFinish: () => completeJourneyStep("story"),
+                  }
+                : undefined
           }
         />
       ) : null}
@@ -182,6 +255,11 @@ function ProofyGuideWidget({
   reportTotal,
   onReportPrev,
   onReportNext,
+  isStoryWalkthrough,
+  storyIdx,
+  storyTotal,
+  onStoryPrev,
+  onStoryNext,
   onGoNext,
 }: {
   stepId: Exclude<GuidedJourneyStepId, "done">;
@@ -193,8 +271,15 @@ function ProofyGuideWidget({
   reportTotal: number;
   onReportPrev: () => void;
   onReportNext: () => void;
+  isStoryWalkthrough: boolean;
+  storyIdx: number;
+  storyTotal: number;
+  onStoryPrev: () => void;
+  onStoryNext: () => void;
   onGoNext: () => void;
 }) {
+  const { user } = useUser();
+  const firstName = (user.name ?? "").trim().split(/\s+/)[0] || "Maaz";
   const c = GUIDED_JOURNEY_COPY[stepId];
   const order: Exclude<GuidedJourneyStepId, "done">[] = ["training", "story", "mock", "report"];
   const idx = Math.max(0, order.indexOf(stepId));
@@ -209,21 +294,44 @@ function ProofyGuideWidget({
     report: "Report",
   };
   const stateLine: Record<Exclude<GuidedJourneyStepId, "done">, string> = {
-    training: "You’re on Trainings. Finish Milestone 1 (Reading → Video → Quiz → Workshop).",
+    training:
+      "Start with Interview Essentials — it's the foundation everything else builds on. Finish the milestone and your StoryBoard unlocks.",
     story: "You’re on StoryBoard. Answer the prompts, then refine CAR blocks and Save.",
     mock: "You’re on Mock. Start Full Practice and keep answers ~1–2 minutes.",
     report: "You’re on Report. Review overall → 4 pillars → Q-by-Q → recording → AI coaching.",
   };
+  const guideTitle =
+    stepId === "training" ? `You're in the right place, ${firstName}.` : c.title;
   return (
-    <div className="fixed bottom-6 left-6 z-[110] pointer-events-auto">
+    <div className={`fixed bottom-6 left-6 z-[110] pointer-events-auto ${urbanist.className}`}>
       {!open ? (
         <div className="relative">
           {showPartnerTip && (
-            <div className="absolute left-0 bottom-[60px] w-[260px] rounded-[14px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.18)] px-3 py-2">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">
-                Proofy partner
+            <div
+              className="card absolute left-0 bottom-[60px] w-[260px] px-3 py-2.5"
+              style={{ borderRadius: 14 }}
+            >
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                  color: BRAND,
+                  margin: 0,
+                }}
+              >
+                AI Coach
               </p>
-              <p className="mt-1 text-[12px] text-[#475569] leading-relaxed">
+              <p
+                style={{
+                  marginTop: 6,
+                  fontSize: 12,
+                  color: "var(--color-text-secondary)",
+                  lineHeight: 1.55,
+                  marginBottom: 0,
+                }}
+              >
                 Your guide lives here to track your journey.
               </p>
             </div>
@@ -231,54 +339,121 @@ function ProofyGuideWidget({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            aria-label="Open Proofy guide"
-            className="w-12 h-12 rounded-full bg-[#0087A8] text-white shadow-lg shadow-[#0087A8]/30 ring-2 ring-white/60 flex items-center justify-center"
+            aria-label="Open AI Coach guide"
+            className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-lg ring-2 ring-white/70 transition-transform hover:scale-[1.02]"
+            style={{
+              background: `linear-gradient(135deg, ${BRAND} 0%, #006785 100%)`,
+              boxShadow: "0 8px 24px rgba(0,135,168,0.35)",
+            }}
           >
-            <span className="text-[14px] font-black">P</span>
+            <span className="text-[14px] font-bold tracking-tight">P</span>
           </button>
         </div>
       ) : (
-        <div className="w-[320px] rounded-[18px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.18)] overflow-hidden">
-          <div className="px-4 py-3 border-b border-black/5 flex items-center justify-between gap-3">
+        <div className="relative w-[320px] overflow-hidden rounded-[24px] border-[0.5px] border-white shadow-[0px_4px_20px_rgba(0,0,0,0.06)]">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-[24px] backdrop-blur-[21px]"
+            style={{ backgroundImage: GUIDE_CARD_GLASS }}
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-[-0.5px] rounded-[24px]"
+            style={{ boxShadow: GUIDE_CARD_GLASS_INSET }}
+          />
+          <div className="relative z-[1] overflow-hidden rounded-[24px]">
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-3"
+            style={{ borderBottom: `0.5px solid ${BORDER_SUBTLE}` }}
+          >
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">
-                Proofy guide
+              <p
+                style={{
+                  fontSize: 10,
+                  fontWeight: 600,
+                  letterSpacing: "0.09em",
+                  textTransform: "uppercase",
+                  color: BRAND,
+                  margin: 0,
+                }}
+              >
+                AI Coach
               </p>
-              <p className="text-[13px] font-semibold text-[#0F172A] truncate">{c.title}</p>
+              <p
+                className="truncate"
+                style={{
+                  marginTop: 4,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--color-text-primary)",
+                }}
+              >
+                {guideTitle}
+              </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="text-[12px] font-bold text-[#475569] hover:text-[#0F172A] transition-colors"
+                className="text-[12px] font-semibold transition-colors hover:opacity-80"
+                style={{ color: "var(--color-text-secondary)" }}
               >
                 Minimize
               </button>
               <button
                 type="button"
                 onClick={() => skipJourney()}
-                className="text-[12px] font-bold text-[#475569] hover:text-[#0F172A] transition-colors"
+                className="text-[12px] font-semibold transition-colors hover:opacity-80"
+                style={{ color: "var(--color-text-secondary)" }}
               >
-                Skip
+                Dismiss
               </button>
             </div>
           </div>
 
           <div className="px-4 pt-3">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold text-[#64748B]">
+              <p style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", margin: 0 }}>
                 Step {idx + 1} of {order.length}
               </p>
-              <p className="text-[11px] font-bold text-[#0087A8] tabular-nums">{pct}%</p>
+              <p className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: BRAND, margin: 0 }}>
+                {pct}%
+              </p>
             </div>
-            <div className="mt-2 h-1.5 rounded-full bg-[#0F172A]/10 overflow-hidden">
-              <div className="h-full rounded-full bg-[#0087A8] transition-all" style={{ width: `${pct}%` }} />
+            <div
+              className="mt-2 h-1.5 overflow-hidden rounded-full"
+              style={{ background: "rgba(15,23,42,0.08)" }}
+            >
+              <div
+                className="h-full rounded-full transition-all"
+                style={{ width: `${pct}%`, background: BRAND }}
+              />
             </div>
-            <p className="mt-2 text-[12px] text-[#475569] leading-relaxed">{stateLine[stepId]}</p>
+            <p
+              style={{
+                marginTop: 10,
+                fontSize: 12,
+                color: "var(--color-text-secondary)",
+                lineHeight: 1.55,
+                marginBottom: 0,
+              }}
+            >
+              {stateLine[stepId]}
+            </p>
           </div>
 
           <div className="px-4 pt-3">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#64748B]">Journey</p>
+            <p
+              style={{
+                fontSize: 10,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                color: "var(--color-text-tertiary)",
+                margin: 0,
+              }}
+            >
+              Your journey
+            </p>
             <div className="mt-2 space-y-1.5">
               {order.map((s, i) => {
                 const done = isDone(i);
@@ -286,15 +461,23 @@ function ProofyGuideWidget({
                 return (
                   <div key={s} className="flex items-center gap-2">
                     <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border ${
-                        done ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600" : current ? "bg-[#0087A8]/10 border-[#0087A8]/20 text-[#0087A8]" : "bg-[#0F172A]/[0.03] border-black/10 text-[#94A3B8]"
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                        done
+                          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600"
+                          : current
+                            ? "border-[rgba(0,135,168,0.25)] bg-[rgba(0,135,168,0.08)] text-[#0087A8]"
+                            : "border-[var(--color-border-tertiary)] bg-[rgba(0,0,0,0.02)] text-[var(--color-text-tertiary)]"
                       }`}
                     >
-                      {done ? <Check size={12} /> : <span className="text-[10px] font-black tabular-nums">{i + 1}</span>}
+                      {done ? <Check size={12} /> : <span className="text-[10px] font-bold tabular-nums">{i + 1}</span>}
                     </div>
                     <p
                       className={`text-[12px] font-semibold ${
-                        done ? "text-[#64748B] line-through" : current ? "text-[#0F172A]" : "text-[#94A3B8]"
+                        done
+                          ? "text-[var(--color-text-tertiary)] line-through"
+                          : current
+                            ? "text-[var(--color-text-primary)]"
+                            : "text-[var(--color-text-tertiary)]"
                       }`}
                     >
                       {labels[s]}
@@ -306,22 +489,39 @@ function ProofyGuideWidget({
           </div>
 
           <div className="px-4 py-3">
-            <p className="text-[12px] text-[#0F172A] leading-relaxed">
-              <span className="font-bold text-[#0F172A]">Next:</span>{" "}
-              <span className="text-[#475569]">{c.doNext}</span>
-              <span className="text-[#475569]"> </span>
-              <span className="text-[#0F172A] font-semibold">Do this to move to the next step.</span>
-            </p>
+            {stepId === "training" ? (
+              <p style={{ fontSize: 12, lineHeight: 1.55, color: "var(--color-text-primary)", margin: 0 }}>
+                Up next: complete the reading, watch the video, pass the quiz, and finish the workshop — in that
+                order.
+              </p>
+            ) : (
+              <p style={{ fontSize: 12, lineHeight: 1.55, color: "var(--color-text-primary)", margin: 0 }}>
+                <span style={{ fontWeight: 700 }}>Next:</span>{" "}
+                <span style={{ color: "var(--color-text-secondary)" }}>{c.doNext}</span>{" "}
+                <span style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>
+                  Do this to move to the next step.
+                </span>
+              </p>
+            )}
           </div>
 
-          <div className="px-4 py-3 border-t border-black/5 flex items-center justify-between gap-3">
+          <div
+            className="flex items-center justify-between gap-3 px-4 py-3"
+            style={{ borderTop: `0.5px solid ${BORDER_SUBTLE}` }}
+          >
             {stepId === "report" ? (
               <>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={onReportPrev}
-                    className="h-9 px-3 rounded-[12px] border border-black/10 bg-white text-[#0F172A] text-[12px] font-bold hover:bg-black/[0.03] transition-colors disabled:opacity-40"
+                    className="h-9 px-3 text-[12px] font-semibold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+                    style={{
+                      borderRadius: 10,
+                      border: "0.5px solid var(--color-border-tertiary)",
+                      background: "rgba(255,255,255,0.55)",
+                      color: "var(--color-text-primary)",
+                    }}
                     disabled={reportIdx <= 0}
                   >
                     Prev
@@ -329,14 +529,52 @@ function ProofyGuideWidget({
                   <button
                     type="button"
                     onClick={onReportNext}
-                    className="h-9 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors disabled:opacity-40"
+                    className="h-9 px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    style={{ borderRadius: 10, background: BRAND }}
                     disabled={reportIdx >= reportTotal - 1}
                   >
                     Next
                   </button>
                 </div>
-                <p className="text-[11px] text-[#64748B] leading-relaxed text-right">
+                <p
+                  className="text-right leading-relaxed"
+                  style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: 0 }}
+                >
                   Section {Math.min(reportTotal, Math.max(1, reportIdx + 1))}/{reportTotal}
+                </p>
+              </>
+            ) : isStoryWalkthrough ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={onStoryPrev}
+                    className="h-9 px-3 text-[12px] font-semibold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+                    style={{
+                      borderRadius: 10,
+                      border: "0.5px solid var(--color-border-tertiary)",
+                      background: "rgba(255,255,255,0.55)",
+                      color: "var(--color-text-primary)",
+                    }}
+                    disabled={storyIdx <= 0}
+                  >
+                    Prev
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onStoryNext}
+                    className="h-9 px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                    style={{ borderRadius: 10, background: BRAND }}
+                    disabled={storyIdx >= storyTotal - 1}
+                  >
+                    Next
+                  </button>
+                </div>
+                <p
+                  className="text-right leading-relaxed"
+                  style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: 0 }}
+                >
+                  Tip {Math.min(storyTotal, Math.max(1, storyIdx + 1))}/{storyTotal}
                 </p>
               </>
             ) : (
@@ -344,15 +582,20 @@ function ProofyGuideWidget({
                 <button
                   type="button"
                   onClick={onGoNext}
-                  className="h-9 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+                  className="h-9 px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ borderRadius: 10, background: BRAND }}
                 >
                   Take me there
                 </button>
-                <p className="text-[11px] text-[#64748B] leading-relaxed text-right">
+                <p
+                  className="text-right leading-relaxed"
+                  style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: 0 }}
+                >
                   Or click the highlighted area.
                 </p>
               </>
             )}
+          </div>
           </div>
         </div>
       )}
@@ -363,11 +606,13 @@ function ProofyGuideWidget({
 function JourneySpotlight({
   targetId,
   stepId,
+  storyIdx,
   hideCallout,
   walkthrough,
 }: {
   targetId: string;
   stepId: GuidedJourneyStepId;
+  storyIdx?: number;
   hideCallout?: boolean;
   walkthrough?: {
     idx: number;
@@ -477,25 +722,17 @@ function JourneySpotlight({
     <div className="fixed inset-0 z-[95] pointer-events-none">
       {!hideSpotlight ? (
         <div
-          className="absolute rounded-[16px] ring-[3px] ring-[#0087A8] journey-spotlight-ring"
+          className="pointer-events-none absolute rounded-[16px] ring-[3px] ring-[#0087A8] journey-spotlight-ring"
           style={{ top, left, width, height }}
         />
       ) : null}
 
-      <div
-        className="absolute w-[320px]"
-        style={{
-          top: calloutTop,
-          left: calloutLeft,
-        }}
-      />
-
       {!hideCallout && !hideCalloutState ? (
         <div
-          className="absolute w-[320px] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3"
-          style={{ top: calloutTop, left: calloutLeft }}
+          className={`card pointer-events-none absolute w-[320px] px-4 py-3 ${urbanist.className}`}
+          style={{ top: calloutTop, left: calloutLeft, borderRadius: 16 }}
         >
-          {/* Arrow (triangle) */}
+          {/* Arrow (triangle) — match glass fill */}
           <div
             className="absolute w-0 h-0"
             style={
@@ -505,31 +742,55 @@ function JourneySpotlight({
                     top: -8,
                     borderLeft: "8px solid transparent",
                     borderRight: "8px solid transparent",
-                    borderBottom: "8px solid white",
-                    filter: "drop-shadow(0 1px 0 rgba(0,0,0,0.08))",
+                    borderBottom: "8px solid rgba(255,255,255,0.92)",
+                    filter: "drop-shadow(0 1px 0 rgba(0,0,0,0.06))",
                   }
                 : {
                     left: arrowX,
                     bottom: -8,
                     borderLeft: "8px solid transparent",
                     borderRight: "8px solid transparent",
-                    borderTop: "8px solid white",
-                    filter: "drop-shadow(0 -1px 0 rgba(0,0,0,0.08))",
+                    borderTop: "8px solid rgba(255,255,255,0.92)",
+                    filter: "drop-shadow(0 -1px 0 rgba(0,0,0,0.06))",
                   }
             }
           />
 
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">
-            Proofy guide
+          <p
+            style={{
+              fontSize: 10,
+              fontWeight: 600,
+              letterSpacing: "0.09em",
+              textTransform: "uppercase",
+              color: BRAND,
+              margin: 0,
+            }}
+          >
+            AI Coach
           </p>
-          <p className="mt-1 text-[13px] font-semibold text-[#0F172A]">{titleFor(stepId)}</p>
-          <p className="mt-1 text-[12px] text-[#475569] leading-relaxed">
-            {hintFor(stepId)} <span className="font-semibold text-[#0F172A]">Click the highlighted button.</span>
+          <p
+            style={{
+              marginTop: 6,
+              fontSize: 14,
+              fontWeight: 600,
+              color: "var(--color-text-primary)",
+              marginBottom: 0,
+            }}
+          >
+            {titleFor(stepId, storyIdx)}
+          </p>
+          <p style={{ marginTop: 6, fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.55, marginBottom: 0 }}>
+            {hintFor(stepId, storyIdx)}{" "}
+            {walkthrough ? (
+              <span style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>Use Prev / Next to continue.</span>
+            ) : (
+              <span style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>Click the highlighted button.</span>
+            )}
           </p>
 
           {walkthrough ? (
             <div className="mt-3 flex items-center justify-between gap-2">
-              <p className="text-[11px] font-bold text-[#64748B] tabular-nums">
+              <p className="tabular-nums" style={{ fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", margin: 0 }}>
                 Section {Math.min(walkthrough.total, Math.max(1, walkthrough.idx + 1))}/{walkthrough.total}
               </p>
               <div className="flex items-center gap-2">
@@ -537,7 +798,13 @@ function JourneySpotlight({
                   type="button"
                   onClick={walkthrough.onPrev}
                   disabled={walkthrough.idx <= 0}
-                  className="pointer-events-auto h-8 px-3 rounded-[12px] border border-black/10 bg-white text-[#0F172A] text-[12px] font-bold hover:bg-black/[0.03] transition-colors disabled:opacity-40"
+                  className="pointer-events-auto h-8 px-3 text-[12px] font-semibold transition-colors hover:bg-black/[0.04] disabled:opacity-40"
+                  style={{
+                    borderRadius: 10,
+                    border: "0.5px solid var(--color-border-tertiary)",
+                    background: "rgba(255,255,255,0.55)",
+                    color: "var(--color-text-primary)",
+                  }}
                 >
                   Prev
                 </button>
@@ -545,7 +812,8 @@ function JourneySpotlight({
                   <button
                     type="button"
                     onClick={walkthrough.onFinish}
-                    className="pointer-events-auto h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+                    className="pointer-events-auto h-8 px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+                    style={{ borderRadius: 10, background: BRAND }}
                   >
                     End journey
                   </button>
@@ -553,7 +821,8 @@ function JourneySpotlight({
                   <button
                     type="button"
                     onClick={walkthrough.onNext}
-                    className="pointer-events-auto h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
+                    className="pointer-events-auto h-8 px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+                    style={{ borderRadius: 10, background: BRAND }}
                   >
                     Next
                   </button>
@@ -567,7 +836,41 @@ function JourneySpotlight({
   );
 }
 
-function titleFor(stepId: GuidedJourneyStepId): string {
+const STORY_WALKTHROUGH_COPY = [
+  {
+    title: "Your story strength",
+    hint: "This score shows how interview-ready your storyboard is overall. Aim for 3.5+ across all sections.",
+  },
+  {
+    title: "Section cards",
+    hint: "Each card maps to a behavioral competency — exactly what interviewers test in panels.",
+  },
+  {
+    title: "Evidence strength",
+    hint: "Below 2.5 means the interviewer will probe harder. Fix your lowest-scoring sections first.",
+  },
+  {
+    title: "Interviewer purpose",
+    hint: "This line tells you exactly what they're testing. Design your answer around it.",
+  },
+  {
+    title: "CAR blocks",
+    hint: "Context sets the scene. Action is what you did. Result is the measurable outcome.",
+  },
+  {
+    title: "Edit with AI prompts",
+    hint: "Hit Edit to rewrite a section using preset prompts or your own direction. 3 regenerations per section.",
+  },
+  {
+    title: "Save your storyboard",
+    hint: "When your CAR blocks feel strong, save to lock in your story bank before the mock.",
+  },
+] as const;
+
+function titleFor(stepId: GuidedJourneyStepId, storyIdx?: number): string {
+  if (stepId === "story" && storyIdx !== undefined) {
+    return STORY_WALKTHROUGH_COPY[Math.min(STORY_WALKTHROUGH_COPY.length - 1, storyIdx)]?.title ?? "Continue your StoryBoard";
+  }
   switch (stepId) {
     case "training":
       return "Start the essential training";
@@ -582,7 +885,10 @@ function titleFor(stepId: GuidedJourneyStepId): string {
   }
 }
 
-function hintFor(stepId: GuidedJourneyStepId): string {
+function hintFor(stepId: GuidedJourneyStepId, storyIdx?: number): string {
+  if (stepId === "story" && storyIdx !== undefined) {
+    return STORY_WALKTHROUGH_COPY[Math.min(STORY_WALKTHROUGH_COPY.length - 1, storyIdx)]?.hint ?? "Write short, specific answers.";
+  }
   switch (stepId) {
     case "training":
       return "Complete the first milestone so your answers have structure.";

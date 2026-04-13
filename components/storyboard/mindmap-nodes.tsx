@@ -138,10 +138,10 @@ function Block({ label, text }: { label: string; text: string }) {
 }
 
 const PILLAR_BUCKETS: { key: "thinking" | "action" | "people" | "mastery"; label: string }[] = [
-  { key: "thinking", label: "Thinking" },
-  { key: "action", label: "Action" },
-  { key: "people", label: "People" },
-  { key: "mastery", label: "Mastery" },
+  { key: "thinking", label: "Power of Thinking" },
+  { key: "action", label: "Power of Action" },
+  { key: "people", label: "Power of People" },
+  { key: "mastery", label: "Power of Mastery" },
 ];
 
 function bucketForPillar(pillar: string): (typeof PILLAR_BUCKETS)[number]["key"] | null {
@@ -251,7 +251,7 @@ export function buildStoryboardMindMapGraph({
       target: pillarId,
       sourceHandle: centerToPillarSource,
       targetHandle: centerToPillarTarget,
-      type: "bezier",
+      type: "default",
       animated: false,
       style: { stroke: "rgba(71,85,105,0.45)", strokeWidth: 2 },
     });
@@ -304,7 +304,7 @@ export function buildStoryboardMindMapGraph({
         target: leafId,
         sourceHandle: pillarToLeafSource,
         targetHandle: pillarToLeafTarget,
-        type: "bezier",
+        type: "default",
         animated: false,
         style: { stroke: "rgba(71,85,105,0.32)", strokeWidth: 2 },
       });

@@ -24,9 +24,9 @@ export type FlowStep =
   | { type: "navigate"; href: string };
 
 export const EMPTY_STATE_CHIPS: { label: string; sendText: string }[] = [
-  { label: "Review my last session", sendText: "Review my last session" },
-  { label: "Start a mock interview", sendText: "I want to do a quick mock interview" },
-  { label: "Start with new role", sendText: "I want to craft a story" },
+  { label: "Share my last session progress", sendText: "Share my last session progress" },
+  { label: "Create a new role to prepare", sendText: "Create a new role to prepare" },
+  { label: "Start a mock interview", sendText: "Start a mock interview" },
 ];
 
 function norm(s: string): string {
@@ -125,7 +125,7 @@ export function getSessionPerformanceSnapshot() {
     Math.round((drivers.reduce((s, d) => s + d.score, 0) / drivers.length) * 10) / 10;
   const strong = strongestDriver(drivers);
   const weak = weakestDriver(drivers);
-  const focusLine = `Sharpen **${weak.title}** — that’s where you have the most room before your next interview.`;
+  const focusLine = `Your biggest room to grow is **${weak.title}** — a bit of focused work here will move the needle fastest before your next interview.`;
   return {
     overall,
     strongest: { title: strong.title, score: strong.score },
@@ -137,7 +137,7 @@ export function getSessionPerformanceSnapshot() {
 }
 
 const UNKNOWN_REPLY =
-  "Tell me what you’d like to do — I can review your last session, set up a new role storyboard, or start a mock interview.";
+  "Not sure I caught that — I can pull up your last session, help set up a new role storyboard, or get a mock going. What sounds right?";
 
 export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
   if (intent === "unknown") {
@@ -146,8 +146,8 @@ export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
 
   if (intent === "craft_story") {
     return [
-      { type: "assistant_text", text: "Awesome — what role are you crafting this story for?" },
-      { type: "assistant_text", text: "Just say it naturally (you can type or use the mic)." },
+      { type: "assistant_text", text: "Love it — what role are you building this story for?" },
+      { type: "assistant_text", text: "You can type it out or just hit the mic, whatever's easier." },
       { type: "await_role" },
     ];
   }
@@ -156,10 +156,10 @@ export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
     const snap = getSessionPerformanceSnapshot();
     const slugs = getTrainingSlugsForWeakest(snap.weakestDriver);
     return [
-      { type: "assistant_text", text: "I reviewed your latest session." },
+      { type: "assistant_text", text: "Pulled up your last session — here's how it went." },
       {
         type: "assistant_text",
-        text: "You performed well overall — here’s a quick snapshot so we know where to lean in next.",
+        text: "You did pretty well overall. Here's what stood out:",
       },
       {
         type: "performance_summary",
@@ -170,7 +170,7 @@ export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
       },
       {
         type: "assistant_text",
-        text: "Based on this session, I’d recommend focusing here next. Pick one and I’ll take you there.",
+        text: "A couple of things worth sharpening before your next interview — tap one and I'll take you there.",
       },
       { type: "training_cards", slugs },
     ];
@@ -178,31 +178,28 @@ export function buildFlowForIntent(intent: ProofyIntent): FlowStep[] {
 
   if (intent === "new_role") {
     return [
-      { type: "assistant_text", text: "Got it." },
       {
         type: "assistant_text",
-        text: "Let’s create a new storyboard for the role you want to prepare for.",
+        text: "Let's get a storyboard going for your target role.",
       },
       {
         type: "assistant_text",
-        text: "I’ll help you set it up so your practice, training, and mock sessions stay aligned to that role.",
+        text: "Once it's set up, your practice, training, and mocks will all be tied to that role — so nothing's wasted.",
       },
-      { type: "assistant_text", text: "Let’s begin." },
       { type: "navigate", href: "/storyboard/new" },
     ];
   }
 
   // mock
   return [
-    { type: "assistant_text", text: "Got it." },
     {
       type: "assistant_text",
-      text: "Let’s get you into a focused practice session. Choose how you want to practice.",
+      text: "Nice — let's find you the right kind of session. How do you want to practice?",
     },
     { type: "mock_options" },
     {
       type: "assistant_text",
-      text: "When you’re ready, start the session on the next screen — I’ll take it from there.",
+      text: "Whenever you're ready, just kick it off — I'll be with you inside.",
     },
   ];
 }

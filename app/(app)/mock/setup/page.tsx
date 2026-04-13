@@ -1,8 +1,8 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Brain, Zap, Users, Target, ClipboardList, Timer, X, ChevronDown, ChevronUp, Camera, FileText, Briefcase, ArrowRight, Settings2, Pencil, Circle } from "lucide-react";
+import { Brain, Zap, Users, Target, ClipboardList, Timer, X, ChevronDown, Camera, FileText, Briefcase, ArrowRight, Settings2, Circle } from "lucide-react";
 import { JdResumeInput } from "@/components/JdResumeInput";
 import { useUser } from "@/lib/user-context";
 
@@ -29,6 +29,14 @@ const PILLARS = [
   { id: "mastery",  icon: Target,      label: "Mastery",  desc: "Technical depth & domain knowledge",   time: 6 },
 ] as const;
 type P = typeof PILLARS[number]["id"];
+
+const AVAILABLE_ROLES = [
+  "Product Manager",
+  "Product Designer",
+  "UX Designer",
+  "Software Engineer",
+  "Data Analyst",
+] as const;
 
 // ── Consent Modal ──────────────────────────────────
 function ConsentModal({ onAccept, onClose }: { onAccept: () => void; onClose: () => void }) {
@@ -152,7 +160,7 @@ function MockSetupInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
 
   // Default: all pillars; Proofy "specific" mode pre-selects a focused subset
   const [pillars, setPillars] = useState<Set<P>>(new Set(["thinking", "action", "people", "mastery"]));
@@ -170,8 +178,24 @@ function MockSetupInner() {
   const [showJD, setShowJD]   = useState(!!user.jd);
   const [camera, setCamera]   = useState(false);
   const [showConsent, setShowConsent] = useState(false);
+  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const roleMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!roleMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (!roleMenuRef.current?.contains(e.target as Node)) setRoleMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [roleMenuOpen]);
 
   const selectedStory = STORIES.find(s => s.id === story);
+  const currentRole = user.role || user.targetRole || "";
+  const roleOptions =
+    currentRole && !(AVAILABLE_ROLES as readonly string[]).includes(currentRole)
+      ? [currentRole, ...AVAILABLE_ROLES]
+      : [...AVAILABLE_ROLES];
   const all = pillars.size === 4;
   const total = [...pillars].reduce((s, id) => s + (PILLARS.find(p => p.id === id)?.time || 0), 0) + 3; // intro fixed 3 min
 
@@ -218,36 +242,86 @@ function MockSetupInner() {
           </p>
         </div>
 
-        {/* ② Role pill (Inline Editing for Story) */}
-        <div className="flex flex-col mb-8 transition-colors" style={{...G, borderRadius: 16}}>
+        {/* ② Role pill (story picker + role dropdown) — z-index above pillar card so menu isn’t covered */}
+        <div
+          className="relative z-20 flex flex-col mb-8 transition-colors"
+          style={{ ...G, borderRadius: 16, overflow: "visible" }}
+        >
           <div className="flex items-center justify-between p-4 hover:bg-white/40 rounded-[16px]">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-full bg-[#0087A8]/10 flex items-center justify-center text-[#0087A8]">
+            <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="w-8 h-8 shrink-0 rounded-full bg-[#0087A8]/10 flex items-center justify-center text-[#0087A8]">
                 <Briefcase size={14} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-[13px] font-bold text-[#0F0F0F]">{user.role || "Target Role"}</p>
                 {isEditingStory ? (
                   <p className="text-[11px] text-black/50 font-medium">Select a storyboard to practice</p>
                 ) : (
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${selectedStory ? 'bg-[#047857]' : 'bg-[#D97706]'}`} />
-                    <p className="text-[11px] text-black/60 font-medium text-left line-clamp-1 max-w-[150px] sm:max-w-xs">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingStory(true)}
+                    className="mt-0.5 flex w-full max-w-full cursor-pointer items-center gap-2 rounded-md text-left transition-colors hover:bg-black/[0.03] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#0087A8]/40"
+                    aria-label="Change storyboard story"
+                  >
+                    <span className={`shrink-0 w-1.5 h-1.5 rounded-full ${selectedStory ? "bg-[#047857]" : "bg-[#D97706]"}`} />
+                    <p className="text-[11px] text-black/60 font-medium line-clamp-1 min-w-0">
                       {selectedStory ? selectedStory.title : "No attached story"}
                     </p>
-                    <button 
-                      onClick={() => setIsEditingStory(true)} 
-                      className="ml-1 text-[#0087A8] hover:text-[#006E89] bg-[#0087A8]/10 hover:bg-[#0087A8]/20 px-2 py-0.5 rounded-[6px] text-[12px] font-bold flex items-center gap-1 transition-colors border-none cursor-pointer">
-                      <Pencil size={10} /> Edit
-                    </button>
-                  </div>
+                  </button>
                 )}
               </div>
             </div>
             {!isEditingStory ? (
-              <Link href="/onboarding" className="text-[11px] font-semibold text-[#0087A8] hover:opacity-70 transition-opacity">
-                Change Role →
-              </Link>
+              <div ref={roleMenuRef} className="relative z-30 shrink-0">
+                <button
+                  type="button"
+                  aria-haspopup="listbox"
+                  aria-expanded={roleMenuOpen}
+                  aria-label="Choose role"
+                  onClick={() => setRoleMenuOpen((o) => !o)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-black/8 bg-white/80 px-2.5 py-1.5 text-[11px] font-semibold text-[#0087A8] shadow-sm transition-colors hover:bg-white hover:border-[#0087A8]/25"
+                >
+                  Role
+                  <ChevronDown size={12} className={`opacity-70 transition-transform ${roleMenuOpen ? "rotate-180" : ""}`} aria-hidden />
+                </button>
+                {roleMenuOpen ? (
+                  <div
+                    role="listbox"
+                    aria-label="Available roles"
+                    className="absolute right-0 top-[calc(100%+6px)] z-[100] min-w-[200px] rounded-xl border border-black/8 bg-white py-1 shadow-xl"
+                  >
+                    {roleOptions.map((r) => {
+                      const active = currentRole === r;
+                      return (
+                        <button
+                          key={r}
+                          type="button"
+                          role="option"
+                          aria-selected={active}
+                          onClick={() => {
+                            updateUser({ role: r, targetRole: r });
+                            setRoleMenuOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-[12px] font-medium transition-colors ${
+                            active ? "bg-[#0087A8]/10 text-[#0087A8]" : "text-[#0F0F0F] hover:bg-slate-50"
+                          }`}
+                        >
+                          {r}
+                          {active ? <span className="text-[11px] font-bold text-[#0087A8]">✓</span> : null}
+                        </button>
+                      );
+                    })}
+                    <div className="my-1 h-px bg-black/6" />
+                    <Link
+                      href="/onboarding"
+                      onClick={() => setRoleMenuOpen(false)}
+                      className="block px-3 py-2.5 text-[11px] font-semibold text-[#0087A8] hover:bg-slate-50"
+                    >
+                      + Add another role →
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <button onClick={() => setIsEditingStory(false)} className="text-[11px] font-semibold text-black/50 hover:text-black transition-colors">
                 Cancel

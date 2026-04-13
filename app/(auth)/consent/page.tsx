@@ -1,126 +1,146 @@
 "use client";
-import { useState } from "react";
+
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Urbanist } from "next/font/google";
 import { ArrowUpRight } from "lucide-react";
+import { useUser } from "@/lib/user-context";
+
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export default function ConsentPage() {
   const router = useRouter();
+  const { user, isLoaded } = useUser();
   const [agreedTerms, setAgreedTerms] = useState(false);
   const [agreedPrivacy, setAgreedPrivacy] = useState(false);
 
+  const greetingFirstName = useMemo(() => {
+    const n = (user.name ?? "").trim().split(/\s+/).filter(Boolean)[0];
+    return n ?? "";
+  }, [user.name]);
+
+  const canContinue = agreedTerms && agreedPrivacy;
+
+  const handleContinue = () => {
+    if (!canContinue) return;
+    router.push("/dashboard");
+  };
+
   return (
-    <div className="min-h-screen flex w-full font-['Inter',sans-serif]">
-      {/* Left Side - Auth Panel */}
-      <div className="flex-1 flex flex-col relative h-screen overflow-y-auto">
-        <div className="flex-1 flex flex-col items-center justify-center -mt-20 px-8">
-          
-          {/* Logo */}
-          <div className="absolute top-12 left-0 right-0 flex justify-center">
-            <span className="text-[28px] font-normal tracking-[0.5px] text-[#253D47]">
+    <div className="relative flex min-h-screen w-full font-['Inter',sans-serif]">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto bg-gradient-to-b from-[#FAFEFF] to-[#CFDCE1] pt-10 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pt-10">
+        <div
+          className={`${urbanist.className} relative flex min-h-0 flex-1 flex-col items-center px-6 pb-16 pt-0 sm:px-10 sm:pb-20 lg:px-[80px] lg:pb-24`}
+        >
+          <div className="mb-8 w-full max-w-[480px] shrink-0 text-left sm:mb-10 sm:max-w-[640px]">
+            <span className="text-[28px] font-normal tracking-[0.75px] text-[#253D47] sm:text-[30px]">
               ProofDive
             </span>
           </div>
 
-          {/* Heading */}
-          <div className="text-center space-y-2 mb-10 mt-10">
-            <h1 className="text-[28px] font-medium text-[#253D47]">
-              Terms & Policies
+          <div className="w-full max-w-[480px] shrink-0 text-left sm:max-w-[640px]">
+            <h1 className="text-[24px] font-semibold leading-[1.2] tracking-tight text-[#0F172A] sm:text-[28px]">
+              {isLoaded && greetingFirstName ? (
+                <>
+                  You&apos;re almost in,{" "}
+                  <span className="font-semibold text-[#0087A8]">{greetingFirstName}</span>
+                </>
+              ) : (
+                <>You&apos;re almost in</>
+              )}
             </h1>
-            <p className="text-[14px] text-[#475569]">
-              Please review the following terms and policies.
+            <p className="mt-3 max-w-[42ch] text-[15px] font-medium leading-relaxed text-[#64748B] sm:text-[16px]">
+              Quick legal stuff — we keep it straightforward.
+            </p>
+
+            <div className="mt-8 flex w-full flex-col gap-5 sm:flex-row sm:items-stretch sm:gap-4 lg:gap-5">
+              <div className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.75)_0%,rgba(255,255,255,0.45)_100%)] shadow-[0px_4px_15px_0px_rgba(0,0,0,0.05)] backdrop-blur-[40px]">
+                <div className="p-5 pb-0">
+                  <div className="rounded-t-xl border border-b-0 border-[#E2E8F0]/50 bg-[#F8FAFC] p-5 pb-6 shadow-[0_-2px_12px_rgba(0,0,0,0.02)]">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h2 className="text-left text-[14px] font-semibold text-[#0F172A]">Terms of Service</h2>
+                      <ArrowUpRight className="h-[18px] w-[18px] shrink-0 text-[#64748B]" aria-hidden />
+                    </div>
+                    <div className="space-y-2.5">
+                      <div className="h-[7px] w-[85%] rounded-full bg-[#E2E8F0]" />
+                      <div className="h-[7px] w-full rounded-full bg-[#E2E8F0]" />
+                      <div className="h-[7px] w-full rounded-full bg-[#E2E8F0]" />
+                      <div className="h-[7px] w-[60%] rounded-full bg-[#E2E8F0]" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex min-h-[56px] items-center border-t border-[#E2E8F0]/40 bg-white/80 px-5 py-3">
+                  <label className="flex w-full cursor-pointer items-start gap-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={agreedTerms}
+                      onChange={(e) => setAgreedTerms(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#0087A8]"
+                    />
+                    <span className="text-[13px] leading-snug text-[#64748B]">
+                      I&apos;ve read and agree to the{" "}
+                      <span className="font-semibold text-[#0F172A]">Terms of Service</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.75)_0%,rgba(255,255,255,0.45)_100%)] shadow-[0px_4px_15px_0px_rgba(0,0,0,0.05)] backdrop-blur-[40px]">
+                <div className="p-5 pb-0">
+                  <div className="rounded-t-xl border border-b-0 border-[#E2E8F0]/50 bg-[#F8FAFC] p-5 pb-6 shadow-[0_-2px_12px_rgba(0,0,0,0.02)]">
+                    <div className="mb-4 flex items-center justify-between gap-3">
+                      <h2 className="text-left text-[14px] font-semibold text-[#0F172A]">Privacy Policy</h2>
+                      <ArrowUpRight className="h-[18px] w-[18px] shrink-0 text-[#64748B]" aria-hidden />
+                    </div>
+                    <div className="space-y-2.5">
+                      <div className="h-[7px] w-[85%] rounded-full bg-[#E2E8F0]" />
+                      <div className="h-[7px] w-full rounded-full bg-[#E2E8F0]" />
+                      <div className="h-[7px] w-full rounded-full bg-[#E2E8F0]" />
+                      <div className="h-[7px] w-[60%] rounded-full bg-[#E2E8F0]" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex min-h-[56px] items-center border-t border-[#E2E8F0]/40 bg-white/80 px-5 py-3">
+                  <label className="flex w-full cursor-pointer items-start gap-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={agreedPrivacy}
+                      onChange={(e) => setAgreedPrivacy(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 shrink-0 accent-[#0087A8]"
+                    />
+                    <span className="text-[13px] leading-snug text-[#64748B]">
+                      I&apos;ve read and agree to the{" "}
+                      <span className="font-semibold text-[#0F172A]">Privacy Policy</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={!canContinue}
+              className={`mt-10 h-[46px] w-full rounded-xl text-[14px] font-bold shadow-lg transition-all ${
+                canContinue
+                  ? "bg-[#0087A8] text-white shadow-[#0087A8]/20 hover:bg-[#006E89]"
+                  : "cursor-not-allowed bg-slate-200 text-slate-400"
+              }`}
+            >
+              I&apos;m in — start my prep
+            </button>
+
+            <p className="mt-12 text-left text-[12px] font-medium text-[#64748B]">
+              © ProofDive 2026. All rights reserved
             </p>
           </div>
-
-          {/* Cards Container */}
-          <div className="flex flex-col sm:flex-row gap-6 w-full max-w-[660px] mx-auto">
-            {/* Terms of Service Card */}
-            <div className="flex-1 bg-white/40 backdrop-blur-[24px] rounded-[16px] border border-white/60 flex flex-col overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.03)]">
-              
-              <div className="p-5 pb-0 flex-1 flex flex-col justify-end">
-                <div className="bg-[#F8FAFC] rounded-t-[14px] p-6 pb-8 border border-b-0 border-[#E2E8F0]/50 shadow-[0_-2px_12px_rgba(0,0,0,0.02)] translate-y-2">
-                  <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-[14.5px] font-semibold text-[#1E293B]">Terms of Service</h3>
-                    <ArrowUpRight className="w-[18px] h-[18px] text-[#64748B]" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-[7px] w-[85%] bg-[#E2E8F0] rounded-full"></div>
-                    <div className="h-[7px] w-full bg-[#E2E8F0] rounded-full"></div>
-                    <div className="h-[7px] w-full bg-[#E2E8F0] rounded-full"></div>
-                    <div className="h-[7px] w-[60%] bg-[#E2E8F0] rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white px-6 h-[60px] flex items-center border-t border-[#E2E8F0]/40 relative z-10">
-                <label className="flex items-center gap-3 cursor-pointer w-full">
-                  <div 
-                    className={`w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center transition-colors ${agreedTerms ? 'border-[#0087A8] bg-[#0087A8]' : 'border-[#CBD5E1]'}`}
-                    onClick={() => setAgreedTerms(!agreedTerms)}
-                  >
-                    {agreedTerms && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                  </div>
-                  <span className="text-[13px] text-[#64748B] flex gap-1">
-                    I agree to the <span className="font-medium text-[#1E293B]">Terms of Service</span>
-                  </span>
-                </label>
-              </div>
-            </div>
-
-            {/* Privacy Policy Card */}
-            <div className="flex-1 bg-white/40 backdrop-blur-[24px] rounded-[16px] border border-white/60 flex flex-col overflow-hidden shadow-[0_8px_32px_rgba(0,0,0,0.03)]">
-              
-              <div className="p-5 pb-0 flex-1 flex flex-col justify-end">
-                <div className="bg-[#F8FAFC] rounded-t-[14px] p-6 pb-8 border border-b-0 border-[#E2E8F0]/50 shadow-[0_-2px_12px_rgba(0,0,0,0.02)] translate-y-2">
-                  <div className="flex items-center justify-between mb-5">
-                    <h3 className="text-[14.5px] font-semibold text-[#1E293B]">Privacy Policy</h3>
-                    <ArrowUpRight className="w-[18px] h-[18px] text-[#64748B]" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="h-[7px] w-[85%] bg-[#E2E8F0] rounded-full"></div>
-                    <div className="h-[7px] w-full bg-[#E2E8F0] rounded-full"></div>
-                    <div className="h-[7px] w-full bg-[#E2E8F0] rounded-full"></div>
-                    <div className="h-[7px] w-[60%] bg-[#E2E8F0] rounded-full"></div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white px-6 h-[60px] flex items-center border-t border-[#E2E8F0]/40 relative z-10">
-                <label className="flex items-center gap-3 cursor-pointer w-full">
-                  <div 
-                    className={`w-4 h-4 rounded-full border-[1.5px] flex items-center justify-center transition-colors ${agreedPrivacy ? 'border-[#0087A8] bg-[#0087A8]' : 'border-[#CBD5E1]'}`}
-                    onClick={() => setAgreedPrivacy(!agreedPrivacy)}
-                  >
-                    {agreedPrivacy && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
-                  </div>
-                  <span className="text-[13px] text-[#64748B] flex gap-1">
-                    I agree to the <span className="font-medium text-[#1E293B]">Privacy Policy</span>
-                  </span>
-                </label>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-10">
-            <button
-              onClick={() => router.push("/dashboard")}
-              disabled={!(agreedTerms && agreedPrivacy)}
-              className={`px-8 h-10 rounded-[8px] font-medium text-[13px] transition-colors ${agreedTerms && agreedPrivacy ? 'bg-[#0087A8] text-white hover:bg-[#006E89] shadow-[0_2px_8px_rgba(0,135,168,0.25)]' : 'bg-[#0087A8]/80 text-white/90 cursor-not-allowed'}`}
-            >
-              Continue
-            </button>
-          </div>
-        </div>
-
-        {/* Bottom copyright */}
-        <div className="absolute bottom-6 left-8">
-          <p className="text-[12px] text-[#475569] font-medium">
-            © ProofDive 2025. All Rights Reserved
-          </p>
         </div>
       </div>
 
-      {/* Right Side - Hero Panel (matches exactly with other screens) */}
-      <div className="hidden lg:flex w-[460px] h-screen relative overflow-hidden flex-shrink-0">
+      <div className="relative hidden h-screen w-[460px] shrink-0 overflow-hidden lg:flex">
         <img
           src="/login_hero_final.png"
           alt="Turn experience into proof"

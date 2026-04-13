@@ -1,7 +1,8 @@
 "use client";
 
-import { use, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import {
   Brain,
   Zap,
@@ -21,6 +22,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useUser } from "@/lib/user-context";
+import { ChipStatic } from "@/components/Chip";
 import {
   MOCK_SESSION_META,
   MOCK_DRIVERS,
@@ -33,11 +35,12 @@ import {
   MOCK_SESSION_AI_COACHING,
   getOverallScore,
   focusFacetLabelForQuestionIndex,
+  mockSubSkillScore,
   type ReportQuestion,
   type DriverDef,
 } from "@/lib/mock-report-data";
 import { TRAININGS, PILLAR_COLORS, type Pillar } from "@/lib/trainings-data";
-import { PathwayCardSurface } from "@/components/pathway-banner";
+import { ProofyChatDock } from "@/components/proofy/ProofyChatDock";
 
 function useIsClient() {
   return useSyncExternalStore(
@@ -65,7 +68,6 @@ const stickyCard: React.CSSProperties = {
   boxShadow: "0 2px 20px rgba(0,0,0,0.06)",
 };
 
-const sessionPlayerGrad = "linear-gradient(145deg,#1C3B4A 0%,#2D5668 55%,#1E4456 100%)";
 const IB = "1px solid rgba(0,0,0,0.06)";
 const TEAL = "#0087A8";
 
@@ -88,7 +90,9 @@ const DRIVER_ICONS = {
 } as const;
 
 function getScoreColor(score: number): string {
-  return score < 3.4 ? "#B91C1C" : "#0F172A";
+  if (score < 2.5) return "#EF4444";
+  if (score < 3.5) return "#D97706";
+  return "#059669";
 }
 
 function StatusBadge({ score }: { score: number }) {
@@ -97,14 +101,14 @@ function StatusBadge({ score }: { score: number }) {
     return (
       <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#10B981]/10 text-[#10B981] text-[11px] font-bold">
         <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
-        READY
+        Ready
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#F59E0B]/10 text-[#F59E0B] text-[11px] font-bold">
       <span className="w-1.5 h-1.5 rounded-full bg-[#F59E0B]" />
-      BORDERLINE
+      Borderline
     </span>
   );
 }
@@ -122,15 +126,8 @@ const DRIVER_LABEL_TO_ID: Record<string, DriverDef["id"]> = {
   Mastery: "mastery",
 };
 
-/** Mock per–sub-skill score derived from pillar score (deterministic). */
-function mockSubSkillScore(parentScore: number, skillIndex: number): number {
-  const deltas = [0.12, -0.18, 0.06];
-  const v = parentScore + deltas[skillIndex % deltas.length];
-  return Math.min(5, Math.max(1, Math.round(v * 10) / 10));
-}
-
 const tagBase =
-  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider shrink-0";
+  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold tracking-wide shrink-0";
 
 const focusFacetTagClass =
   "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#0F172A]/10 bg-white text-[#475569] text-[11px] font-semibold tracking-normal normal-case shrink-0 max-w-[min(100%,17rem)] truncate";
@@ -192,7 +189,7 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
         <div className="border-t border-black/[0.06] bg-white/35 px-5 py-6 space-y-8">
           {pillarDetail ? (
             <div className="p-4 rounded-[14px] border border-black/[0.06] bg-white/60">
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#475569]/45 mb-2">Competency area</p>
+              <p className="text-[11px] font-bold tracking-[0.12em] text-[#475569]/45 mb-2">Competency area</p>
               <p className="text-[15px] font-bold text-[#0F172A]">
                 {pillarDetail.pillar}{" "}
                 <span className="text-[#475569]/60 font-semibold">({pillarDetail.subtitle})</span>
@@ -216,7 +213,7 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
           ) : null}
 
           <div>
-            <p className="text-[12px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">Competency analysis</p>
+            <p className="text-[12px] tracking-[0.08em] font-bold text-[#475569]/40 mb-4">Competency analysis</p>
             <div className="flex flex-col gap-4">
               {q.car.map((c) => (
                 <div key={c.label} className="flex items-start gap-3">
@@ -236,7 +233,7 @@ function QuestionRow({ q, qi }: { q: ReportQuestion; qi: number }) {
           </div>
 
           <div>
-            <p className="text-[12px] uppercase tracking-[0.2em] font-bold text-[#475569]/40 mb-4">Areas for improvement</p>
+            <p className="text-[12px] tracking-[0.08em] font-bold text-[#475569]/40 mb-4">Areas for improvement</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-3">
               {q.improve.map((imp) => (
                 <div key={imp.heading} className="flex items-start gap-2.5">
@@ -275,15 +272,14 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
       </div>
 
       <div>
-        <h3 className="text-[16px] font-bold text-[#0F172A] mb-1">{d.title} Performance</h3>
-        <p className="text-[11px] text-[#475569]/55 font-semibold uppercase tracking-wide">
+        <h3 className="text-[16px] font-bold text-[#0F172A] mb-1">{d.title}</h3>
+        <p className="text-[11px] text-[#475569]/55 font-semibold tracking-wide">
           {det.pillar} · {det.subtitle}
         </p>
       </div>
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <StatusBadge score={d.score} />
-        <span className="text-[11px] font-bold text-[#475569]/40 tracking-wide uppercase">Efficiency {d.pct}%</span>
       </div>
 
       <div className="h-[6px] w-full bg-[#0F172A]/5 rounded-full overflow-hidden">
@@ -296,13 +292,13 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
         className="w-full flex items-center justify-center gap-2 h-10 rounded-[10px] border border-[#0F172A]/10 text-[12px] font-bold text-[#0087A8] hover:bg-[#0087A8]/5 transition-colors"
         aria-expanded={open}
       >
-        {open ? "Hide" : "Show"} competency breakdown
+        {open ? "Hide breakdown" : "See the breakdown"}
         <ChevronDown size={16} className={`transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open ? (
         <div className="border-t border-black/[0.06] pt-4 space-y-3 -mb-1">
-          <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#475569]/45">Sub-competencies & scores</p>
+          <p className="text-[11px] font-bold tracking-[0.12em] text-[#475569]/45">Competency breakdown</p>
           <ul className="space-y-2.5">
             {det.skills.map((s, si) => {
               const sub = mockSubSkillScore(d.score, si);
@@ -329,8 +325,9 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
   );
 }
 
-export default function ReportPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ReportPage() {
+  const params = useParams<{ id?: string }>();
+  const id = typeof params?.id === "string" ? params.id : "";
   const { user } = useUser();
   const mounted = useIsClient();
   /** Wraps overall score card + driver grid — sticky bar only after this block scrolls past the top nav */
@@ -399,7 +396,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full" style={{ background: stickyB.dot }} />
               <span
-                className="text-[12px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-md"
+                className="text-[12px] font-bold tracking-wide px-2.5 py-1 rounded-md"
                 style={{ background: stickyB.bg, color: stickyB.text }}
               >
                 {stickyB.label}
@@ -408,10 +405,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             <div className="w-px h-7 bg-black/[0.06] hidden md:block" />
             <div className="hidden md:flex items-center gap-4 text-[11px] text-[#475569]/50">
               <span className="flex items-center gap-1.5">
-                <Mic size={11} /> Audio recorded
+                <Mic size={11} /> Audio
               </span>
               <span className="flex items-center gap-1.5">
-                <Video size={11} /> Video recorded
+                <Video size={11} /> Video
               </span>
             </div>
             <div className="ml-auto flex items-center gap-3 text-[11px] text-[#475569]/50">
@@ -434,7 +431,9 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </Link>
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-1">
-                <h1 className="text-[36px] font-bold tracking-tight text-[#0F172A] leading-tight">Analytics & AI Coaching</h1>
+                <h1 className="text-[36px] font-bold tracking-tight text-[#0F172A] leading-tight">
+                  {`Analytics & AI Coaching of your session — ${dynamicSession.role}`}
+                </h1>
                 <div className="px-3 py-1 rounded-full bg-[#0F172A]/5 text-[#475569] text-[11px] font-bold mt-2">V1.2</div>
                 <span className="text-[12px] text-[#475569]/50 mt-2 font-mono">#{id}</span>
               </div>
@@ -470,40 +469,37 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           style={glassCard}
           className="p-8 md:p-12 flex flex-col md:flex-row items-center gap-10 md:gap-20 relative overflow-hidden"
         >
-          <div className="absolute top-[-20%] right-[-10%] w-[40%] h-[140%] bg-white/50 blur-[100px] rounded-full pointer-events-none" />
-
           <div className="text-center md:text-left shrink-0">
             <p className="text-[64px] font-black font-mono leading-none tabular-nums tracking-tighter" style={{ color: getScoreColor(overall) }}>
               {overall.toFixed(1)}
             </p>
-            <p className="text-[12px] uppercase tracking-[0.25em] font-black text-[rgba(67,93,132,0.6)] mt-2">OUT OF 5.0</p>
+            <p className="text-[12px] tracking-[0.12em] font-black text-[rgba(67,93,132,0.6)] mt-2">Out of 5.0</p>
           </div>
 
           <div className="flex-1 space-y-4">
             <div className="flex items-center justify-center md:justify-start gap-3">
               <StatusBadge score={overall} />
-              <span className="text-[11px] font-bold text-[#475569]/40 uppercase tracking-[0.15em]">Overall Verdict</span>
+              <span className="text-[11px] font-bold text-[#475569]/40 tracking-[0.08em]">Overall verdict</span>
             </div>
             <h2 className="text-[28px] md:text-[24px] font-bold text-[#0F172A] leading-tight max-w-xl">
-              You are demonstrating strong readiness in high-impact areas.
+              Strong in People — Action and Mastery are holding your score back.
             </h2>
             <p className="text-[14px] text-[#475569] leading-relaxed max-w-2xl">
-              Your ability to navigate complex stakeholder discussions is exceptional. Focus on tightening your Action delivery and adding quantifiable outcomes to your technical Mastery answers for a Role Model performance.
+              Your People answers showed real evidence of influence and collaboration. Where you&apos;re losing points is Action — your answers described what happened but not what you specifically decided and why. Fix that and your score moves from 3.4 to 4.0+.
             </p>
           </div>
 
           <div className="shrink-0 p-6 rounded-[16px] bg-[#0F172A]/[0.03] border border-black/[0.04] w-full md:w-auto">
-            <p className="text-[12px] uppercase tracking-[0.16em] font-bold text-[#475569]/60 mb-3">CONSOLIDATED PROFILE</p>
+            <p className="text-[12px] tracking-[0.12em] font-bold text-[#475569]/60 mb-3">Your profile</p>
             <div className="space-y-4">
               <div>
                 <p className="text-[16px] font-bold text-[#0F172A]">{dynamicSession.role}</p>
-                <p className="text-[12px] text-[#475569]/60">{dynamicSession.exp}</p>
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 {dynamicSession.pillars.map((p) => (
-                  <span key={p} className="px-2.5 py-1 bg-white border border-black/[0.05] rounded-[6px] text-[12px] font-bold text-[#475569]">
+                  <ChipStatic key={p} className="font-bold text-[#475569]">
                     {p}
-                  </span>
+                  </ChipStatic>
                 ))}
               </div>
             </div>
@@ -572,8 +568,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
         <section data-journey-id="report-summary" className="space-y-6">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0F172A]">Overall summary</h2>
-            <p className="text-[14px] text-[#475569]/60 mt-1">AI-generated synthesis of your session.</p>
+            <h2 className="text-[24px] font-bold text-[#0F172A]">What Proofy saw in your session</h2>
           </div>
           <div style={glassCard} className="p-8 border border-white/40 space-y-6">
             <p className="text-[16px] text-[#475569] leading-relaxed">{summaryBody}</p>
@@ -596,8 +591,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
         <div data-journey-id="report-questions" className="pt-4">
           <div className="mb-8">
-            <h2 className="text-[24px] font-bold text-[#0F172A]">Detail breakdown per question</h2>
-            <p className="text-[14px] text-[#475569]/60 mt-1">AI performance analysis for each question.</p>
+            <h2 className="text-[24px] font-bold text-[#0F172A]">Your answers — question by question</h2>
           </div>
           <div className="flex flex-col">
             {MOCK_QUESTIONS.map((q, qi) => (
@@ -614,7 +608,10 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-4 items-start">
             <div style={glassCard} className="overflow-hidden border border-white/40 rounded-[16px]">
-              <div className="relative flex items-center justify-center" style={{ aspectRatio: "16/9", background: sessionPlayerGrad }}>
+              <div
+                className="relative flex items-center justify-center"
+                style={{ aspectRatio: "16/9", background: "var(--bg-gradient)" }}
+              >
                 <button
                   type="button"
                   className="flex items-center justify-center hover:scale-105 transition-transform"
@@ -685,21 +682,21 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
               className="border border-white/40 rounded-[16px]"
             >
               <div style={{ padding: "11px 18px", borderBottom: IB, background: "rgba(0,0,0,0.015)", flexShrink: 0 }}>
-                <p className="text-[12px] uppercase tracking-[0.18em] font-bold text-[#475569]/50">Full transcript</p>
+                <p className="text-[12px] tracking-[0.1em] font-bold text-[#475569]/50">Full transcript</p>
               </div>
               <div className="flex-1 overflow-y-auto py-1">
                 {MOCK_TRANSCRIPT.map((t, i) => (
                   <div key={i} style={{ padding: "10px 18px", borderBottom: i < MOCK_TRANSCRIPT.length - 1 ? IB : undefined }}>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span
-                        className="text-[9px] font-bold uppercase tracking-widest"
+                        className="text-[9px] font-bold tracking-wide"
                         style={{ color: t.role === "interviewer" ? TEAL : "rgba(15,15,15,0.40)" }}
                       >
                         {t.speaker}
                       </span>
                       <span className="text-[9px] font-mono text-[#475569]/40">{t.time}</span>
                       {t.flag && (
-                        <span className="text-[8px] font-bold uppercase px-1.5 py-0.5 ml-auto rounded bg-amber-100 text-amber-900">
+                        <span className="text-[8px] font-semibold px-1.5 py-0.5 ml-auto rounded bg-amber-100 text-amber-900">
                           {t.flag}
                         </span>
                       )}
@@ -724,7 +721,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
               <Sparkles size={20} className="text-[#0087A8]" />
             </div>
             <div>
-              <h2 className="text-[24px] font-bold text-[#0F172A]">AI session coaching</h2>
+              <h2 className="text-[24px] font-bold text-[#0F172A]">How to improve your weakest answer</h2>
               <p className="text-[14px] text-[#475569]/60 mt-0.5">
                 Delivery, language, and a sharper version of your highest-priority gap answer.
               </p>
@@ -734,7 +731,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           <div style={glassCard} className="p-0 border border-white/40 overflow-hidden rounded-[20px]">
             {coachingAi ? (
               <div className="border-b border-black/[0.06]">
-                <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-5 bg-gradient-to-b from-[#0F172A]/[0.02] to-transparent">
+                <div className="px-5 sm:px-8 pt-6 sm:pt-8 pb-5 bg-[#0F172A]/[0.02]">
                   <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-4">
                     <span
                       className="inline-flex items-center justify-center min-w-[2.75rem] h-9 px-2.5 rounded-[10px] bg-[#0087A8] text-white text-[13px] font-bold tabular-nums shadow-sm"
@@ -743,7 +740,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       Q{spotlightQuestionNumber}
                     </span>
                     <span
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-black/[0.06] bg-white/80 text-[11px] font-bold uppercase tracking-wider text-[#475569]"
+                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-black/[0.06] bg-white/80 text-[11px] font-bold tracking-wide text-[#475569]"
                     >
                       <span
                         className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -756,7 +753,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       Spotlight · highest-priority gap
                     </span>
                   </div>
-                  <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#475569]/45 mb-2">Interview question</p>
+                  <p className="text-[11px] font-bold tracking-[0.1em] text-[#475569]/45 mb-2">Interview question</p>
                   <p className="text-[17px] sm:text-[19px] font-semibold text-[#0F172A] leading-[1.45] max-w-3xl">
                     {coachingAi.q}
                   </p>
@@ -770,7 +767,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       </div>
                       <div>
                         <p className="text-[13px] font-bold text-[#0F172A]">Your answer</p>
-                        <p className="text-[11px] text-[#475569]/55">What you said in session</p>
+                        <p className="text-[11px] text-[#475569]/55">What you said</p>
                       </div>
                     </div>
                     <blockquote className="pl-4 border-l-[3px] border-[#0F172A]/12 m-0">
@@ -779,14 +776,14 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       </p>
                     </blockquote>
                   </div>
-                  <div className="p-5 sm:p-8 sm:pt-6 bg-[#0087A8]/[0.04] lg:bg-gradient-to-br lg:from-[#0087A8]/[0.06] lg:to-transparent">
+                  <div className="p-5 sm:p-8 sm:pt-6 bg-[#0087A8]/[0.04] lg:bg-[#0087A8]/[0.06]">
                     <div className="flex items-center gap-2 mb-4">
                       <div className="w-8 h-8 rounded-lg bg-[#0087A8]/15 flex items-center justify-center shrink-0">
                         <Sparkles size={16} className="text-[#0087A8]" aria-hidden />
                       </div>
                       <div>
                         <p className="text-[13px] font-bold text-[#0F172A]">Coach rewrite</p>
-                        <p className="text-[11px] text-[#475569]/55">Stronger structure &amp; impact</p>
+                        <p className="text-[11px] text-[#475569]/55">How it should sound</p>
                       </div>
                     </div>
                     <blockquote className="pl-4 border-l-[3px] border-[#0087A8] m-0">
@@ -800,7 +797,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 {coachingAi.aiTips && coachingAi.aiTips.length > 0 ? (
                   <div className="px-5 sm:px-8 pb-6 sm:pb-8 pt-0">
                     <div className="rounded-[14px] border border-[#0087A8]/20 bg-[#0087A8]/[0.06] px-4 py-4 sm:px-5 sm:py-5">
-                      <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0087A8] mb-3">Why this rewrite works</p>
+                      <p className="text-[11px] font-bold tracking-[0.1em] text-[#0087A8] mb-3">Why this version is stronger</p>
                       <ul className="space-y-2.5">
                         {coachingAi.aiTips.map((tip) => (
                           <li key={tip} className="flex gap-3 text-[14px] text-[#334155] leading-snug">
@@ -816,7 +813,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             ) : null}
 
             <div className="p-5 sm:p-8 space-y-6 sm:space-y-8">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#475569]/45">Delivery &amp; language</p>
+              <p className="text-[11px] font-bold tracking-[0.1em] text-[#475569]/45">Delivery &amp; language</p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
                 <div className="rounded-[14px] border border-black/[0.06] bg-white/45 p-5">
                   <p className="text-[12px] font-bold text-[#0F172A] mb-3">Body language</p>
@@ -861,18 +858,18 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
 
         <section className="space-y-8 pt-4">
           <div>
-            <h2 className="text-[24px] font-bold text-[#0F172A]">Recommended training</h2>
-            <p className="text-[14px] text-[#475569]/60 mt-1">Close the gaps flagged in this report.</p>
+            <h2 className="text-[24px] font-bold text-[#0F172A]">What to work on next</h2>
+            <p className="text-[14px] text-[#475569]/60 mt-1">
+              Based on your session — Proofy&apos;s picks for your next training.
+            </p>
           </div>
 
-          <PathwayCardSurface className="p-8">
+          <div className="relative w-full overflow-hidden rounded-xl border border-[#0F172A]/10 bg-white/70 shadow-[0_4px_20px_rgba(0,0,0,0.06)] p-8">
             <div className="flex flex-col md:flex-row md:items-stretch gap-8 group">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-4">
                   <Zap size={14} className="text-[#0087A8]" fill="#0087A8" />
-                  <span className="text-[12px] font-semibold uppercase tracking-[0.16em] text-[#044859]/80">
-                    FEATURED
-                  </span>
+                  <span className="text-[12px] font-semibold tracking-[0.08em] text-[#044859]/80">Featured</span>
                 </div>
                 <h3 className="text-[24px] font-semibold leading-tight text-[#044757] mb-3">
                   {REC_TRAINING_FEATURED.title}
@@ -906,7 +903,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                 </div>
               </div>
             </div>
-          </PathwayCardSurface>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {suggestedTrainings.map((t) => {
@@ -919,16 +916,16 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
                       alt={t.title}
                       className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                    <div className="absolute inset-0 bg-black/35" />
                     <div className="absolute top-3 left-3">
-                      <span className="text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-full text-white" style={{ background: pillarColor }}>
+                      <span className="text-[9px] font-bold tracking-wide px-2 py-1 rounded-full text-white" style={{ background: pillarColor }}>
                         {t.pillar}
                       </span>
                     </div>
                   </div>
                   <div className="p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-semibold uppercase tracking-widest text-[#475569]/50">{t.difficulty}</span>
+                      <span className="text-[12px] font-semibold tracking-wide text-[#475569]/50">{t.difficulty}</span>
                       <span className="text-[12px] flex items-center gap-1 text-[#475569]/50">
                         <BookOpen size={9} /> {t.duration}
                       </span>
@@ -946,6 +943,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           </div>
         </section>
 
+        <ProofyChatDock layout="inline" />
         <div className="h-12" />
       </div>
     </div>

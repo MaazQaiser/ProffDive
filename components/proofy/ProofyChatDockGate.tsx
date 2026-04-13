@@ -5,12 +5,18 @@ import { ProofyChatDock } from "./ProofyChatDock";
 
 /** Routes where the floating Proofy entry point should not appear. */
 const EXCLUDE_PATTERNS: RegExp[] = [
+  /^\/report(\/|$)/,
   /^\/onboarding(\/|$)/,
   /^\/login(\/|$)/,
   /^\/signup(\/|$)/,
   /^\/verify(\/|$)/,
   /^\/consent(\/|$)/,
+  /^\/forgot-password(\/|$)/,
+  /^\/reset-password(\/|$)/,
   /^\/mock\/live(\/|$)/,
+  /^\/storyboard\/new(\/|$)/,
+  /^\/storyboard\/crafting(\/|$)/,
+  /^\/trainings$/,
 ];
 
 function shouldShowProofy(pathname: string | null): boolean {

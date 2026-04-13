@@ -73,6 +73,13 @@
   --text-tertiary: var(--text-3);
   --text-disabled: var(--text-3);
   --text-inverse: #FFFFFF;
+
+  /* Inline-style tokens used across dashboard / profile / storyboard */
+  --color-text-primary: var(--text-1);
+  --color-text-secondary: var(--text-2);
+  --color-text-tertiary: var(--text-3);
+  --color-border-secondary: rgba(15, 23, 42, 0.12);
+  --color-border-tertiary: rgba(15, 23, 42, 0.1);
 }
 
 /* ── Tailwind @theme ── */
@@ -132,12 +139,23 @@ html, body {
     box-shadow: 0 0 0 3px rgba(0,135,168,0.10) !important;
     background: rgba(0,0,0,0.05) !important;
   }
-  button {
+  /* Default radius for buttons — exclude pills so Tailwind `rounded-full` can apply */
+  button:not(:where(.rounded-full, .proofy-dock-round-btn)) {
     border-radius: var(--r-button) !important;
   }
   a.btn {
     border-radius: var(--r-button);
   }
+}
+
+/*
+ * Pill / circular buttons: base layer's button rule used `!important`, which beats
+ * Tailwind utilities. Unlayered rules win over @layer base so `rounded-full` works
+ * (Figma Insphere icon buttons — e.g. node 866-5442).
+ */
+button.rounded-full,
+button.proofy-dock-round-btn {
+  border-radius: 9999px !important;
 }
 
 /* Guided Journey spotlight (common tour-style highlight) */
@@ -149,6 +167,35 @@ html, body {
 
 .journey-spotlight-ring {
   animation: journey-ring-pulse 1.6s ease-out infinite;
+}
+
+/* Dashboard “Recent sections” mini bar chart — entrance only; hover handled in Tailwind */
+@keyframes pd-dashboard-bar-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+.pd-dashboard-bar-segment {
+  transform-origin: bottom center;
+  /* `both` keeps final keyframe after run so bars don’t snap back when fill-mode would otherwise reset */
+  animation: pd-dashboard-bar-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pd-dashboard-bar-segment {
+    animation: none;
+    transform: scaleY(1);
+  }
+}
+
+/* App shell: page content sits below fixed TopNav; clip horizontal bleed without adding a header background */
+.app-main-below-topnav {
+  isolation: isolate;
+  overflow-x: clip;
 }
 
 /* ── Reusable glass card utility ── */

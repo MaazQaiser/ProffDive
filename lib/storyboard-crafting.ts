@@ -44,18 +44,18 @@ export function normalizeIntroBlock(car: CarBlock): CarBlock {
 
 export const SECTION_DEFS: { id: string; pillar: string; title: string }[] = [
   { id: INTRO_SECTION_ID, pillar: "Introduction", title: "Core Introduction" },
-  { id: "thinking-analytical", pillar: "Power of Thinking (Strategic)", title: "Analytical Thinking" },
-  { id: "thinking-prioritization", pillar: "Power of Thinking (Strategic)", title: "Prioritization" },
-  { id: "thinking-decision", pillar: "Power of Thinking (Strategic)", title: "Decision-Making Agility" },
-  { id: "action-ownership", pillar: "Power of Action (Leadership)", title: "Ownership" },
-  { id: "action-initiative", pillar: "Power of Action (Leadership)", title: "Initiative & Follow-through" },
-  { id: "action-change", pillar: "Power of Action (Leadership)", title: "Embraces Change" },
-  { id: "people-influence", pillar: "Power of People (People)", title: "Influence" },
-  { id: "people-collaboration", pillar: "Power of People (People)", title: "Collaboration & Inclusion" },
-  { id: "people-capability", pillar: "Power of People (People)", title: "Grows Capability" },
-  { id: "mastery-functional", pillar: "Power of Mastery (Technical)", title: "Functional Knowledge" },
-  { id: "mastery-execution", pillar: "Power of Mastery (Technical)", title: "Execution" },
-  { id: "mastery-innovation", pillar: "Power of Mastery (Technical)", title: "Innovation" },
+  { id: "thinking-analytical", pillar: "Power of Thinking (Strategic)", title: "ThinkProof Labs" },
+  { id: "thinking-prioritization", pillar: "Power of Thinking (Strategic)", title: "ClarityCore" },
+  { id: "thinking-decision", pillar: "Power of Thinking (Strategic)", title: "DecisionCraft" },
+  { id: "action-ownership", pillar: "Power of Action (Leadership)", title: "ActionProof" },
+  { id: "action-initiative", pillar: "Power of Action (Leadership)", title: "ExecuteLab" },
+  { id: "action-change", pillar: "Power of Action (Leadership)", title: "MomentumWorks" },
+  { id: "people-influence", pillar: "Power of People (People)", title: "PeopleProof" },
+  { id: "people-collaboration", pillar: "Power of People (People)", title: "AlignWorks" },
+  { id: "people-capability", pillar: "Power of People (People)", title: "InfluenceCore" },
+  { id: "mastery-functional", pillar: "Power of Mastery (Technical)", title: "MasteryProof" },
+  { id: "mastery-execution", pillar: "Power of Mastery (Technical)", title: "CraftCore" },
+  { id: "mastery-innovation", pillar: "Power of Mastery (Technical)", title: "SkillForge" },
 ];
 
 function seedIntroCar(): CarBlock {

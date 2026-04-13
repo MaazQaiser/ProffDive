@@ -49,24 +49,31 @@ export const COMPETENCY_DETAILS: Record<
   thinking: {
     pillar: "Power of Thinking",
     subtitle: "Strategic",
-    skills: ["Analytical Thinking", "Prioritization", "Decision-Making Agility"],
+    skills: ["ThinkProof Labs", "ClarityCore", "DecisionCraft"],
   },
   action: {
     pillar: "Power of Action",
     subtitle: "Leadership",
-    skills: ["Ownership", "Initiative & Follow-through", "Embraces Change"],
+    skills: ["ActionProof", "ExecuteLab", "MomentumWorks"],
   },
   people: {
     pillar: "Power of People",
     subtitle: "People",
-    skills: ["Influence", "Collaboration & Inclusion", "Grows Capability"],
+    skills: ["PeopleProof", "AlignWorks", "InfluenceCore"],
   },
   mastery: {
     pillar: "Power of Mastery",
     subtitle: "Technical",
-    skills: ["Functional Knowledge", "Execution", "Innovation"],
+    skills: ["MasteryProof", "CraftCore", "SkillForge"],
   },
 };
+
+/** Mock per–sub-skill score derived from pillar score (deterministic). */
+export function mockSubSkillScore(parentScore: number, skillIndex: number): number {
+  const deltas = [0.12, -0.18, 0.06];
+  const v = parentScore + deltas[skillIndex % deltas.length]!;
+  return Math.min(5, Math.max(1, Math.round(v * 10) / 10));
+}
 
 const PILLAR_IDS_FOR_FOCUS: readonly DriverDef["id"][] = ["thinking", "action", "people", "mastery"];
 
@@ -124,7 +131,7 @@ export const MOCK_SESSION_META: SessionMeta = {
   companyName: "Vertex Global",
   interviewName: "Role-Based Mock",
   role: "Business Analyst",
-  exp: "3 yrs · L3+",
+  exp: "",
   date: "Oct 24, 2024",
   duration: "30 min",
   pillars: ["Thinking", "Action", "People", "Mastery"],
@@ -132,10 +139,10 @@ export const MOCK_SESSION_META: SessionMeta = {
 };
 
 export const MOCK_DRIVERS: DriverDef[] = [
-  { id: "thinking", title: "Thinking", score: 3.2, pct: 64, accent: "#D97706" },
-  { id: "action", title: "Action", score: 2.8, pct: 56, accent: "#0087A8" },
-  { id: "people", title: "People", score: 4.1, pct: 82, accent: "#16A34A" },
-  { id: "mastery", title: "Mastery", score: 3.6, pct: 72, accent: "#7C3AED" },
+  { id: "thinking", title: "Thinking", score: 3.5, pct: 70, accent: "#D97706" },
+  { id: "action", title: "Action", score: 2.6, pct: 52, accent: "#0087A8" },
+  { id: "people", title: "People", score: 3.9, pct: 78, accent: "#16A34A" },
+  { id: "mastery", title: "Mastery", score: 3.4, pct: 68, accent: "#059669" },
 ];
 
 export const MOCK_CAR_ROWS: CarRow[] = [
@@ -212,7 +219,7 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   {
     q: "What's the most technically complex thing you've worked on?",
     driver: "Mastery",
-    driverAccent: "#7C3AED",
+    driverAccent: "#059669",
     score: 3.2,
     taken: "2m 55s",
     ideal: "3–4 min",
@@ -279,7 +286,7 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
   {
     q: "What’s a mistake you made at work, and what did you learn from it?",
     driver: "Mastery",
-    driverAccent: "#7C3AED",
+    driverAccent: "#059669",
     score: 3.5,
     taken: "3m 11s",
     ideal: "3–4 min",
@@ -297,7 +304,7 @@ export const MOCK_QUESTIONS: ReportQuestion[] = [
 export const MOCK_TRANSCRIPT: TranscriptLine[] = [
   {
     role: "interviewer",
-    speaker: "AI Interviewer",
+    speaker: "Interviewer",
     time: "0:00",
     text: "Tell me about a time you solved a complex problem.",
   },
@@ -309,7 +316,7 @@ export const MOCK_TRANSCRIPT: TranscriptLine[] = [
   },
   {
     role: "interviewer",
-    speaker: "AI Interviewer",
+    speaker: "Interviewer",
     time: "2:20",
     text: "Describe a time you took initiative on something no one asked you to do.",
   },
@@ -318,11 +325,11 @@ export const MOCK_TRANSCRIPT: TranscriptLine[] = [
     speaker: "You",
     time: "2:26",
     text: "We had a performance issue in our system. I looked into the caching layer and implemented a TTL change...",
-    flag: "result too vague",
+    flag: "Result too vague",
   },
   {
     role: "interviewer",
-    speaker: "AI Interviewer",
+    speaker: "Interviewer",
     time: "4:10",
     text: "Give me an example of how you handled a conflict with a stakeholder.",
   },
@@ -334,7 +341,7 @@ export const MOCK_TRANSCRIPT: TranscriptLine[] = [
   },
   {
     role: "interviewer",
-    speaker: "AI Interviewer",
+    speaker: "Interviewer",
     time: "7:45",
     text: "What's the most technically complex thing you've worked on?",
   },
@@ -343,7 +350,7 @@ export const MOCK_TRANSCRIPT: TranscriptLine[] = [
     speaker: "You",
     time: "7:50",
     text: "A real-time analytics pipeline — we had to balance throughput with correctness. We shipped in stages and added fail-safes.",
-    flag: "answer could go deeper",
+    flag: "Answer could go deeper",
   },
 ];
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ChevronRight, Zap, Info, Lightbulb, Brain, Users, Target, Mic } from "lucide-react";
+import { ArrowLeft, ChevronRight, Zap, Info, HelpCircle, Brain, Users, Target, Mic, Check } from "lucide-react";
 import {
   getSpeechRecognition,
   type WebSpeechRecognition,
@@ -13,6 +13,7 @@ import { readJourneyState } from "@/lib/guided-journey";
 // ── Tokens ───────────────────────────────────────────────────────────
 const TEAL = "#0087A8";
 const CHAR_LIMIT = 800;
+const BORDER = "rgba(15,23,42,0.12)";
 
 // ── Pillar definitions ───────────────────────────────────────────────
 const PILLAR_META: Record<string, { icon: typeof Brain; color: string; signal: string }> = {
@@ -188,9 +189,15 @@ export default function NewStoryBoardFlowClient() {
   const meta = PILLAR_META[q.pillar];
   const PillarIcon = meta.icon;
   const isLastInPillar = pqi.current === pqi.total;
+  const meaningful = (answers[q.id] || "").trim().length >= 20;
 
   const handleNext = () => {
     if (isLast) {
+      try {
+        window.sessionStorage.setItem("pd:crafter:showAnalyzing", "1");
+      } catch {
+        /* ignore */
+      }
       router.push("/storyboard/crafting");
       return;
     }
@@ -257,11 +264,11 @@ export default function NewStoryBoardFlowClient() {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={handlePrev}
-            className="flex items-center gap-2 text-[13px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-[0.08em]"
+            className="flex items-center gap-2 text-[13px] font-semibold text-slate-500 hover:text-slate-700 transition-colors"
           >
             <ArrowLeft size={16} /> Back
           </button>
-          <span className="text-[12px] font-bold text-slate-400 uppercase tracking-widest bg-white/50 px-3 py-1.5 rounded-full border border-slate-200/60 shadow-sm">
+          <span className="text-[12px] text-[#64748B]">
             Question {currentStep + 1} of 12
           </span>
         </div>
@@ -270,45 +277,72 @@ export default function NewStoryBoardFlowClient() {
           {/* ══════════════ LEFT — Editor (65%) ══════════════ */}
           <div className="w-full md:w-[65%]">
             {/* Grouped stepper */}
-            <div className="flex items-center gap-[3px] mb-8 w-full" aria-label="Progress">
-              {stepperGroups.map((group, gi) => (
-                <div
-                  key={group.pillar}
-                  className="flex items-center gap-[4px] flex-1"
-                  style={{ marginRight: gi < stepperGroups.length - 1 ? 6 : 0 }}
-                >
-                  {Array.from({ length: group.count }).map((_, i) => {
-                    const gIdx = group.startIdx + i;
-                    const isDone = gIdx < currentStep;
-                    const isCurrent = gIdx === currentStep;
-                    return (
-                      <div
-                        key={gIdx}
-                        className="h-1.5 rounded-full flex-1 relative overflow-hidden transition-all duration-300"
-                        style={{ background: isDone || isCurrent ? `${TEAL}20` : "rgba(0,0,0,0.06)" }}
-                      >
-                        {(isDone || isCurrent) && (
-                          <div className="absolute inset-0 rounded-full" style={{ background: TEAL, opacity: isCurrent ? 0.6 : 1 }} />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
+            <div className="mb-8 w-full" aria-label="Progress">
+              <div className="flex items-center w-full">
+                {stepperGroups.map((group, gi) => (
+                  <div
+                    key={group.pillar}
+                    className="flex items-center flex-1"
+                    style={{ marginRight: gi < stepperGroups.length - 1 ? 8 : 0 }}
+                  >
+                    {Array.from({ length: group.count }).map((_, i) => {
+                      const gIdx = group.startIdx + i;
+                      const isDone = gIdx < currentStep;
+                      const isCurrent = gIdx === currentStep;
+                      return (
+                        <div
+                          key={gIdx}
+                          className="h-1 rounded-full flex-1 relative overflow-hidden"
+                          style={{
+                            height: 4,
+                            borderRadius: 2,
+                            background: isDone || isCurrent ? TEAL : "rgba(15,23,42,0.12)",
+                            opacity: isCurrent ? 0.5 : 1,
+                            marginRight: i < group.count - 1 ? 2 : 0,
+                          }}
+                        />
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <div className="mt-2 flex items-start w-full text-[11px]">
+                {stepperGroups.map((g, gi) => {
+                  const active = g.pillar === q.pillar;
+                  return (
+                    <div
+                      key={g.pillar}
+                      className="flex-1 text-center"
+                      style={{ marginRight: gi < stepperGroups.length - 1 ? 8 : 0 }}
+                    >
+                      <span style={{ color: active ? TEAL : "rgba(15,23,42,0.32)", fontWeight: active ? 500 : 400 }}>
+                        {g.pillar}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Pillar badge */}
             <div className="mb-4" key={q.pillar + currentStep}>
               <div
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[12px] font-bold"
-                style={{ background: `${meta.color}12`, color: meta.color, border: `1px solid ${meta.color}20` }}
+                className="inline-flex items-center"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  background: "#E6F1FB",
+                  color: TEAL,
+                  borderRadius: 20,
+                  padding: "3px 10px",
+                  fontSize: 11,
+                  fontWeight: 500,
+                }}
               >
-                <PillarIcon size={14} />
-                <span className="uppercase tracking-wider">{q.pillar}</span>
-                <span className="w-px h-3 bg-current opacity-20" />
-                <span className="font-medium opacity-70">
-                  Question {pqi.current} of {pqi.total}
-                </span>
+                <span>{q.pillar}</span>
+                <span>·</span>
+                <span>Question {pqi.current} of {pqi.total}</span>
               </div>
             </div>
 
@@ -344,17 +378,26 @@ export default function NewStoryBoardFlowClient() {
                   </div>
                 </div>
               ) : null}
-              <h1 className="text-3xl md:text-[34px] font-bold tracking-tight text-slate-900 leading-[1.2]">{q.question}</h1>
+              <h1 className="text-[20px] font-medium text-slate-900 leading-[1.4]">{q.question}</h1>
+              <p className="mt-3 text-[13px] leading-[1.6]" style={{ color: "var(--text-secondary)" }}>
+                Set the scene — who you were, what the team owned, and what success looked like in that context.
+              </p>
             </div>
 
             {/* Textarea card */}
-            <div className="relative overflow-hidden mb-6 rounded-2xl bg-white border border-slate-200/80 shadow-sm focus-within:ring-2 focus-within:ring-[#0087A8]/20 focus-within:border-[#0087A8]/30 transition-all">
+            <div
+              className="relative overflow-hidden mb-6 bg-white"
+              style={{
+                border: "0.5px solid rgba(15,23,42,0.12)",
+                borderRadius: 8,
+              }}
+            >
               <textarea
                 autoFocus
                 value={answers[q.id] || ""}
                 onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
                 maxLength={CHAR_LIMIT + 50}
-                placeholder="Start typing your experience here..."
+                placeholder="e.g. I was a Product Manager intern at a fintech startup. My team owned the onboarding flow and our goal was to reduce drop-off in the first 7 days..."
                 className="w-full min-h-[200px] px-6 pt-5 pb-14 pr-20 text-[16px] leading-relaxed bg-transparent outline-none resize-none placeholder:text-slate-400"
                 style={{ color: "#0F172A" }}
               />
@@ -418,96 +461,65 @@ export default function NewStoryBoardFlowClient() {
               </button>
             </div>
 
-            {/* Why + Sample */}
-            <div className="grid sm:grid-cols-2 gap-4 mb-10">
-              <div className="p-5 rounded-2xl bg-white/50 border border-white/50 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <Info size={14} style={{ color: "rgba(15,15,15,0.4)" }} />
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Why it matters</span>
-                </div>
-                <p className="text-[13px] leading-relaxed text-slate-600">{q.why}</p>
+            {/* Why strip */}
+            <div
+              className="bg-white flex items-start gap-3"
+              style={{ border: "0.5px solid rgba(15,23,42,0.12)", borderRadius: 8, padding: "11px 14px" }}
+            >
+              <div className="w-7 h-7 flex items-center justify-center shrink-0" style={{ background: "#E6F1FB", borderRadius: 8 }}>
+                <Info size={14} style={{ color: TEAL }} />
               </div>
-              <div
-                className="p-5 rounded-2xl bg-white/50 border border-white/50 shadow-sm hover:bg-white hover:shadow-md transition-all relative"
-                data-journey-id="story-protip"
+              <p className="text-[12px] leading-relaxed text-slate-600">
+                <span className="font-semibold text-slate-900">Why this matters —</span> {q.why}
+              </p>
+            </div>
+
+            {/* Example toggle */}
+            <div className="mt-4 mb-10" data-journey-id="story-protip">
+              <button
+                type="button"
+                onClick={() => setShowSample((v) => !v)}
+                className="inline-flex items-center gap-2 text-[12px] font-medium"
+                style={{ color: TEAL }}
               >
-                {journeyTipsOn && journeyTipIdx === 2 ? (
-                  <div className="absolute left-1/2 -top-3 -translate-x-1/2 -translate-y-full w-[360px] max-w-[92vw] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3 z-20">
-                    <div
-                      className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-0 h-0"
-                      style={{
-                        borderLeft: "10px solid transparent",
-                        borderRight: "10px solid transparent",
-                        borderTop: "10px solid white",
-                        filter: "drop-shadow(0 -1px 0 rgba(0,0,0,0.08))",
-                      }}
-                    />
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0087A8]">Proofy guide</p>
-                    <p className="mt-1 text-[13px] font-semibold text-[#0F172A]">Use Pro tip / Sample as structure</p>
-                    <p className="mt-1 text-[12px] text-[#475569] leading-relaxed">
-                      Click <span className="font-semibold text-[#0F172A]">Reveal</span> to see an example format — then rewrite it in your own words with a measurable result.
-                    </p>
-                    <div className="mt-3 flex items-center justify-between">
-                      <p className="text-[11px] font-bold text-[#64748B]">Tip 3/3</p>
-                      <button
-                        type="button"
-                        onClick={() => setJourneyTipsOn(false)}
-                        className="h-8 px-3 rounded-[12px] bg-[#0087A8] text-white text-[12px] font-bold hover:bg-[#007592] transition-colors"
-                      >
-                        Got it
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <Lightbulb size={14} className={showSample ? "text-amber-500" : "text-slate-400"} />
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Pro Tip / Sample</span>
-                  </div>
-                  {!showSample && (
-                    <button onClick={() => setShowSample(true)} className="text-[11px] font-bold text-[#0087A8] hover:underline">
-                      Reveal
-                    </button>
-                  )}
+                <HelpCircle size={14} />
+                {showSample ? "Hide example" : "See a strong answer example"}
+              </button>
+              {showSample ? (
+                <div
+                  className="mt-3"
+                  style={{
+                    background: "#F0F9FC",
+                    border: "0.5px solid #B5D4F4",
+                    borderRadius: 8,
+                    padding: "11px 14px",
+                    color: "#005F7A",
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {q.sample}
                 </div>
-                {showSample ? (
-                  <p className="text-[13px] leading-relaxed italic text-slate-700">&ldquo;{q.sample}&rdquo;</p>
-                ) : (
-                  <p className="text-[13px] leading-relaxed text-slate-400">Click to reveal a structural example of a strong answer.</p>
-                )}
-              </div>
+              ) : null}
             </div>
 
             {/* Nav */}
-            <div className="flex items-center justify-between pt-6 border-t border-slate-200/50">
+            <div className="flex items-center justify-between pt-6" style={{ borderTop: "0.5px solid rgba(15,23,42,0.12)" }}>
               <button
                 onClick={handlePrev}
-                className="h-11 px-6 flex items-center gap-2 text-[14px] font-bold text-slate-500 hover:bg-white/60 hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-white"
+                className="text-[13px] font-medium"
+                style={{ color: "rgba(15,23,42,0.32)" }}
               >
                 Previous
               </button>
               <button
                 data-journey-id="story-next"
                 onClick={handleNext}
-                className="h-11 px-8 flex items-center gap-2 text-[14px] font-bold text-white rounded-xl shadow-lg transition-all hover:opacity-90 active:scale-[0.98]"
-                style={{ background: isLast ? "#10B981" : TEAL }}
+                disabled={!meaningful}
+                className="h-11 px-6 flex items-center gap-2 text-[13px] font-semibold text-white transition-opacity"
+                style={{ background: TEAL, borderRadius: 8, opacity: meaningful ? 1 : 0.45 }}
               >
-                {isLast ? (
-                  <>
-                    <span>Craft Storyboard</span>
-                    <Zap size={16} fill="white" />
-                  </>
-                ) : isLastInPillar ? (
-                  <>
-                    <span>Complete {q.pillar}</span>
-                    <ChevronRight size={16} />
-                  </>
-                ) : (
-                  <>
-                    <span>Next Step</span>
-                    <ChevronRight size={16} />
-                  </>
-                )}
+                <span>Next question →</span>
               </button>
             </div>
           </div>
@@ -515,10 +527,11 @@ export default function NewStoryBoardFlowClient() {
           {/* ══════════════ RIGHT — Single Progress Card (35%) ══════════════ */}
           <div className="w-full md:w-[35%] md:sticky md:top-24">
             <div
-              className={`bg-white rounded-[20px] border border-slate-200 shadow-[0_2px_12px_rgba(0,0,0,0.04)] relative ${
+              className={`bg-white rounded-[10px] border border-slate-200 relative ${
                 journeyTipsOn && journeyTipIdx === 1 ? "overflow-visible" : "overflow-hidden"
               }`}
               data-journey-id="story-progress"
+              style={{ borderWidth: 0.5, borderColor: BORDER }}
             >
               {journeyTipsOn && journeyTipIdx === 1 ? (
                 <div className="absolute right-6 top-4 w-[360px] max-w-[92vw] rounded-[16px] border border-black/10 bg-white shadow-[0_24px_70px_rgba(2,6,23,0.20)] px-4 py-3 z-10">
@@ -552,15 +565,15 @@ export default function NewStoryBoardFlowClient() {
                 </div>
               ) : null}
               {/* Card header */}
-              <div className="px-6 pt-6 pb-5 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-[17px] font-bold text-slate-900 tracking-tight">Storyboard Progress</h2>
-                <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
-                  {PILLAR_ORDER.filter((p) => isPillarDone(p)).length}/{PILLAR_ORDER.length} pillars
+              <div className="px-5 pt-5 pb-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="text-[13px] font-semibold text-slate-900 tracking-tight">Story progress</h2>
+                <span className="text-[11px] text-slate-500 bg-slate-100 px-2.5 py-1 rounded-full">
+                  1 of 4 pillars
                 </span>
               </div>
 
               {/* Pillar list */}
-              <div className="px-6 py-5 space-y-5">
+              <div className="px-5 py-4 space-y-4">
                 {PILLAR_ORDER.map((pillar) => {
                   const qs = questionsForPillar(pillar);
                   const active = isPillarActive(pillar);
@@ -569,53 +582,67 @@ export default function NewStoryBoardFlowClient() {
                   return (
                     <div key={pillar}>
                       {/* Pillar row */}
-                      <div className="flex items-center justify-between mb-2">
+                      <div
+                        className="flex items-center justify-between px-3 py-2 rounded-lg"
+                        style={active ? { background: "#F0F9FC" } : undefined}
+                      >
                         <div className="flex items-center gap-3">
-                          {done ? (
-                            <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0" style={{ background: TEAL }}>
-                              <svg width="9" height="7" viewBox="0 0 10 8" fill="none">
-                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                              </svg>
-                            </div>
-                          ) : active ? (
-                            <div className="w-[18px] h-[18px] rounded-full border-[2px] flex items-center justify-center shrink-0" style={{ borderColor: TEAL }}>
+                          {active ? (
+                            <div className="w-[18px] h-[18px] rounded-full border-[1.5px] flex items-center justify-center shrink-0" style={{ borderColor: TEAL }}>
                               <div className="w-[6px] h-[6px] rounded-full" style={{ background: TEAL }} />
                             </div>
+                          ) : done ? (
+                            <div className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0" style={{ background: "#E1F5EE" }}>
+                              <Check size={12} className="text-emerald-600" />
+                            </div>
                           ) : (
-                            <div className="w-[18px] h-[18px] rounded-full border-2 border-slate-200 shrink-0" />
+                            <div className="w-[18px] h-[18px] rounded-full border border-slate-200 shrink-0" />
                           )}
-                          <span className={`text-[14px] font-bold ${done || active ? "text-slate-900" : "text-slate-400"}`}>{pillar}</span>
+                          <span className="text-[12px]" style={{ fontWeight: active ? 500 : 400, color: active ? "#0F172A" : "rgba(15,23,42,0.32)" }}>
+                            {pillar}
+                          </span>
                         </div>
-                        {active && <span className="text-[11px] font-medium text-[#0087A8]">In Progress</span>}
-                        {done && <span className="text-[11px] font-medium text-emerald-600">Done</span>}
+                        {active ? (
+                          <span className="text-[10px] font-medium" style={{ color: TEAL }}>
+                            In progress
+                          </span>
+                        ) : (
+                          <span className="text-[11px]" style={{ color: "rgba(15,23,42,0.32)" }}>
+                            3 questions
+                          </span>
+                        )}
                       </div>
 
                       {/* Questions sub-list — only for active or done pillar */}
-                      {(active || done) && (
-                        <div className="pl-[30px] flex flex-col gap-2.5 mb-1">
+                      {active && (
+                        <div className="pl-9 pr-3 pt-2 pb-1 flex flex-col gap-2">
                           {qs.map((qu) => {
                             const answered = (answers[qu.id] || "").trim().length > 0;
                             const isQActive = qu.id === q.id;
+                            const isCompletedQ =
+                              QUESTIONS.indexOf(qu) < QUESTIONS.indexOf(q) && qu.pillar === q.pillar;
                             return (
-                              <div key={qu.id} className="flex items-start justify-between gap-2">
+                              <div key={qu.id} className="flex items-center justify-between gap-2">
                                 <span
-                                  className={`text-[12.5px] leading-snug ${
-                                    isQActive
-                                      ? "text-slate-800 font-medium"
-                                      : answered
-                                        ? "text-slate-400 line-through decoration-slate-300"
-                                        : "text-slate-500"
-                                  }`}
+                                  className="block h-2 w-2 rounded-full shrink-0"
+                                  style={{
+                                    background: isCompletedQ
+                                      ? "#1D9E75"
+                                      : isQActive
+                                        ? TEAL
+                                        : "var(--color-border-tertiary, rgba(15,23,42,0.12))",
+                                  }}
+                                  aria-hidden
+                                />
+                                <span
+                                  className="text-[11px] leading-snug"
+                                  style={{
+                                    color: isQActive ? TEAL : "rgba(15,23,42,0.32)",
+                                    fontWeight: isQActive ? 500 : 400,
+                                  }}
                                 >
                                   {qu.question}
                                 </span>
-                                {answered && !isQActive && (
-                                  <div className="w-[14px] h-[14px] rounded-full bg-slate-300 flex items-center justify-center shrink-0 mt-0.5">
-                                    <svg width="8" height="6" viewBox="0 0 10 8" fill="none">
-                                      <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -625,16 +652,20 @@ export default function NewStoryBoardFlowClient() {
                   );
                 })}
               </div>
+            </div>
 
-              {/* Divider */}
-              <div className="h-px bg-slate-100 mx-6" />
-
-              {/* What interviewers test — merged into same card */}
-              <div className="px-6 py-5">
-                <p className="text-[12px] font-bold uppercase tracking-[0.14em] text-slate-400 mb-3">What Interviewers Test</p>
-                <div className="flex items-center gap-2 mb-2">
+            {/* What interviewers test — separate card */}
+            <div
+              className="mt-4 bg-white rounded-[10px] border border-slate-200 overflow-hidden"
+              style={{ borderWidth: 0.5, borderColor: BORDER }}
+            >
+              <div className="px-5 pt-5 pb-4">
+                <p className="text-[10px] font-medium tracking-[0.14em]" style={{ color: "rgba(15,23,42,0.32)" }}>
+                  What interviewers test
+                </p>
+                <div className="flex items-center gap-2 mt-3 mb-2">
                   <PillarIcon size={14} style={{ color: meta.color }} />
-                  <span className="text-[13px] font-bold text-slate-900">{q.pillar}</span>
+                  <span className="text-[13px] font-semibold text-slate-900">{q.pillar}</span>
                 </div>
                 <p className="text-[13px] leading-relaxed text-slate-500">{meta.signal}</p>
               </div>

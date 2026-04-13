@@ -18,10 +18,26 @@ interface UserState {
   jd: string;
   resume: string;
   onboarded: boolean;
+  // Basic profile/account fields (prototype)
+  email?: string;
+  targetRole?: string;
+  timezone?: string;
+  location?: string;
+  notifications?: {
+    productUpdates?: boolean;
+    reminders?: boolean;
+  };
+  marketingConsent?: boolean;
+  createdAt?: string;
+  lastActiveAt?: string;
+  accountStatus?: {
+    passwordResetLastRequestedAt?: string;
+  };
 }
 
 interface UserContextType {
   user: UserState;
+  isLoaded: boolean;
   updateUser: (data: Partial<UserState>) => void;
   resetUser: () => void;
 }
@@ -36,6 +52,15 @@ const defaultUser: UserState = {
   jd: "",
   resume: "",
   onboarded: false,
+  email: "",
+  targetRole: "",
+  timezone: "",
+  location: "",
+  notifications: { productUpdates: true, reminders: true },
+  marketingConsent: false,
+  createdAt: "",
+  lastActiveAt: "",
+  accountStatus: { passwordResetLastRequestedAt: "" },
 };
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -49,8 +74,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     const saved = localStorage.getItem("proofdive_user");
     if (saved) {
       try {
-        const parsed = JSON.parse(saved) as UserState;
-        startTransition(() => setUser(parsed));
+        const parsed = JSON.parse(saved) as Partial<UserState>;
+        startTransition(() => setUser({ ...defaultUser, ...parsed }));
       } catch {
         /* ignore corrupt storage */
       }
@@ -75,7 +100,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, updateUser, resetUser }}>
+    <UserContext.Provider value={{ user, isLoaded, updateUser, resetUser }}>
       {children}
     </UserContext.Provider>
   );

@@ -1,15 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-
-/** Email sign-in: existing (onboarded) users → returning dashboard; new users → onboarding. */
+/**
+ * Email sign-in: onboarded users → `/dashboard`. New / incomplete accounts → onboarding.
+ */
 function postEmailSignInPath(): string {
   if (typeof window === "undefined") return "/onboarding";
   try {
     const saved = localStorage.getItem("proofdive_user");
     if (saved) {
       const parsed = JSON.parse(saved) as { onboarded?: boolean };
-      if (parsed.onboarded) return "/dashboard/returning";
+      if (parsed.onboarded) return "/dashboard";
     }
   } catch {
     /* ignore corrupt storage */
@@ -48,6 +49,11 @@ export default function LoginPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2">
               <button
                 onClick={() => {
+                  try {
+                    window.localStorage.setItem("proofdive_login_method", "google");
+                  } catch {
+                    /* ignore */
+                  }
                   router.push("/onboarding");
                 }}
                 className="w-full flex flex-col items-start gap-[7px] p-[20px] hover:bg-white/10 transition-colors group sm:border-r sm:border-[#CBD5E1]"
@@ -77,6 +83,11 @@ export default function LoginPage() {
 
               <button
                 onClick={() => {
+                  try {
+                    window.localStorage.setItem("proofdive_login_method", "linkedin");
+                  } catch {
+                    /* ignore */
+                  }
                   router.push("/onboarding");
                 }}
                 className="w-full flex flex-col items-start gap-[7px] p-[20px] border-t border-[#CBD5E1] hover:bg-white/10 transition-colors group sm:border-t-0"

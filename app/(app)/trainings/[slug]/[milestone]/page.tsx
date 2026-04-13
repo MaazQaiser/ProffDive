@@ -1,9 +1,9 @@
 "use client";
 
-import { notFound } from "next/navigation";
+import { notFound, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { use, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getTraining, unsplashUrl, type Step } from "@/lib/trainings-data";
 import { completeJourneyStep } from "@/lib/guided-journey";
 import type { LucideIcon } from "lucide-react";
@@ -139,8 +139,11 @@ function VideoStep({ step, trainingUnsplashId }: { step: Step; trainingUnsplashI
 
 // ─── Main Page ──────────────────────────────────────────────────────────────
 
-export default function MilestonePage({ params }: { params: Promise<{ slug: string; milestone: string }> }) {
-  const { slug, milestone } = use(params);
+export default function MilestonePage() {
+  const params = useParams<{ slug?: string; milestone?: string }>();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
+  const milestone = typeof params?.milestone === "string" ? params.milestone : "";
+  if (!slug || !milestone) notFound();
   const training = getTraining(slug);
   if (!training) notFound();
 

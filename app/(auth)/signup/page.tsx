@@ -30,7 +30,12 @@ export default function SignupPage() {
             <div className="overflow-hidden rounded-[12px] shadow-[0px_4px_20px_0px_rgba(0,0,0,0.06)] backdrop-blur-[21px] bg-[rgba(255,255,255,0.4)] border border-white/20 mb-2">
               <button
                 type="button"
-                onClick={() => router.push("/onboarding")}
+                onClick={() => {
+                  try {
+                    window.localStorage.setItem("proofdive_login_method", "google");
+                  } catch {}
+                  router.push("/onboarding?provider=google");
+                }}
                 className="w-full flex flex-col items-start gap-[7px] p-[20px] hover:bg-white/10 transition-colors group text-left"
               >
                 <div className="w-[28px] h-[28px] rounded-full overflow-hidden flex items-center justify-center bg-white border border-gray-100">

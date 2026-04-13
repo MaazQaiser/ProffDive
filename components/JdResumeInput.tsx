@@ -17,23 +17,37 @@ import { useRef, useState } from "react";
 import { Upload, X, FileText, ClipboardPaste } from "lucide-react";
 
 interface Props {
-  label: string;
+  label?: string;
   placeholder?: string;
   value: string;
   onChange: (val: string) => void;
   onRemove: () => void;
   accentColor?: string;
   compact?: boolean;
+  variant?: "tabs" | "stacked";
+  hideLabel?: boolean;
+  uploadLabel?: string;
+  uploadSublabel?: string;
+  uploadAccept?: string;
+  uploadDividerText?: string;
+  uploadDividerActionLabel?: string;
 }
 
 export function JdResumeInput({
-  label,
+  label = "",
   placeholder = "Paste or upload content...",
   value,
   onChange,
   onRemove,
   accentColor = "#0087A8",
   compact = false,
+  variant = "tabs",
+  hideLabel = false,
+  uploadLabel = "Drop file here or browse",
+  uploadSublabel = ".txt, .pdf, .doc, .docx",
+  uploadAccept = ".txt,.pdf,.doc,.docx",
+  uploadDividerText,
+  uploadDividerActionLabel = "Paste instead",
 }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [tab, setTab]       = useState<"paste" | "upload">("paste");
@@ -76,63 +90,66 @@ export function JdResumeInput({
 
   return (
     <div style={{ width: "100%" }}>
-      {/* Header row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-        <p style={{
-          fontSize: compact ? 10 : 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.14em",
-          color: "rgba(15,15,15,0.40)",
-        }}>
-          {label}
-        </p>
-        <button
-          onClick={onRemove}
-          style={{ background: "none", border: "none", color: "rgba(15,15,15,0.30)", cursor: "pointer", padding: "2px 4px", fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}
-        >
-          <X size={11} /> Remove
-        </button>
-      </div>
+      {/* Header row (tabs variant only) */}
+      {variant === "tabs" && !hideLabel && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <p style={{
+            fontSize: compact ? 10 : 11,
+            fontWeight: 700,
+            letterSpacing: "0.14em",
+            color: "rgba(15,15,15,0.40)",
+          }}>
+            {label}
+          </p>
+          <button
+            onClick={onRemove}
+            style={{ background: "none", border: "none", color: "rgba(15,15,15,0.30)", cursor: "pointer", padding: "2px 4px", fontSize: 11, display: "flex", alignItems: "center", gap: 3 }}
+          >
+            <X size={11} /> Remove
+          </button>
+        </div>
+      )}
 
       {/* Tab switcher */}
-      <div style={{
-        display: "flex",
-        gap: 2,
-        padding: 3,
-        background: "rgba(0,0,0,0.05)",
-        borderRadius: 8,
-        marginBottom: 8,
-        width: "fit-content",
-      }}>
-        {(["paste", "upload"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{
-              padding: compact ? "3px 10px" : "4px 12px",
-              fontSize: compact ? 10 : 11,
-              fontWeight: 600,
-              borderRadius: 6,
-              border: "none",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-              background: tab === t ? "#fff" : "transparent",
-              color: tab === t ? "#0F0F0F" : "rgba(15,15,15,0.42)",
-              boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-              transition: "all 0.15s",
-            }}
-          >
-            {t === "paste" ? <ClipboardPaste size={10} /> : <Upload size={10} />}
-            {t === "paste" ? "Paste" : "Upload"}
-          </button>
-        ))}
-      </div>
+      {variant === "tabs" && (
+        <div style={{
+          display: "flex",
+          gap: 2,
+          padding: 3,
+          background: "rgba(0,0,0,0.05)",
+          borderRadius: 8,
+          marginBottom: 8,
+          width: "fit-content",
+        }}>
+          {(["paste", "upload"] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: compact ? "3px 10px" : "4px 12px",
+                fontSize: compact ? 10 : 11,
+                fontWeight: 600,
+                borderRadius: 8,
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
+                background: tab === t ? "#fff" : "transparent",
+                color: tab === t ? "#0F0F0F" : "rgba(15,15,15,0.42)",
+                boxShadow: tab === t ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                transition: "all 0.15s",
+              }}
+            >
+              {t === "paste" ? <ClipboardPaste size={10} /> : <Upload size={10} />}
+              {t === "paste" ? "Paste" : "Upload"}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Paste tab */}
-      {tab === "paste" && (
+      {variant === "tabs" && tab === "paste" && (
         <textarea
           value={value}
           onChange={(e) => { onChange(e.target.value); setFileName(null); }}
@@ -146,12 +163,12 @@ export function JdResumeInput({
       )}
 
       {/* Upload tab */}
-      {tab === "upload" && (
+      {variant === "tabs" && tab === "upload" && (
         <div>
           <input
             ref={fileRef}
             type="file"
-            accept=".txt,.pdf,.doc,.docx"
+            accept={uploadAccept}
             style={{ display: "none" }}
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -162,7 +179,7 @@ export function JdResumeInput({
             onDrop={handleDrop}
             style={{
               border: `1.5px dashed ${dragging ? accentColor : "rgba(0,0,0,0.14)"}`,
-              borderRadius: 10,
+              borderRadius: 8,
               padding: compact ? "16px 12px" : "20px 16px",
               textAlign: "center",
               cursor: "pointer",
@@ -185,12 +202,38 @@ export function JdResumeInput({
               <>
                 <Upload size={compact ? 16 : 18} style={{ color: accentColor, margin: "0 auto 6px" }} />
                 <p style={{ fontSize: compact ? 11 : 12, fontWeight: 600, color: "#0F0F0F", marginBottom: 2 }}>
-                  Drop file here or <span style={{ color: accentColor }}>browse</span>
+                  {uploadLabel}
                 </p>
-                <p style={{ fontSize: 12, color: "rgba(15,15,15,0.38)" }}>.txt, .pdf, .doc, .docx</p>
+                <p style={{ fontSize: 12, color: "rgba(15,15,15,0.38)" }}>{uploadSublabel}</p>
               </>
             )}
           </div>
+          {!fileName && uploadDividerText && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+              <div style={{ height: 1, background: "rgba(0,0,0,0.08)", flex: 1 }} />
+              <button
+                type="button"
+                onClick={() => setTab("paste")}
+                style={{
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "baseline",
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 11, color: "rgba(15,15,15,0.38)", fontWeight: 600 }}>
+                  {uploadDividerText}
+                </span>
+                <span style={{ fontSize: 11, color: accentColor, fontWeight: 700 }}>
+                  {uploadDividerActionLabel}
+                </span>
+              </button>
+              <div style={{ height: 1, background: "rgba(0,0,0,0.08)", flex: 1 }} />
+            </div>
+          )}
           {/* Also show extracted text preview if file loaded */}
           {fileName && value && (
             <textarea
@@ -200,6 +243,87 @@ export function JdResumeInput({
               style={{ ...TA_STYLE, marginTop: 8, color: "rgba(15,15,15,0.55)", fontSize: 11 }}
             />
           )}
+        </div>
+      )}
+
+      {/* Stacked variant (no toggle) */}
+      {variant === "stacked" && (
+        <div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept={uploadAccept}
+            style={{ display: "none" }}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+          <div
+            onClick={() => fileRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={handleDrop}
+            style={{
+              border: `1.5px dashed ${dragging ? accentColor : "rgba(0,0,0,0.14)"}`,
+              borderRadius: 8,
+              padding: compact ? "16px 12px" : "20px 16px",
+              textAlign: "center",
+              cursor: "pointer",
+              background: dragging ? `${accentColor}08` : "rgba(255,255,255,0.40)",
+              transition: "all 0.18s",
+              position: "relative",
+            }}
+          >
+            {fileName ? (
+              <>
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setFileName(null); onChange(""); onRemove(); }}
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    background: "rgba(255,255,255,0.7)",
+                    border: "1px solid rgba(0,0,0,0.08)",
+                    borderRadius: 8,
+                    padding: "4px 10px",
+                    color: "rgba(15,15,15,0.55)",
+                    cursor: "pointer",
+                    fontSize: 11,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  }}
+                >
+                  × Remove
+                </button>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <FileText size={16} style={{ color: accentColor }} />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#0F0F0F" }}>{fileName}</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <Upload size={compact ? 16 : 18} style={{ color: accentColor, margin: "0 auto 6px" }} />
+                <p style={{ fontSize: compact ? 11 : 12, fontWeight: 600, color: "#0F0F0F", marginBottom: 2 }}>
+                  {uploadLabel}
+                </p>
+                <p style={{ fontSize: 12, color: "rgba(15,15,15,0.38)" }}>{uploadSublabel}</p>
+              </>
+            )}
+          </div>
+
+          <p style={{ marginTop: 10, fontSize: 11, color: "rgba(15,15,15,0.38)", fontWeight: 600 }}>
+            {uploadDividerText ?? "or paste your resume text"}
+          </p>
+
+          <textarea
+            value={value}
+            onChange={(e) => { onChange(e.target.value); setFileName(null); }}
+            rows={rows}
+            placeholder={placeholder}
+            style={{ ...TA_STYLE, marginTop: 8 }}
+            onFocus={(e) => (e.target.style.borderColor = accentColor)}
+            onBlur={(e) => (e.target.style.borderColor = "rgba(0,0,0,0.09)")}
+          />
         </div>
       )}
     </div>

@@ -65,7 +65,7 @@ const PILLAR_COLORS: Record<Pillar, string> = {
   Thinking: "#D97706",
   Action: "#0087A8",
   People: "#16A34A",
-  Mastery: "#7C3AED",
+  Mastery: "#059669",
 };
 
 export { PILLAR_COLORS };
