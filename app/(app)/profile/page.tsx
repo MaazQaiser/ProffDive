@@ -1,44 +1,22 @@
 "use client";
 
+import Image from "next/image";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
+import { Urbanist } from "next/font/google";
+import { ArrowUpRight, ChevronRight, Pencil, Sparkles } from "lucide-react";
+import { useUser } from "@/lib/user-context";
+import { readReports } from "@/lib/report-store";
 
-const BRAND = "#0087A8";
-const BORDER = "0.5px solid var(--color-border-tertiary)";
+const urbanist = Urbanist({
+  subsets: ["latin"],
+  display: "swap",
+});
 
-function PencilIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
-      <path
-        d="M12.2 6.2L17.8 11.8"
-        stroke="rgba(15,23,42,0.65)"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M7.1 16.9L6.3 18.9L8.3 18.1L18.2 8.2C18.9 7.5 18.9 6.4 18.2 5.7L18.3 5.8C17.6 5.1 16.5 5.1 15.8 5.8L7.1 14.5V16.9Z"
-        stroke="rgba(15,23,42,0.65)"
-        strokeWidth="1.6"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
+const glassCard =
+  "relative overflow-hidden rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
 
-function ChevronRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ display: "block" }}>
-      <path
-        d="M9 6.5L15 12L9 17.5"
-        stroke="var(--color-text-tertiary)"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function Card({
+function CardShell({
   title,
   action,
   children,
@@ -48,26 +26,10 @@ function Card({
   children: ReactNode;
 }) {
   return (
-    <section
-      style={{
-        background: "#fff",
-        border: BORDER,
-        borderRadius: 10,
-        overflow: "hidden",
-      }}
-    >
-      <div
-        style={{
-          padding: "0.9rem 1.25rem",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 12,
-          borderBottom: BORDER,
-        }}
-      >
-        <div style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)" }}>{title}</div>
-        {action ? <div style={{ fontSize: 12, fontWeight: 500, color: BRAND }}>{action}</div> : <div />}
+    <section className={glassCard}>
+      <div className="flex items-center justify-between gap-3 border-b border-[#E2E8F0] px-5 py-4">
+        <h2 className="text-[16px] font-medium text-[#475569]">{title}</h2>
+        {action ? <div className="shrink-0">{action}</div> : null}
       </div>
       {children}
     </section>
@@ -76,14 +38,13 @@ function Card({
 
 function Field({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div>
-      <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginBottom: 4 }}>{label}</div>
+    <div className="min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">{label}</div>
       <div
-        style={{
-          fontSize: 13,
-          color: muted ? "var(--color-text-tertiary)" : "var(--color-text-primary)",
-          fontStyle: muted ? "italic" : "normal",
-        }}
+        className={[
+          "mt-1 text-[14px] leading-snug",
+          muted ? "text-[#94A3B8] italic" : "text-[#1E293B]",
+        ].join(" ")}
       >
         {value}
       </div>
@@ -91,350 +52,245 @@ function Field({ label, value, muted }: { label: string; value: string; muted?: 
   );
 }
 
-export default function ProfilePage() {
+function UsageLimitCard() {
+  const now = Date.now();
+  const windowDays = 30;
+  const limit = 12; // prototype limit for "AI insights" in a rolling 30-day window
+
+  const used = useMemo(() => {
+    try {
+      const reports = readReports();
+      const cutoff = now - windowDays * 24 * 60 * 60 * 1000;
+      return reports.filter((r) => {
+        const t = Date.parse(r.createdAt || "");
+        if (Number.isNaN(t)) return false;
+        return t >= cutoff;
+      }).length;
+    } catch {
+      return 0;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const pct = Math.min(100, Math.max(0, Math.round((used / Math.max(1, limit)) * 100)));
+  const over = used > limit;
+
   return (
-    <div style={{ background: "var(--color-background-secondary)", minHeight: "calc(100vh - 56px)" }}>
-      {/* Profile header */}
-      <div style={{ background: "#fff", borderBottom: BORDER }}>
-        <div
-          style={{
-            maxWidth: 860,
-            margin: "0 auto",
-            padding: "1.75rem 2rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "1.25rem",
-          }}
-        >
-          <div style={{ position: "relative", width: 64, height: 64, flexShrink: 0 }}>
-            <div
-              aria-hidden
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 999,
-                background: BRAND,
-                color: "#fff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 22,
-                fontWeight: 500,
-              }}
-            >
-              MQ
-            </div>
-            <button
-              type="button"
-              aria-label="Edit avatar"
-              style={{
-                position: "absolute",
-                right: -2,
-                bottom: -2,
-                width: 20,
-                height: 20,
-                borderRadius: 999,
-                background: "#fff",
-                border: BORDER,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                padding: 0,
-                cursor: "pointer",
-              }}
-            >
-              <PencilIcon />
-            </button>
+    <CardShell
+      title="Usage limit"
+      action={
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/40 px-3 py-1.5 text-[11px] font-semibold text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px]">
+          <Sparkles size={14} aria-hidden />
+          AI insights
+        </span>
+      }
+    >
+      <div className="px-5 py-5">
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[14px] font-semibold text-[#1E293B]">
+              {used}/{limit} used
+            </p>
+            <p className="mt-1 text-[12px] text-[#64748B]">Rolling {windowDays}-day window</p>
           </div>
-
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 18, fontWeight: 500, color: "var(--color-text-primary)" }}>Maaz Qaiser</div>
-            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginTop: 4 }}>
-              Still studying · Product Manager
-            </div>
-          </div>
-
-          <div style={{ textAlign: "right", flexShrink: 0 }}>
-            <div style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>Readiness score</div>
-            <div style={{ fontSize: 22, fontWeight: 500, color: "var(--color-text-tertiary)", marginTop: 2 }}>--</div>
-          </div>
+          <p className={["text-[12px] font-semibold", over ? "text-[#B91C1C]" : "text-[#0A89A9]"].join(" ")}>
+            {over ? "Limit exceeded" : `${pct}%`}
+          </p>
         </div>
+
+        <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-200/90">
+          <div
+            className={["h-full rounded-full transition-[width] duration-300", over ? "bg-[#EF4444]" : "bg-[#0A89A9]"].join(
+              " "
+            )}
+            style={{ width: `${Math.min(100, pct)}%` }}
+            aria-hidden
+          />
+        </div>
+
+        <p className="mt-3 text-[12px] leading-snug text-[#64748B]">
+          We count generated feedback reports toward this limit. Upgrade limits will be wired once billing lands.
+        </p>
       </div>
+    </CardShell>
+  );
+}
 
-      {/* Content layout */}
-      <div
-        style={{
-          maxWidth: 860,
-          margin: "0 auto",
-          padding: "1.75rem 2rem",
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) 260px",
-          gap: "1.25rem",
-          alignItems: "start",
-        }}
-      >
-        {/* Left column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          {/* Card 1 */}
-          <Card title="Personal information" action={<button type="button" style={{ border: 0, background: "transparent", color: BRAND, cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 500 }}>Edit</button>}>
-            <div style={{ padding: "1rem 1.25rem" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-                <Field label="Full name" value="Maaz Qaiser" />
-                <Field label="Email" value="maaz@email.com" />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-                <Field label="Career stage" value="Still studying" />
-                <Field label="University" value="Not added" muted />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <Field label="Graduation year" value="Not added" muted />
-                <Field label="Member since" value="April 2026" />
-              </div>
-            </div>
-          </Card>
+export default function ProfilePage() {
+  const { user, isLoaded, resetUser } = useUser();
 
-          {/* Card 2 */}
-          <Card title="Target roles" action={<button type="button" style={{ border: 0, background: "transparent", color: BRAND, cursor: "pointer", padding: 0, fontSize: 12, fontWeight: 500 }}>Manage</button>}>
-            <div style={{ padding: "0.5rem 1.25rem 0.8rem" }}>
-              {[
-                { name: "Product Manager", active: true },
-                { name: "UX Designer", active: false },
-              ].map((r, idx) => (
-                <div
-                  key={r.name}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: 12,
-                    padding: "10px 0",
-                    borderBottom: idx === 1 ? "none" : "0.5px solid var(--color-border-tertiary)",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-                    <div
-                      aria-hidden
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 999,
-                        background: r.active ? BRAND : "var(--color-border-tertiary)",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <div style={{ fontSize: 13, color: "var(--color-text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {r.name}
-                    </div>
-                  </div>
+  const initial = useMemo(() => {
+    const f = (user.name || "P").trim().charAt(0);
+    return f ? f.toUpperCase() : "P";
+  }, [user.name]);
 
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                    {r.active ? (
-                      <span
-                        style={{
-                          background: "#E6F1FB",
-                          color: BRAND,
-                          fontSize: 10,
-                          borderRadius: 20,
-                          padding: "2px 8px",
-                        }}
-                      >
-                        Active
-                      </span>
-                    ) : null}
+  const displayName = useMemo(() => {
+    const raw = (user.name || "").trim();
+    if (!raw) return "Your profile";
+    return raw.split(/\s+/).join(" ");
+  }, [user.name]);
+
+  const subtitle = useMemo(() => {
+    const career = (user.career || "").trim();
+    const role = (user.targetRole || user.role || "").trim();
+    const bits = [career, role].filter(Boolean);
+    return bits.length ? bits.join(" · ") : "Interview prep";
+  }, [user.career, user.role, user.targetRole]);
+
+  const memberSince = useMemo(() => {
+    const iso = (user.createdAt || "").trim();
+    const t = Date.parse(iso);
+    if (!iso || Number.isNaN(t)) return "—";
+    return new Date(t).toLocaleString(undefined, { month: "long", year: "numeric" });
+  }, [user.createdAt]);
+
+  return (
+    <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden pb-20`}>
+      <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
+        <div
+          className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45"
+          aria-hidden
+        >
+          <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
+        </div>
+
+        <section className="relative z-[1] flex w-full flex-col items-center gap-6 px-8 py-3">
+          <div className="flex w-full max-w-[920px] flex-col items-center pt-3">
+            <h1 className="text-center text-[34px] font-normal leading-normal text-[#334155]">
+              <span className="text-[#334155]">Your</span> <span className="text-[#0A89A9]">profile</span>
+            </h1>
+            <p className="mt-2 text-center text-[14px] leading-relaxed text-[#64748B]">
+              Keep your role and details up to date — it helps tailor trainings, storyboards, and mock feedback.
+            </p>
+          </div>
+
+          <div className="mx-auto w-full max-w-[1100px]">
+            <section className={`${glassCard} p-5 sm:p-6`}>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="relative">
+                    <span className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-[#0087A8] to-[#006785] text-[16px] font-bold text-white shadow-sm ring-2 ring-white">
+                      {initial}
+                    </span>
                     <button
                       type="button"
-                      style={{
-                        border: 0,
-                        background: "transparent",
-                        padding: 0,
-                        cursor: "pointer",
-                        fontSize: 11,
-                        color: "var(--color-text-tertiary)",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!r.active) return;
-                        (e.currentTarget as HTMLButtonElement).style.color = "#E24B4A";
-                      }}
-                      onMouseLeave={(e) => {
-                        (e.currentTarget as HTMLButtonElement).style.color = "var(--color-text-tertiary)";
-                      }}
+                      aria-label="Edit avatar"
+                      className="absolute -bottom-1 -right-1 inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/90 bg-white/70 text-slate-600 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur-[14px] transition-colors hover:bg-white"
                     >
-                      Remove
+                      <Pencil size={14} aria-hidden />
                     </button>
                   </div>
-                </div>
-              ))}
 
-              <button
-                type="button"
-                style={{
-                  paddingTop: 10,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  border: 0,
-                  background: "transparent",
-                  color: BRAND,
-                  cursor: "pointer",
-                  fontSize: 12,
-                  fontWeight: 500,
-                }}
-              >
-                <span aria-hidden style={{ fontSize: 14, lineHeight: 1 }}>
-                  +
-                </span>
-                <span>Add another role</span>
-              </button>
-            </div>
-          </Card>
-
-          {/* Card 3 */}
-          <section
-            style={{
-              background: "#fff",
-              border: BORDER,
-              borderRadius: 10,
-              overflow: "hidden",
-            }}
-          >
-            {(
-              [
-                { label: "Password", sub: "Change your password", value: "" },
-                { label: "Notifications", sub: "Practice reminders and score updates", value: "On" },
-                { label: "Language", sub: "Interface and interview language", value: "English" },
-                { label: "Data & privacy", sub: "Manage your data and delete your account", value: "" },
-              ] as const
-            ).map((row, idx, arr) => (
-              <button
-                key={row.label}
-                type="button"
-                style={{
-                  width: "100%",
-                  display: "grid",
-                  gridTemplateColumns: "minmax(0, 1fr) auto auto",
-                  alignItems: "center",
-                  gap: 12,
-                  textAlign: "left",
-                  border: 0,
-                  borderBottom: idx === arr.length - 1 ? "none" : BORDER,
-                  background: "transparent",
-                  padding: "12px 1.25rem",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "var(--color-background-secondary)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: "var(--color-text-primary)" }}>{row.label}</div>
-                  <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 2 }}>{row.sub}</div>
-                </div>
-                {row.value ? (
-                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{row.value}</div>
-                ) : (
-                  <div />
-                )}
-                <div style={{ color: "var(--color-text-tertiary)" }}>
-                  <ChevronRightIcon />
-                </div>
-              </button>
-            ))}
-          </section>
-        </div>
-
-        {/* Right column */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-          <Card title="Prep progress">
-            <div style={{ padding: "0.5rem 1.25rem" }}>
-              {(
-                [
-                  { label: "Trainings", value: "In progress", valueColor: BRAND },
-                  { label: "StoryBoard", value: "Not started", valueColor: "var(--color-text-tertiary)" },
-                  { label: "Mock interviews", value: "0 sessions", valueColor: "var(--color-text-primary)" },
-                  { label: "Best score", value: "--", valueColor: "var(--color-text-primary)" },
-                ] as const
-              ).map((s, idx, arr) => (
-                <div
-                  key={s.label}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "10px 0",
-                    borderBottom: idx === arr.length - 1 ? "none" : "0.5px solid var(--color-border-tertiary)",
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{s.label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: s.valueColor }}>{s.value}</div>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="Readiness by driver">
-            <div style={{ padding: "0.5rem 1.25rem" }}>
-              {(["Thinking", "Action", "People", "Mastery"] as const).map((p, idx, arr) => (
-                <div
-                  key={p}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 0",
-                    borderBottom: idx === arr.length - 1 ? "none" : "0.5px solid var(--color-border-tertiary)",
-                  }}
-                >
-                  <div style={{ fontSize: 12, color: "var(--color-text-secondary)", flex: 1 }}>{p}</div>
-                  <div
-                    aria-hidden
-                    style={{
-                      flex: 2,
-                      height: 3,
-                      background: "var(--color-border-tertiary)",
-                      borderRadius: 3,
-                    }}
-                  />
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: "var(--color-text-tertiary)",
-                      minWidth: 24,
-                      textAlign: "right",
-                    }}
-                  >
-                    --
+                  <div className="min-w-0">
+                    <p className="truncate text-[18px] font-semibold text-[#1E293B]">
+                      {isLoaded ? displayName : "Loading…"}
+                    </p>
+                    <p className="mt-1 truncate text-[13px] text-[#64748B]">{isLoaded ? subtitle : " "}</p>
                   </div>
                 </div>
-              ))}
-            </div>
-          </Card>
 
-          <button
-            type="button"
-            style={{
-              width: "100%",
-              background: "none",
-              border: "0.5px solid #E24B4A",
-              borderRadius: 8,
-              padding: 10,
-              fontSize: 13,
-              color: "#E24B4A",
-              cursor: "pointer",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "#FCEBEB";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "none";
-            }}
-          >
-            Sign out
-          </button>
-        </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white/50 px-4 py-2 text-[13px] font-semibold text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/70"
+                  >
+                    Edit profile
+                    <ArrowUpRight size={14} aria-hidden />
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="flex min-w-0 flex-col gap-4">
+                <CardShell
+                  title="Personal information"
+                  action={
+                    <button
+                      type="button"
+                      className="text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                    >
+                      Edit
+                    </button>
+                  }
+                >
+                  <div className="grid grid-cols-1 gap-4 px-5 py-5 sm:grid-cols-2">
+                    <Field label="Full name" value={isLoaded ? (user.name?.trim() || "—") : "Loading…"} />
+                    <Field label="Email" value={isLoaded ? (user.email?.trim() || "—") : " "} muted={!user.email?.trim()} />
+                    <Field
+                      label="Career stage"
+                      value={isLoaded ? ((user.career || "").trim() || "—") : " "}
+                      muted={!((user.career || "").trim())}
+                    />
+                    <Field label="Target role" value={isLoaded ? ((user.targetRole || user.role || "").trim() || "—") : " "} muted={!((user.targetRole || user.role || "").trim())} />
+                    <Field label="Industry" value={isLoaded ? ((user.industry || "").trim() || "—") : " "} muted={!((user.industry || "").trim())} />
+                    <Field label="Member since" value={isLoaded ? memberSince : " "} muted={memberSince === "—"} />
+                  </div>
+                </CardShell>
+
+                <CardShell
+                  title="Preferences"
+                  action={
+                    <button
+                      type="button"
+                      className="text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                    >
+                      Manage
+                    </button>
+                  }
+                >
+                  <div className="divide-y divide-slate-200/70">
+                    {(
+                      [
+                        { label: "Password", sub: "Change your password", value: "" },
+                        { label: "Notifications", sub: "Practice reminders and score updates", value: "On" },
+                        { label: "Language", sub: "Interface and interview language", value: "English" },
+                        { label: "Data & privacy", sub: "Manage your data and delete your account", value: "" },
+                      ] as const
+                    ).map((row) => (
+                      <button
+                        key={row.label}
+                        type="button"
+                        className="group flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/30"
+                      >
+                        <span className="min-w-0">
+                          <span className="block text-[14px] font-medium text-[#1E293B]">{row.label}</span>
+                          <span className="mt-0.5 block text-[12px] text-[#64748B]">{row.sub}</span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2 text-[#94A3B8]">
+                          {row.value ? <span className="text-[12px] font-medium text-[#64748B]">{row.value}</span> : null}
+                          <ChevronRight size={18} aria-hidden className="transition-transform group-hover:translate-x-0.5" />
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </CardShell>
+              </div>
+
+              <aside className="flex min-w-0 flex-col gap-4">
+                <UsageLimitCard />
+
+                <CardShell title="Account">
+                  <div className="px-5 py-5">
+                    <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-[#94A3B8]">Status</p>
+                    <p className="mt-1 text-[14px] font-semibold text-[#1E293B]">Active</p>
+                    <p className="mt-2 text-[12px] text-[#64748B]">
+                      This is a prototype account stored locally in your browser for now.
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={resetUser}
+                      className="mt-5 inline-flex w-full items-center justify-center rounded-full border border-[#FCA5A5] bg-white/40 px-4 py-2.5 text-[13px] font-semibold text-[#B91C1C] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:bg-red-50/60"
+                    >
+                      Sign out
+                    </button>
+                  </div>
+                </CardShell>
+              </aside>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -478,14 +478,14 @@ export default function OnboardingPage() {
                                 className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400"
                                 htmlFor="onboarding-background"
                               >
-                                Tell us about your path
+                                University information
                               </label>
                               <textarea
                                 id="onboarding-background"
                                 value={backgroundNotes}
                                 onChange={(e) => setBackgroundNotes(e.target.value)}
                                 rows={3}
-                                placeholder="e.g. Final-year CS major, internship at a bank, pivoting into product…"
+                                placeholder="e.g. University, degree, graduation year, major or focus…"
                                 className="w-full resize-none rounded-xl border-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.85)_0%,rgba(255,255,255,0.5)_100%)] px-4 py-3 text-[14px] text-[#0F172A] shadow-[0px_4px_15px_0px_rgba(0,0,0,0.05)] outline-none backdrop-blur-[40px] placeholder:text-slate-400 focus:ring-2 focus:ring-[#0087A8]/15"
                               />
                             </div>

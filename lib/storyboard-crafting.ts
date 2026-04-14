@@ -67,10 +67,34 @@ export const SECTION_DEFS: { id: string; pillar: string; title: string }[] = [
   { id: "mastery-innovation", pillar: "Power of Mastery (Technical)", title: "SkillForge" },
 ];
 
-function seedIntroCar(journeyLabel?: string): CarBlock {
-  const context = journeyLabel?.trim()
-    ? `Write one short paragraph for "${journeyLabel.trim()}": your role in this context, scope, and how this journey shows up in interviews.`
-    : "Write one short paragraph: your role, scope, and a line that previews the competency stories you will cover in this storyboard.";
+export type StorySeedContext = {
+  /** Primary framing for the storyboard (the "role") */
+  roleTitle?: string;
+  /**
+   * Optional: a single experience label (legacy / per-experience seed).
+   * Kept for backward compatibility with older routes and saved data.
+   */
+  experienceLabel?: string;
+  /** Optional: all experience labels for the role; preferred for role-based story framing. */
+  experienceLabels?: string[];
+};
+
+function seedIntroCar(ctx?: StorySeedContext): CarBlock {
+  const role = ctx?.roleTitle?.trim() || "";
+  const all = (ctx?.experienceLabels ?? []).map((x) => x.trim()).filter(Boolean);
+  const single = ctx?.experienceLabel?.trim() || "";
+
+  const experienceLines =
+    all.length > 0
+      ? `\n\nUse these experiences as evidence (do not list them verbatim, just weave them naturally):\n- ${all.join("\n- ")}`
+      : single
+        ? `\n\nUse this experience as evidence (do not list it verbatim, just weave it naturally):\n- ${single}`
+        : "";
+
+  const context = role
+    ? `Write one short paragraph introducing you as a "${role}": your scope, how you operate, and what kinds of outcomes you drive. Make it interview-ready (confident, specific, no fluff).${experienceLines}`
+    : `Write one short paragraph: your role, scope, and a line that previews the competency stories you will cover in this storyboard.${experienceLines}`;
+
   return { context, action: "", result: "" };
 }
 
@@ -83,9 +107,25 @@ function seedCar(title: string): CarBlock {
 }
 
 export function buildInitialSections(journeyLabel?: string): CraftSection[] {
+  // Back-compat: existing callers pass a single experience label. Prefer the new
+  // object signature when available.
+  const ctx: StorySeedContext | undefined =
+    typeof journeyLabel === "string" ? { experienceLabel: journeyLabel } : undefined;
+
   return SECTION_DEFS.map((d) => ({
     ...d,
-    car: isIntroSection(d.id) ? seedIntroCar(journeyLabel) : seedCar(d.title),
+    car: isIntroSection(d.id) ? seedIntroCar(ctx) : seedCar(d.title),
+    history: [],
+    prompt: "",
+    regenerationsUsed: 0,
+  }));
+}
+
+/** Preferred initializer for role-based storyboards (can include multiple experiences). */
+export function buildInitialSectionsForRole(ctx?: StorySeedContext): CraftSection[] {
+  return SECTION_DEFS.map((d) => ({
+    ...d,
+    car: isIntroSection(d.id) ? seedIntroCar(ctx) : seedCar(d.title),
     history: [],
     prompt: "",
     regenerationsUsed: 0,
@@ -161,6 +201,18 @@ export function readExperienceCraftUiStatus(experienceId: string): ExperienceCra
   return allComplete ? "ready_to_practice" : "drafted";
 }
 
+/**
+ * Hub badge for a role: draft work-in-progress wins, then any completed story, else ready to start.
+ * Empty roles are treated as ready_to_craft (no experiences yet).
+ */
+export function readRoleCraftUiStatus(role: { experiences: { id: string }[] }): ExperienceCraftUiStatus {
+  if (role.experiences.length === 0) return "ready_to_craft";
+  const statuses = role.experiences.map((e) => readExperienceCraftUiStatus(e.id));
+  if (statuses.some((s) => s === "drafted")) return "drafted";
+  if (statuses.some((s) => s === "ready_to_practice")) return "ready_to_practice";
+  return "ready_to_craft";
+}
+
 export function craftStatusLabel(status: ExperienceCraftUiStatus): string {
   switch (status) {
     case "ready_to_craft":
@@ -192,13 +244,50 @@ export function craftActionHref(experienceId: string, roleTitle: string, status:
   return `/storyboard/new?experienceId=${idQ}&role=${roleQ}`;
 }
 
+function sortExperiencesByCreatedAsc<T extends { createdAt: number }>(experiences: T[]): T[] {
+  return [...experiences].sort((a, b) => a.createdAt - b.createdAt);
+}
+
+/**
+ * Pick the experience whose craft state should drive the role-level primary CTA (matches aggregated badge).
+ */
+export function resolveRoleCraftAction(
+  role: { experiences: { id: string; createdAt: number }[] },
+  roleTitle: string
+): { experienceId: string; status: ExperienceCraftUiStatus; href: string } | null {
+  if (role.experiences.length === 0) return null;
+  const sorted = sortExperiencesByCreatedAsc(role.experiences);
+  const agg = readRoleCraftUiStatus(role);
+  let target = sorted[0]!;
+  if (agg === "drafted") {
+    target = sorted.find((e) => readExperienceCraftUiStatus(e.id) === "drafted") ?? sorted[0];
+  } else if (agg === "ready_to_practice") {
+    target = sorted.find((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice") ?? sorted[0];
+  } else {
+    target = sorted.find((e) => readExperienceCraftUiStatus(e.id) === "ready_to_craft") ?? sorted[0];
+  }
+  const st = readExperienceCraftUiStatus(target.id);
+  return { experienceId: target.id, status: st, href: craftActionHref(target.id, roleTitle, st) };
+}
+
+/** Progress weight for a single journey (matches `roleCraftProgressPercent`). */
+export function experienceCraftProgressPercent(experienceId: string): number {
+  const s = readExperienceCraftUiStatus(experienceId);
+  return s === "ready_to_practice" ? 100 : s === "drafted" ? 52 : 18;
+}
+
+/** Readiness on a 0–5 scale from craft progress (UI-only, until API-backed scores exist). */
+export function journeyReadinessFromCraft(experienceId: string): number {
+  const pct = experienceCraftProgressPercent(experienceId);
+  return Math.min(5, Math.max(0, Math.round((pct / 100) * 5 * 10) / 10));
+}
+
 /** 0 experiences → 10% placeholder; otherwise average of per-journey progress weights. */
 export function roleCraftProgressPercent(role: { experiences: { id: string }[] }): number {
   if (role.experiences.length === 0) return 10;
   let sum = 0;
   for (const e of role.experiences) {
-    const s = readExperienceCraftUiStatus(e.id);
-    sum += s === "ready_to_practice" ? 100 : s === "drafted" ? 52 : 18;
+    sum += experienceCraftProgressPercent(e.id);
   }
   return Math.max(10, Math.min(100, Math.round(sum / role.experiences.length)));
 }

@@ -152,6 +152,33 @@ export function addExperienceToRole(roleId: string, label: string): StoryExperie
   return exp;
 }
 
+/**
+ * Replace a role's experience list (used by the "Add a journey" editor screen).
+ * - Reuses existing ids by index where possible so crafted data stays attached.
+ * - Generates ids for newly added experiences.
+ */
+export function setRoleExperiences(roleId: string, experienceLabels: string[]): StoryRole | null {
+  const lib = readLibrary();
+  const role = lib.roles.find((r) => r.id === roleId);
+  if (!role) return null;
+  const now = Date.now();
+  const cleaned = experienceLabels.map((x) => x.trim()).filter(Boolean);
+
+  const nextExperiences: StoryExperience[] = cleaned.map((label, idx) => {
+    const prev = role.experiences[idx];
+    if (prev) return { ...prev, label };
+    return { id: generateStoryboardId(), label, createdAt: now };
+  });
+
+  const nextRole: StoryRole = { ...role, experiences: nextExperiences };
+  const next: StoryboardLibrary = {
+    version: 1,
+    roles: lib.roles.map((r) => (r.id === roleId ? nextRole : r)),
+  };
+  writeLibrary(next);
+  return nextRole;
+}
+
 export function findExperienceContext(
   experienceId: string
 ): { roleTitle: string; experienceLabel: string; roleId: string } | null {
@@ -161,6 +188,13 @@ export function findExperienceContext(
     if (e) return { roleTitle: r.title, experienceLabel: e.label, roleId: r.id };
   }
   return null;
+}
+
+export function listExperienceLabelsForRole(roleId: string): string[] {
+  const lib = readLibrary();
+  const role = lib.roles.find((r) => r.id === roleId);
+  if (!role) return [];
+  return role.experiences.map((e) => e.label);
 }
 
 /** Read/write key for craft JSON: library experiences use scoped keys; legacy `/storyboard/1` uses global key. */

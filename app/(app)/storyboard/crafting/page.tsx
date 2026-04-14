@@ -12,6 +12,7 @@ import { Chip } from "@/components/Chip";
 import {
   TEAL,
   buildInitialSections,
+  buildInitialSectionsForRole,
   hydrateCraftSectionsFromLocalStorage,
   isIntroSection,
   mockStoryScore,
@@ -19,7 +20,11 @@ import {
   type CarBlock,
   type CraftSection,
 } from "@/lib/storyboard-crafting";
-import { findExperienceContext, resolveCraftStorageKeyForExperienceId } from "@/lib/storyboard-library";
+import {
+  findExperienceContext,
+  listExperienceLabelsForRole,
+  resolveCraftStorageKeyForExperienceId,
+} from "@/lib/storyboard-library";
 import { readJourneyState, completeJourneyStep } from "@/lib/guided-journey";
 
 const urbanist = Urbanist({
@@ -153,8 +158,16 @@ export default function CraftingPage() {
     const key = resolveCraftStorageKeyForExperienceId(exp);
     craftKeyRef.current = key;
     const ctx = exp ? findExperienceContext(exp) : null;
+    const roleExperienceLabels = ctx?.roleId ? listExperienceLabelsForRole(ctx.roleId) : [];
     const hydrated = hydrateCraftSectionsFromLocalStorage(key);
-    setSections(hydrated ?? buildInitialSections(ctx?.experienceLabel));
+    setSections(
+      hydrated ??
+        buildInitialSectionsForRole({
+          roleTitle: ctx?.roleTitle ?? user.targetRole ?? user.role ?? undefined,
+          experienceLabel: ctx?.experienceLabel ?? undefined,
+          experienceLabels: roleExperienceLabels,
+        })
+    );
   }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draftPrompt, setDraftPrompt] = useState("");

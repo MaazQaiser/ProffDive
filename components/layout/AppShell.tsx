@@ -39,13 +39,13 @@ function TopNav() {
   const { user, isLoaded } = useUser();
 
   const initial = useMemo(() => {
-    const f = (user.name ?? "P").trim().charAt(0);
+    const f = (user.name ?? "Maaz").trim().charAt(0);
     return f ? f.toUpperCase() : "P";
   }, [user.name]);
 
   const displayName = useMemo(() => {
     const raw = (user.name ?? "").trim();
-    if (!raw) return "Your workspace";
+    if (!raw) return "Maaz";
     return raw.split(/\s+/).join(" ");
   }, [user.name]);
 
@@ -62,6 +62,8 @@ function TopNav() {
     <header className="fixed top-0 z-[100] w-full border-b border-transparent bg-transparent">
       <div
         className={`${urbanist.className} mx-auto flex h-14 w-full max-w-[1600px] items-center gap-2 px-3 py-3 sm:gap-4 sm:px-5 lg:px-10`}
+        data-font-module="Urbanist"
+        data-font-var="urbanist"
       >
         <div className="flex min-w-0 shrink-0 items-center">
           <Link href="/dashboard" className="flex items-center gap-2 sm:gap-2.5">
@@ -118,19 +120,23 @@ function TopNav() {
         </div>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-3">
-          <div className="hidden min-w-0 max-w-[10rem] flex-col items-end gap-0.5 text-right leading-none md:flex lg:max-w-[12rem]">
-            <span className="truncate text-[12px] font-normal text-[#1e293b]">
-              {!isLoaded ? "…" : displayName}
-            </span>
-            <span className="truncate text-[10px] font-normal text-[#94a3b8]">{displayTitle}</span>
-          </div>
-
           <Link
             href="/profile"
-            className="relative size-8 shrink-0 overflow-hidden rounded-full border border-white shadow-[0px_2px_8px_0px_rgba(0,0,0,0.08)] ring-1 ring-slate-200/60 transition hover:ring-slate-300"
+            className="group flex items-center gap-2.5 rounded-full pr-0.5 transition hover:bg-white/35"
             aria-label="Open profile"
           >
-            <img src="/avatar.png?v=2" alt="" className="h-full w-full object-cover" width={32} height={32} />
+            <span className="relative size-8 shrink-0 overflow-hidden rounded-full border border-white shadow-[0px_2px_8px_0px_rgba(0,0,0,0.08)] ring-1 ring-slate-200/60 transition group-hover:ring-slate-300">
+              <img src="/avatar.png?v=2" alt="" className="h-full w-full object-cover" width={32} height={32} />
+            </span>
+
+            <span className="hidden min-w-0 flex-col items-start leading-tight sm:flex">
+              <span className="max-w-[180px] truncate text-[13px] font-medium text-[#0f172a]">
+                {isLoaded ? displayName : "Loading…"}
+              </span>
+              <span className="max-w-[180px] truncate text-[11px] text-[#64748b]">
+                {isLoaded ? displayTitle : " "}
+              </span>
+            </span>
           </Link>
         </div>
       </div>

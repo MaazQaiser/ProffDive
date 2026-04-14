@@ -6,10 +6,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Urbanist } from "next/font/google";
 import {
+  ArrowRight,
   ArrowUpRight,
   Brain,
-  ChevronDown,
   Check,
+  ChevronDown,
   Play,
   Plus,
   Target,
@@ -29,10 +30,23 @@ import {
   craftActionHref,
   craftCtaLabel,
   craftStatusLabel,
+  experienceCraftProgressPercent,
   readExperienceCraftUiStatus,
   roleCraftProgressPercent,
 } from "@/lib/storyboard-crafting";
-import { readLibraryWithMigration, type StoryboardLibrary } from "@/lib/storyboard-library";
+import {
+  readLibraryWithMigration,
+  type StoryboardLibrary,
+  type StoryExperience,
+} from "@/lib/storyboard-library";
+
+/** One row per role title — merges duplicate titles (same name, different ids) for dashboard Story Boards. */
+type DashboardStoryRoleRow = {
+  id: string;
+  title: string;
+  experiences: StoryExperience[];
+  sourceRoleIds: string[];
+};
 
 const JOURNEY_STEPS: Exclude<GuidedJourneyStepId, "done">[] = ["training", "story", "mock", "report"];
 
@@ -304,10 +318,50 @@ export default function NewUserDashboard() {
     return effectivePrepareRoleId;
   }, [storyLib.roles, selectedStoryRoleId, effectivePrepareRoleId]);
 
-  const selectedStoryRole = useMemo(() => {
+  const dashboardStoryRoles = useMemo((): DashboardStoryRoleRow[] => {
+    const roles = storyLib.roles;
+    if (roles.length === 0) return [];
+
+    const buckets = new Map<string, typeof roles>();
+    for (const r of roles) {
+      const key = r.title.trim().toLowerCase() || `__id_${r.id}`;
+      const arr = buckets.get(key) ?? [];
+      arr.push(r);
+      buckets.set(key, arr);
+    }
+
+    const rows: DashboardStoryRoleRow[] = [];
+    for (const group of buckets.values()) {
+      const title = group[0]!.title.trim() || group[0]!.title;
+      const expById = new Map<string, StoryExperience>();
+      for (const r of group) {
+        for (const e of r.experiences) expById.set(e.id, e);
+      }
+      const experiences = [...expById.values()].sort((a, b) => b.createdAt - a.createdAt);
+      const sortedByCreated = [...group].sort((a, b) => b.createdAt - a.createdAt);
+      const canonical =
+        group.find((r) => r.id === effectivePrepareRoleId) ??
+        group.find((r) => r.id === selectedStoryRoleId) ??
+        sortedByCreated[0]!;
+      rows.push({
+        id: canonical.id,
+        title,
+        experiences,
+        sourceRoleIds: group.map((r) => r.id),
+      });
+    }
+    rows.sort((a, b) => a.title.localeCompare(b.title));
+    return rows;
+  }, [storyLib.roles, effectivePrepareRoleId, selectedStoryRoleId]);
+
+  const dashboardSelectedRow = useMemo(() => {
     if (!effectiveStoryRoleId) return null;
-    return storyLib.roles.find((r) => r.id === effectiveStoryRoleId) ?? null;
-  }, [storyLib.roles, effectiveStoryRoleId]);
+    return dashboardStoryRoles.find((row) => row.sourceRoleIds.includes(effectiveStoryRoleId)) ?? null;
+  }, [dashboardStoryRoles, effectiveStoryRoleId]);
+
+  const dashboardStoryRowToShow = useMemo(() => {
+    return dashboardSelectedRow ?? dashboardStoryRoles[0] ?? null;
+  }, [dashboardSelectedRow, dashboardStoryRoles]);
 
   const preparingTitle = prepareRole?.title ?? roleLabel;
 
@@ -351,6 +405,53 @@ export default function NewUserDashboard() {
             </div>
 
             <div className="relative z-[1] w-full">
+              <div className="mb-0 flex w-full items-center justify-center gap-3 px-2 sm:px-8">
+                <p className="text-[16px] font-normal leading-none text-[#64748B]">Currently preparing for</p>
+
+                <div className="relative" ref={prepareMenuRef}>
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-2 text-[16px] font-semibold leading-none text-[#0F172A]"
+                    aria-haspopup="menu"
+                    aria-expanded={prepareDropdownOpen}
+                    onClick={() => setPrepareDropdownOpen((v) => !v)}
+                  >
+                    <span className="max-w-[16rem] overflow-visible whitespace-nowrap">{preparingTitle}</span>
+                    <ChevronDown size={18} className="text-[#0F172A]" aria-hidden />
+                  </button>
+
+                  {prepareDropdownOpen ? (
+                    <div
+                      role="menu"
+                      className="absolute right-0 top-[calc(100%+10px)] z-[20] min-w-[240px] overflow-hidden rounded-[16px] border border-slate-200/80 bg-white/90 p-1 shadow-[0_18px_60px_rgba(15,23,42,0.18)] backdrop-blur-[18px]"
+                    >
+                      {storyLib.roles.length === 0 ? (
+                        <div className="px-3 py-2 text-[13px] text-slate-500">No roles yet</div>
+                      ) : (
+                        storyLib.roles.map((r) => {
+                          const active = r.id === effectivePrepareRoleId;
+                          return (
+                            <button
+                              key={r.id}
+                              type="button"
+                              role="menuitem"
+                              className={[
+                                "flex w-full items-center justify-between gap-3 rounded-[12px] px-3 py-2 text-left text-[13px]",
+                                active ? "bg-[#0087A8]/10 text-[#0087A8]" : "text-slate-700 hover:bg-slate-100/70",
+                              ].join(" ")}
+                              onClick={() => selectPrepareRole(r.id, r.title)}
+                            >
+                              <span className="min-w-0 flex-1 truncate">{r.title}</span>
+                              {active ? <Check size={16} className="shrink-0" aria-hidden /> : null}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
               <div className="mb-3 flex w-full items-start sm:pl-8">
                 <p className="shrink-0 text-[16px] font-normal leading-none text-[#1E293B]">Your Way forward</p>
               </div>
@@ -430,92 +531,32 @@ export default function NewUserDashboard() {
         <section className={`${glassCard} relative z-[1] mt-3 flex flex-col gap-6 border-[0.5px] p-6 xl:flex-row xl:items-start`}>
           <article className={`${glassCard} relative w-full flex-1 border-[0.5px] p-6`}>
             <div className="flex w-full flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-x-[9px] gap-y-2">
-                <p className="shrink-0 text-[12px] font-normal leading-none text-[#64748B]">Currently preparing for</p>
-                <div ref={prepareMenuRef} className="relative inline-flex min-h-0 items-center">
-                  <button
-                    type="button"
-                    disabled={storyLib.roles.length === 0}
-                    aria-expanded={prepareDropdownOpen}
-                    aria-haspopup="listbox"
-                    aria-label="Choose role to prepare for"
-                    onClick={() => {
-                      if (storyLib.roles.length === 0) return;
-                      setPrepareDropdownOpen((o) => !o);
-                    }}
+              <div className="flex w-full items-center gap-1.5">
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-[24px] font-medium text-[#1E293B]">Interview readiness</h2>
+                  <p className="text-[12px] font-normal text-[#475569]">
+                    Mocks, trainings, and pillar balance at a glance.
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-col items-center gap-3">
+                  <p className="flex items-end">
+                    <span
+                      className="text-[42px] font-semibold leading-[42px]"
+                      style={{ color: scoreBandColor(overallScore) }}
+                    >
+                      {overallScore.toFixed(1)}
+                    </span>
+                    <span className="text-[24px] font-normal leading-[42px] text-[#64748B]">/05</span>
+                  </p>
+                  <p
                     className={[
-                      "inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 outline-none ring-[#0A89A9] transition-[color,transform] hover:bg-white/40 focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-60",
-                      prepareDropdownOpen ? "bg-white/50" : "",
+                      "rounded-full border px-4 py-1.5 text-[10px] shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
+                      readiness.chipClass,
                     ].join(" ")}
                   >
-                    <span className="text-[12px] font-semibold text-[#1E293B]">{preparingTitle}</span>
-                    <ChevronDown
-                      size={16}
-                      className={["text-[#1E293B] transition-transform", prepareDropdownOpen ? "rotate-180" : ""].join(
-                        " "
-                      )}
-                      aria-hidden
-                    />
-                  </button>
-                  {prepareDropdownOpen && storyLib.roles.length > 0 ? (
-                    <ul
-                      role="listbox"
-                      aria-label="Roles"
-                      className="absolute left-0 top-full z-20 mt-1 min-w-[min(100%,200px)] max-w-[min(100vw-48px,320px)] overflow-hidden rounded-[14px] border border-white/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.95)_0%,rgba(248,250,252,0.98)_100%)] py-1 shadow-[0_12px_40px_rgba(15,23,42,0.12)] backdrop-blur-[18px]"
-                    >
-                      {storyLib.roles.map((r) => {
-                        const active = r.id === effectivePrepareRoleId;
-                        return (
-                          <li key={r.id} role="presentation">
-                            <button
-                              type="button"
-                              role="option"
-                              aria-selected={active}
-                              onClick={() => selectPrepareRole(r.id, r.title)}
-                              className={[
-                                "flex w-full items-center justify-between gap-2 px-3 py-2.5 text-left text-[13px] outline-none transition-colors hover:bg-[#0A89A9]/8 focus-visible:bg-[#0A89A9]/10",
-                                active ? "bg-[#0A89A9]/10 font-semibold text-[#0A89A9]" : "font-medium text-[#1E293B]",
-                              ].join(" ")}
-                            >
-                              <span className="min-w-0 truncate">{r.title}</span>
-                              {active ? <Check size={14} className="shrink-0 text-[#0A89A9]" strokeWidth={2.5} aria-hidden /> : null}
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <div className="flex w-full items-center gap-1.5">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="text-[24px] font-medium text-[#1E293B]">Interview readiness</h2>
-                    <p className="text-[12px] font-normal text-[#475569]">
-                      Mocks, trainings, and pillar balance at a glance.
-                    </p>
-                  </div>
-                  <div className="flex shrink-0 flex-col items-center gap-3">
-                    <p className="flex items-end">
-                      <span
-                        className="text-[42px] font-semibold leading-[42px]"
-                        style={{ color: scoreBandColor(overallScore) }}
-                      >
-                        {overallScore.toFixed(1)}
-                      </span>
-                      <span className="text-[24px] font-normal leading-[42px] text-[#64748B]">/05</span>
-                    </p>
-                    <p
-                      className={[
-                        "rounded-full border px-4 py-1.5 text-[10px] shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
-                        readiness.chipClass,
-                      ].join(" ")}
-                    >
-                      You&apos;re currently on{" "}
-                      <span className={["font-semibold", readiness.labelStrongClass].join(" ")}>{readiness.label}</span>
-                    </p>
-                  </div>
+                    You&apos;re currently on{" "}
+                    <span className={["font-semibold", readiness.labelStrongClass].join(" ")}>{readiness.label}</span>
+                  </p>
                 </div>
               </div>
 
@@ -613,75 +654,92 @@ export default function NewUserDashboard() {
               <p className="mt-4 text-[13px] text-[#64748B]">Loading your story library…</p>
             ) : (
               <>
-                <div className="mt-3 flex flex-col gap-2">
-                  {storyLib.roles.map((role) => {
-                    const pct = roleCraftProgressPercent(role);
-                    const score5 = Math.min(5, Math.max(0, (pct / 100) * 5));
-                    const band = readinessBand(score5);
-                    const selected = role.id === effectiveStoryRoleId;
-                    return (
-                      <button
-                        key={role.id}
-                        type="button"
-                        onClick={() => selectPrepareRole(role.id, role.title)}
-                        className={[
-                          "relative flex w-full items-center justify-between rounded-[16px] bg-white/40 p-4 text-left shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] outline-none ring-[#0A89A9] transition-[box-shadow,ring] focus-visible:ring-2",
-                          selected ? "ring-2 ring-[#0A89A9]/35" : "ring-0 hover:bg-white/55",
-                        ].join(" ")}
-                        aria-pressed={selected}
-                        aria-label={`Select ${role.title}`}
-                      >
-                        <div className="min-w-0 pr-3">
-                          <p className="text-[18px] font-semibold text-[#1E293B]">{role.title}</p>
-                          <p className="mt-1 text-[12px] text-[#64748B]">
-                            Readiness {score5.toFixed(1)} / 5 · {band.label}
-                          </p>
-                        </div>
-                        <span className="shrink-0 text-[10px] font-medium text-[#64748B]">
-                          {selected ? "Selected" : "Select"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {selectedStoryRole ? (
+                {dashboardStoryRowToShow ? (
                   <div className="mt-4">
-                    <p className="mb-2 text-[12px] font-medium uppercase tracking-wide text-[#94A3B8]">
-                      Journeys for {selectedStoryRole.title}
-                    </p>
-                    {selectedStoryRole.experiences.length === 0 ? (
+                    <div className="rounded-[16px] border border-white/90 bg-white/40 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px]">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="mt-1 truncate text-[18px] font-semibold text-[#1E293B]">
+                            {dashboardStoryRowToShow.title}
+                          </p>
+                          {(() => {
+                            const journeys = dashboardStoryRowToShow.experiences;
+                            const count = journeys.length;
+                            const avgPct =
+                              count === 0
+                                ? 0
+                                : Math.round(
+                                    journeys.reduce((sum, j) => sum + experienceCraftProgressPercent(j.id), 0) /
+                                      count,
+                                  );
+                            return (
+                              <div className="mt-1">
+                                <p className="text-[12px] text-[#64748B]">{count} journeys</p>
+                                <div className="mt-2 h-1 w-[220px] overflow-hidden rounded-full bg-slate-200/90">
+                                  <div
+                                    className="h-full rounded-full bg-[#0A89A9] transition-[width] duration-300"
+                                    style={{ width: `${avgPct}%` }}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                        <div className="flex shrink-0 flex-wrap items-center gap-2">
+                          <Link
+                            href={`/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}`}
+                            className="inline-flex items-center gap-1.5 rounded-[80px] border border-[#CBD5E1] bg-white/60 px-3 py-2 text-[13px] font-semibold text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/75"
+                          >
+                            View story
+                            <ArrowUpRight size={14} aria-hidden />
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+
+                    {dashboardStoryRowToShow.experiences.length === 0 ? (
                       <Link
-                        href="/storyboard"
+                        href={`/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openAddExperience=1`}
                         className="flex min-h-[88px] flex-col items-center justify-center rounded-[16px] border border-dashed border-[#CBD5E1] bg-white/20 p-4 text-center text-[13px] text-[#64748B] shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/35"
                       >
                         <span className="font-medium text-[#1E293B]">No journeys yet</span>
                         <span className="mt-1 text-[12px]">Open Story Boards to add journeys for this role.</span>
                       </Link>
                     ) : (
-                      <div className="flex gap-3 overflow-x-auto pb-1 pt-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                        {selectedStoryRole.experiences.map((exp) => {
+                      <div className="mt-3">
+                        <ul className="space-y-2">
+                        {dashboardStoryRowToShow.experiences.map((exp) => {
                           const status = readExperienceCraftUiStatus(exp.id);
-                          const href = craftActionHref(exp.id, selectedStoryRole.title, status);
+                          const href = craftActionHref(exp.id, dashboardStoryRowToShow.title, status);
+                          const craftPct = experienceCraftProgressPercent(exp.id);
+                          const editJourneyHref = `/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openPlanExperiences=1`;
                           return (
-                            <Link
-                              key={exp.id}
-                              href={href}
-                              className="flex min-h-[112px] min-w-[min(100%,220px)] max-w-[260px] shrink-0 flex-col justify-between rounded-[16px] border border-white/90 bg-[linear-gradient(160deg,rgba(255,255,255,0.5)_0%,rgba(255,255,255,0.22)_100%)] p-3 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]"
-                            >
-                              <div className="min-w-0">
-                                <p className="line-clamp-2 text-[15px] font-semibold leading-snug text-[#1E293B]">
-                                  {exp.label.trim() || "Untitled journey"}
-                                </p>
-                                <p className="mt-1.5 text-[11px] text-[#64748B]">{craftStatusLabel(status)}</p>
+                            <li key={exp.id}>
+                              <div className="flex flex-col gap-3 rounded-[16px] border border-[#E2E8F0]/90 bg-white/40 px-3 py-3 shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="min-w-0 flex-1 truncate text-[14px] font-semibold leading-snug text-[#1E293B]">
+                                      {exp.label.trim() || "Untitled journey"}
+                                    </p>
+                                    <Link
+                                      href={editJourneyHref}
+                                      className="shrink-0 text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                                    >
+                                      Edit journey
+                                    </Link>
+                                  </div>
+                                </div>
                               </div>
-                              <span className="mt-3 inline-flex items-center gap-0.5 text-[11px] font-medium text-[#0A89A9]">
-                                {craftCtaLabel(status)}
-                                <ArrowUpRight size={12} aria-hidden />
-                              </span>
-                            </Link>
+                            </li>
                           );
                         })}
+                        </ul>
+                        <Link
+                          href={`/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openAddExperience=1`}
+                          className="mt-3 inline-flex items-center justify-center rounded-[16px] border border-dashed border-[#CBD5E1] bg-white/20 px-4 py-3 text-[13px] font-semibold text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/35"
+                        >
+                          + Add a journey
+                        </Link>
                       </div>
                     )}
                   </div>

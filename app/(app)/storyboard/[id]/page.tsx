@@ -11,6 +11,7 @@ import { CarBlockStack } from "@/components/storyboard-car-block-stack";
 import { StoryboardMindMap } from "@/components/storyboard/StoryboardMindMap";
 import {
   buildInitialSections,
+  buildInitialSectionsForRole,
   buildResumeExportText,
   hydrateCraftSectionsFromLocalStorage,
   isIntroSection,
@@ -20,7 +21,11 @@ import {
   type CarBlock,
   type CraftSection,
 } from "@/lib/storyboard-crafting";
-import { findExperienceContext, resolveCraftStorageKeyForExperienceId } from "@/lib/storyboard-library";
+import {
+  findExperienceContext,
+  listExperienceLabelsForRole,
+  resolveCraftStorageKeyForExperienceId,
+} from "@/lib/storyboard-library";
 
 const urbanist = Urbanist({
   subsets: ["latin"],
@@ -78,8 +83,16 @@ export default function StoryboardReadonlyPage() {
     const key = resolveCraftStorageKeyForExperienceId(id || null);
     craftKeyRef.current = key;
     const ctx = id ? findExperienceContext(id) : null;
+    const roleExperienceLabels = ctx?.roleId ? listExperienceLabelsForRole(ctx.roleId) : [];
     const hydrated = hydrateCraftSectionsFromLocalStorage(key);
-    setSections(hydrated ?? buildInitialSections(ctx?.experienceLabel));
+    setSections(
+      hydrated ??
+        buildInitialSectionsForRole({
+          roleTitle: ctx?.roleTitle ?? user.targetRole ?? user.role ?? undefined,
+          experienceLabel: ctx?.experienceLabel ?? undefined,
+          experienceLabels: roleExperienceLabels,
+        })
+    );
   }, [params?.id]);
 
   const persistSections = useCallback((next: CraftSection[]) => {

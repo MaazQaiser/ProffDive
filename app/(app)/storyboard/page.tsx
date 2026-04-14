@@ -13,6 +13,7 @@ import {
   addExperienceToRole,
   addRoleWithExperiences,
   readLibraryWithMigration,
+  setRoleExperiences,
   type StoryboardLibrary,
   type StoryRole,
 } from "@/lib/storyboard-library";
@@ -22,10 +23,10 @@ import {
   type WebSpeechResultEvent,
 } from "@/lib/proofy-speech";
 import {
-  craftActionHref,
   craftCtaLabel,
   craftStatusLabel,
-  readExperienceCraftUiStatus,
+  readRoleCraftUiStatus,
+  resolveRoleCraftAction,
   roleCraftProgressPercent,
 } from "@/lib/storyboard-crafting";
 
@@ -70,6 +71,7 @@ export default function StoryBoardPage() {
   const [planComposer, setPlanComposer] = useState("");
   const [planEditingIndex, setPlanEditingIndex] = useState<number | null>(null);
   const [planEditingText, setPlanEditingText] = useState("");
+  const [planEditingRoleId, setPlanEditingRoleId] = useState<string | null>(null);
   const planExpRecognitionRef = useRef<WebSpeechRecognition | null>(null);
   const planExperienceInputRef = useRef<HTMLInputElement>(null);
   const [planExpRecording, setPlanExpRecording] = useState(false);
@@ -93,6 +95,28 @@ export default function StoryBoardPage() {
     setLibrary(readLibraryWithMigration(roleFallback));
   }, [roleFallback]);
 
+  const openPlanForRoleId = useCallback(
+    (roleId: string) => {
+      if (!roleId) return;
+      const lib = readLibraryWithMigration(roleFallback);
+      const role = lib.roles.find((r) => r.id === roleId);
+      if (!role) return;
+      setExpandedRoleId(roleId);
+      setPlanEditingRoleId(roleId);
+      setDraftRole(role.title);
+      setPlanExperienceLines(role.experiences.map((e) => e.label));
+      setPlanComposer("");
+      setPlanEditingIndex(null);
+      setPlanEditingText("");
+      setPlanPhase("experiences");
+      setPlanOpen(true);
+      setAddJourneyForRoleId(null);
+      setNewExperienceBlocks([""]);
+      queueMicrotask(() => planExperienceInputRef.current?.focus());
+    },
+    [roleFallback]
+  );
+
   useEffect(() => {
     setMounted(true);
     refreshLibrary();
@@ -111,6 +135,29 @@ export default function StoryBoardPage() {
   }, []);
 
   useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const openRoleId = params.get("openRoleId")?.trim() ?? "";
+      const openAdd = params.get("openAddExperience")?.trim() ?? "";
+      const openPlan = params.get("openPlanExperiences")?.trim() ?? "";
+      if (!openRoleId) return;
+      // Expand the role accordion so journeys are visible.
+      setExpandedRoleId(openRoleId);
+      const shouldOpenPlan =
+        openPlan === "1" ||
+        openPlan.toLowerCase() === "true" ||
+        openAdd === "1" ||
+        openAdd.toLowerCase() === "true";
+
+      if (shouldOpenPlan) {
+        openPlanForRoleId(openRoleId);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [openPlanForRoleId]);
+
+  useEffect(() => {
     const h = (e: MouseEvent) => {
       const t = e.target as Node;
       if (planRoleInputRef.current?.closest(".storyboard-plan-role-wrap")?.contains(t)) return;
@@ -122,6 +169,7 @@ export default function StoryBoardPage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  const MIN_PLAN_EXPERIENCES = 3;
   const MAX_PLAN_EXPERIENCES = 5;
 
   const experienceLabelsFromDrafts = () => {
@@ -137,7 +185,9 @@ export default function StoryBoardPage() {
   const planRoleTitle = draftRole.trim();
   const planExperienceCount = experienceLabelsFromDrafts().length;
   const canSubmitPlan =
-    planRoleTitle.length > 0 && planExperienceCount >= 1 && planExperienceCount <= MAX_PLAN_EXPERIENCES;
+    planRoleTitle.length > 0 &&
+    planExperienceCount >= MIN_PLAN_EXPERIENCES &&
+    planExperienceCount <= MAX_PLAN_EXPERIENCES;
 
   const startFirstJourney = (roleTitle: string, experienceId: string) => {
     const q = new URLSearchParams({
@@ -156,6 +206,7 @@ export default function StoryBoardPage() {
     setPlanComposer("");
     setPlanEditingIndex(null);
     setPlanEditingText("");
+    setPlanEditingRoleId(null);
     try {
       planExpRecognitionRef.current?.stop();
     } catch {
@@ -185,7 +236,11 @@ export default function StoryBoardPage() {
     if (!canSubmitPlan) return;
     const title = planRoleTitle;
     const labels = experienceLabelsFromDrafts();
-    addRoleWithExperiences(title, labels);
+    if (planEditingRoleId) {
+      setRoleExperiences(planEditingRoleId, labels);
+    } else {
+      addRoleWithExperiences(title, labels);
+    }
     refreshLibrary();
     setPlanOpen(false);
     resetPlanForm();
@@ -602,8 +657,9 @@ export default function StoryBoardPage() {
                               <p className="w-full text-right text-[12px] font-normal leading-none text-[#475569]">
                                 {planComposer.length}/{PLAN_EXPERIENCE_CHAR_LIMIT}
                               </p>
-                              <p className="w-full text-right text-[11px] leading-snug text-[#94A3B8]">
-                                Up to {MAX_PLAN_EXPERIENCES} experiences. Enter or arrow to add, then Save journeys.
+                              <p className="w-full text-right text-[14px] leading-snug text-[#6D7888]">
+                                Add at least {MIN_PLAN_EXPERIENCES} experiences to enable Save journeys. Add as many as you
+                                want (up to {MAX_PLAN_EXPERIENCES} per role).
                               </p>
                             </div>
                           )}
@@ -636,8 +692,12 @@ export default function StoryBoardPage() {
                   {library.roles.map((role, roleIdx) => {
                     const hubPct = mounted ? roleCraftProgressPercent(role) : 10;
                     const journeysOpen = expandedRoleId === role.id;
+                    const roleCraftStatus = mounted ? readRoleCraftUiStatus(role) : "ready_to_craft";
+                    const roleCraftAction = mounted ? resolveRoleCraftAction(role, role.title) : null;
                     const ghostAddClass =
                       "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#0A89A9] transition-colors hover:bg-[#0A89A9]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A89A9]/25";
+                    const badgeClass =
+                      "rounded-full border border-blue-100/80 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-blue-800/90";
 
                     return (
                       <div key={role.id} className={roleHubCard}>
@@ -657,26 +717,42 @@ export default function StoryBoardPage() {
                                 : " · add your first journey"}
                             </p>
                           </div>
-                          <button
-                            type="button"
-                            data-journey-id={
-                              role.experiences.length === 0 && roleIdx === 0 ? "story-start" : undefined
-                            }
-                            onClick={() => {
-                              setAddJourneyForRoleId(role.id);
-                              setNewExperienceBlocks([""]);
-                            }}
-                            className={ghostAddClass}
-                          >
-                            {role.experiences.length === 0 ? (
-                              "Add experiences"
-                            ) : (
-                              <>
-                                <Plus size={14} strokeWidth={2} aria-hidden />
-                                Add experience
-                              </>
-                            )}
-                          </button>
+                          <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              <span className={badgeClass}>{craftStatusLabel(roleCraftStatus)}</span>
+                              {roleCraftAction ? (
+                                <Link
+                                  href={roleCraftAction.href}
+                                  data-journey-id={
+                                    roleIdx === 0 && role.experiences.length > 0 ? "story-start" : undefined
+                                  }
+                                  className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                                >
+                                  {craftCtaLabel(roleCraftStatus)}
+                                  <ArrowRight size={14} className="opacity-70" aria-hidden />
+                                </Link>
+                              ) : null}
+                            </div>
+                            <button
+                              type="button"
+                              data-journey-id={
+                                role.experiences.length === 0 && roleIdx === 0 ? "story-start" : undefined
+                              }
+                              onClick={() => {
+                                openPlanForRoleId(role.id);
+                              }}
+                              className={`${ghostAddClass} justify-center sm:justify-end`}
+                            >
+                              {role.experiences.length === 0 ? (
+                                "Add experiences"
+                              ) : (
+                                <>
+                                  <Plus size={14} strokeWidth={2} aria-hidden />
+                                  Add experience
+                                </>
+                              )}
+                            </button>
+                          </div>
                         </div>
 
                         {addJourneyForRoleId === role.id ? (
@@ -756,10 +832,7 @@ export default function StoryBoardPage() {
                               <div className="min-h-0 overflow-hidden">
                                 <ul className="space-y-1 border-t border-[#E2E8F0]/60 px-4 pb-4 pt-2">
                                   {role.experiences.map((exp) => {
-                                    const st: "ready_to_craft" | "drafted" | "ready_to_practice" = mounted
-                                      ? readExperienceCraftUiStatus(exp.id)
-                                      : "ready_to_craft";
-                                    const href = craftActionHref(exp.id, role.title, st);
+                                    const editHref = `/storyboard?openRoleId=${encodeURIComponent(role.id)}&openPlanExperiences=1`;
                                     return (
                                       <li key={exp.id}>
                                         <div className="flex flex-col gap-2 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
@@ -767,15 +840,15 @@ export default function StoryBoardPage() {
                                             {exp.label}
                                           </p>
                                           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                                            <span className="rounded-full border border-blue-100/80 bg-blue-50 px-2.5 py-0.5 text-[11px] font-medium tracking-tight text-blue-800/90">
-                                              {craftStatusLabel(st)}
-                                            </span>
                                             <Link
-                                              href={href}
-                                              className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                                              href={editHref}
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                openPlanForRoleId(role.id);
+                                              }}
+                                              className="text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
                                             >
-                                              {craftCtaLabel(st)}
-                                              <ArrowRight size={14} className="opacity-70" aria-hidden />
+                                              Edit journey
                                             </Link>
                                           </div>
                                         </div>
