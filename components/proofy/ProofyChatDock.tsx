@@ -154,6 +154,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
   const [flowRunning, setFlowRunning] = useState(false);
   const [awaitingRole, setAwaitingRole] = useState(false);
   const [fabRaised, setFabRaised] = useState<boolean>(() => readJourneyState().active);
+  const toggleVoiceRef = useRef<() => void>(() => {});
 
   useEffect(() => {
     if (!open) return;
@@ -215,15 +216,26 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
 
   useEffect(() => {
     const onOpen = (e: Event) => {
-      const detail = (e as CustomEvent<{ open?: boolean; messages?: string[] }>).detail;
+      const detail = (e as CustomEvent<{
+        open?: boolean;
+        messages?: string[];
+        prefill?: string;
+        startVoice?: boolean;
+      }>).detail;
       if (!detail) return;
       if (detail.open) setOpen(true);
+      if (typeof detail.prefill === "string") {
+        setMessage(detail.prefill);
+      }
       const incoming = detail.messages ?? [];
       if (incoming.length > 0) {
         setMessages((m) => [
           ...m,
           ...incoming.map((text) => ({ id: uid(), role: "assistant", kind: "text", text }) as ChatMsg),
         ]);
+      }
+      if (detail.startVoice) {
+        window.setTimeout(() => toggleVoiceRef.current(), 300);
       }
     };
     window.addEventListener("proofy:open", onOpen);
@@ -324,7 +336,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
         { id: uid(), role: "assistant", kind: "story_role_card", roleName },
       ]);
       await sleep(850);
-      router.push(`/storyboard?prefillRole=${encodeURIComponent(roleName)}`);
+      router.push(`/storyboard/agent?role=${encodeURIComponent(roleName)}`);
     },
     [router]
   );
@@ -413,6 +425,7 @@ export function ProofyChatDock({ layout = "floating" }: ProofyChatDockProps) {
       setListening(false);
     }
   }, [message, stopListening, buildDictationMessage]);
+  toggleVoiceRef.current = toggleVoice;
 
   const send = useCallback(() => {
     const trimmed = message.trim();

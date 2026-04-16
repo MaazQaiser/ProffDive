@@ -178,7 +178,7 @@ Use `gap-px bg-[#E2E8F0]` on a parent grid to create crisp cell borders without 
 ├── (app) — requires auth
 │   ├── /dashboard         → Guided Readiness Hub (70/30 layout)
 │   │     Left: Modules, Mock entry, Story library, AI Coach
-│   │     Right: Success Drivers, Journey tracker, Report summary, Actions
+│   │     Right: Success Drivers, Experience tracker, Report summary, Actions
 │   │
 │   ├── /mock
 │   │   ├── /mock/setup    → Session setup (Role, JD, Pillars, Device)
@@ -190,7 +190,7 @@ Use `gap-px bg-[#E2E8F0]` on a parent grid to create crisp cell borders without 
 │   │
 │   ├── /storyboard        → Story builder — CAR narrative library
 │   ├── /trainings         → Training modules by pillar
-│   ├── /progress          → Progress tracking & journey timeline
+│   ├── /progress          → Progress tracking & experience timeline
 │   └── /profile           → User profile & settings
 ```
 

@@ -11,8 +11,10 @@ import {
   Brain,
   Check,
   ChevronDown,
+  MessageCircle,
+  Mic,
   Play,
-  Plus,
+  Sparkles,
   Target,
   Users,
   Zap,
@@ -25,20 +27,21 @@ import {
   type DriverDef,
 } from "@/lib/mock-report-data";
 import { readJourneyState, type GuidedJourneyStepId } from "@/lib/guided-journey";
+import { startJourney } from "@/lib/guided-journey";
 import { readReports } from "@/lib/report-store";
 import {
-  craftActionHref,
   craftCtaLabel,
-  craftStatusLabel,
   experienceCraftProgressPercent,
-  readExperienceCraftUiStatus,
+  hubStoryStrengthFromCraft,
   roleCraftProgressPercent,
+  resolveRoleCraftAction,
 } from "@/lib/storyboard-crafting";
 import {
   readLibraryWithMigration,
   type StoryboardLibrary,
   type StoryExperience,
 } from "@/lib/storyboard-library";
+import { getSpeechRecognition } from "@/lib/proofy-speech";
 
 /** One row per role title — merges duplicate titles (same name, different ids) for dashboard Story Boards. */
 type DashboardStoryRoleRow = {
@@ -65,6 +68,14 @@ const urbanist = Urbanist({
 
 const glassCard =
   "relative overflow-hidden rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+/** Proofy dock bar — match `ProofyChatDock` closed chrome (Figma 866-5433) */
+const PROOFY_DOCK_GLASS_GRADIENT =
+  "linear-gradient(90.2deg, rgba(255,255,255,0.24) 0%, rgba(163, 237, 255, 0.6) 99.92%)";
+const PROOFY_DOCK_SHADOW_OUT = "0px 4px 20px 0px rgba(0,0,0,0.06)";
+const PROOFY_DOCK_INSET_HIGHLIGHT = "inset -5px -5px 250px 0px rgba(255,255,255,0.02)";
+const PROOFY_SPARKLE_ORB_GRADIENT =
+  "linear-gradient(153.8deg, rgb(80, 177, 242) 10.4%, rgb(0, 102, 128) 89.66%)";
 
 /** Score heat: red below 2.5, amber from 2.5 up to (not including) 3.5, emerald at 3.5+ */
 function scoreBandColor(v: number): string {
@@ -171,6 +182,10 @@ export default function NewUserDashboard() {
 
   const [storyLib, setStoryLib] = useState<StoryboardLibrary>({ version: 1, roles: [] });
   const [selectedStoryRoleId, setSelectedStoryRoleId] = useState<string | null>(null);
+  const [aiCoachPanelOpen, setAiCoachPanelOpen] = useState(false);
+  const [coachAskDraft, setCoachAskDraft] = useState("");
+  const [coachSpeechSupported] = useState(() => !!getSpeechRecognition());
+  const aiCoachRailRef = useRef<HTMLDivElement>(null);
 
   const refreshStoryLib = useCallback(() => {
     setStoryLib(readLibraryWithMigration(roleLabel));
@@ -224,7 +239,7 @@ export default function NewUserDashboard() {
     };
   }, []);
 
-  const { journey, journeyPct } = useMemo(() => {
+  const journey = useMemo(() => {
     const st = journeySnap;
     const done = (id: Exclude<GuidedJourneyStepId, "done">) => st.completed.includes(id);
     const current =
@@ -234,7 +249,7 @@ export default function NewUserDashboard() {
       JOURNEY_STEPS.includes(st.stepId as (typeof JOURNEY_STEPS)[number]) &&
       (st.stepId as Exclude<GuidedJourneyStepId, "done">);
 
-    const rows = JOURNEY_STEPS.map((id) => {
+    return JOURNEY_STEPS.map((id) => {
       const isDone = done(id);
       const isCurrent = Boolean(current && st.stepId === id && !isDone);
       const sub = isDone ? "Completed" : isCurrent ? "In progress" : "Not started";
@@ -245,20 +260,13 @@ export default function NewUserDashboard() {
         icon: isDone ? ("done" as const) : isCurrent ? ("current" as const) : ("upcoming" as const),
       };
     });
-
-    const completedCount = JOURNEY_STEPS.filter((id) => done(id)).length;
-    const pct = Math.min(100, Math.round((completedCount / JOURNEY_STEPS.length) * 100));
-
-    return { journey: rows, journeyPct: pct };
   }, [journeySnap]);
-
-  const journeyMarkerIdx = useMemo(() => {
-    if (journeyPct <= 0) return 0;
-    return Math.min(3, Math.max(0, Math.ceil(journeyPct / 25) - 1));
-  }, [journeyPct]);
 
   const currentJourneyHref = useMemo(() => {
     const step = journeySnap.stepId;
+    const order: Exclude<GuidedJourneyStepId, "done">[] = ["training", "story", "mock", "report"];
+    const allDone = order.every((id) => journeySnap.completed.includes(id));
+    if (!journeySnap.active && (journeySnap.stepId === "done" || allDone)) return "/dashboard";
     if (step === "story") return "/storyboard";
     if (step === "mock") return "/mock/setup";
     if (step === "report") {
@@ -271,7 +279,39 @@ export default function NewUserDashboard() {
     }
     if (step === "done") return "/dashboard";
     return "/trainings";
-  }, [journeySnap.stepId]);
+  }, [journeySnap]);
+
+  const journeyIsDone = useMemo(() => {
+    const order: Exclude<GuidedJourneyStepId, "done">[] = ["training", "story", "mock", "report"];
+    return journeySnap.stepId === "done" || order.every((id) => journeySnap.completed.includes(id));
+  }, [journeySnap.stepId, journeySnap.completed]);
+
+  useEffect(() => {
+    if (!journeyIsDone) {
+      setAiCoachPanelOpen(false);
+      setCoachAskDraft("");
+    }
+  }, [journeyIsDone]);
+
+  useEffect(() => {
+    if (!aiCoachPanelOpen || !journeyIsDone) return;
+    const onDoc = (e: MouseEvent) => {
+      const el = aiCoachRailRef.current;
+      if (!el?.contains(e.target as Node)) setAiCoachPanelOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAiCoachPanelOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [aiCoachPanelOpen, journeyIsDone]);
+
+  /** Interview readiness scores unlock only after all four "Your Way forward" steps are complete. */
+  const showInterviewReadinessScores = journeyIsDone;
 
   const effectivePrepareRoleId = useMemo(() => {
     const roles = storyLib.roles;
@@ -365,6 +405,13 @@ export default function NewUserDashboard() {
 
   const preparingTitle = prepareRole?.title ?? roleLabel;
 
+  const dashboardRolePrimaryAction = useMemo(() => {
+    if (!dashboardStoryRowToShow) return null;
+    const role = storyLib.roles.find((r) => r.id === dashboardStoryRowToShow.id) ?? null;
+    if (!role) return null;
+    return resolveRoleCraftAction(role, dashboardStoryRowToShow.title);
+  }, [dashboardStoryRowToShow, storyLib.roles]);
+
   const selectPrepareRole = useCallback(
     (roleId: string, title: string) => {
       setExplicitPrepareRoleId(roleId);
@@ -396,7 +443,7 @@ export default function NewUserDashboard() {
             </h1>
           </div>
 
-          <div className="relative w-full max-w-[664px]">
+          <div className="relative w-full max-w-[720px]">
             <div
               className="pointer-events-none absolute left-[42%] top-[-18px] z-0 hidden h-[240px] w-[min(100%,404px)] max-w-[404px] mix-blend-multiply sm:block lg:left-auto lg:right-[-48px] lg:w-[404px]"
               aria-hidden
@@ -456,107 +503,357 @@ export default function NewUserDashboard() {
                 <p className="shrink-0 text-[16px] font-normal leading-none text-[#1E293B]">Your Way forward</p>
               </div>
 
-              <div
-                className="relative flex h-[52px] w-full cursor-pointer items-center justify-between gap-1 overflow-visible rounded-[122px] border-[0.5px] border-white bg-[linear-gradient(90.56deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] pl-6 pr-1.5 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] sm:pl-6"
-                role="button"
-                tabIndex={0}
-                aria-label="Go to current journey step"
-                onClick={() => router.push(currentJourneyHref)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    router.push(currentJourneyHref);
-                  }
-                }}
-              >
-                <div className="pointer-events-none absolute -top-7 left-6 right-[50px] z-[2]" aria-hidden>
+              <div ref={aiCoachRailRef} className="relative w-full">
+                {journeyIsDone ? (
                   <div
-                    className="absolute flex -translate-x-1/2 flex-col items-center"
-                    style={{ left: `${(journeyMarkerIdx + 0.5) * 25}%` }}
+                    className={[
+                      "relative w-full overflow-hidden border-[0.5px] border-white bg-[linear-gradient(90.56deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] backdrop-blur-[21px] transition-[border-radius,box-shadow] duration-300 ease-out",
+                      aiCoachPanelOpen
+                        ? "rounded-[24px] shadow-[0_12px_40px_rgba(15,23,42,0.1)] ring-2 ring-[#0A89A9]/20"
+                        : "rounded-[122px] shadow-[0_4px_20px_rgba(0,0,0,0.06)] ring-2 ring-[#0A89A9]/25",
+                    ].join(" ")}
                   >
-                    <span className="text-[12.677px] font-normal tabular-nums leading-normal text-[#1E293B]">
-                      {journeyPct}%
-                    </span>
-                    <span className="mt-0.5 h-0 w-0 border-x-[5px] border-x-transparent border-t-[7px] border-t-[#0F172A]" />
-                  </div>
-                </div>
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute inset-0 rounded-[122px] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]"
-                />
-                <div className="relative z-[1] flex min-w-0 flex-1 items-center overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {journey.map((step, index) => (
-                    <div key={step.id} className="flex min-w-0 flex-1 items-center gap-2">
-                      {index > 0 ? <span className="mx-1 h-6 w-px shrink-0 bg-[#DBEAFE]" aria-hidden /> : null}
-                      {step.icon === "done" ? (
-                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[inset_-2px_-2px_100px_0px_rgba(255,255,255,0.02)]">
-                          <Check size={11} className="text-white" strokeWidth={2.5} aria-hidden />
-                        </span>
-                      ) : (
-                        <span
-                          className={[
-                            "flex h-4 w-4 shrink-0 rounded-full border-[1.143px] border-slate-300 bg-white/40 backdrop-blur-[8.4px]",
-                            step.icon === "current" ? "ring-1 ring-[#0A89A9]/30" : "",
-                          ]
-                            .filter(Boolean)
-                            .join(" ")}
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 rounded-[inherit] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]"
+                    />
+                    <div className="relative z-[1] flex w-full min-h-[58px] items-center justify-between gap-1.5 py-2.5 pl-7 pr-2 sm:pl-7">
+                      <button
+                        type="button"
+                        className="flex min-w-0 flex-1 flex-col items-start justify-center py-0.5 pr-2 text-left"
+                        aria-label="Open AI coach for next steps and suggestions"
+                        onClick={() => {
+                          window.dispatchEvent(new CustomEvent("proofy:open", { detail: { open: true } }));
+                        }}
+                      >
+                        <div className="flex w-full min-w-0 items-start gap-2">
+                          <Sparkles
+                            size={20}
+                            className="mt-0.5 shrink-0 text-[#0A89A9]"
+                            strokeWidth={2}
+                            aria-hidden
+                          />
+                          <p className="min-w-0 text-[16px] font-medium leading-snug text-[#1E293B]">
+                            AI coach is here to guide your next path
+                          </p>
+                        </div>
+                        <p className="mt-0.5 pl-7 text-[14px] font-normal leading-snug text-[#94A3B8]">
+                          Click here to talk to the AI coach and view suggestions.
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        className="proofy-dock-round-btn flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[80px] border border-slate-300 bg-white/60 backdrop-blur-[21px] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)] transition-transform hover:bg-white/75"
+                        aria-label={aiCoachPanelOpen ? "Collapse suggestions" : "Expand suggestions"}
+                        aria-expanded={aiCoachPanelOpen}
+                        onClick={() => setAiCoachPanelOpen((v) => !v)}
+                      >
+                        <ChevronDown
+                          size={20}
+                          className={["text-slate-600 transition-transform duration-200", aiCoachPanelOpen ? "rotate-180" : ""].join(" ")}
+                          strokeWidth={2}
                           aria-hidden
                         />
-                      )}
-                      <div className="min-w-0 max-w-[8.5rem]">
-                        <p className="truncate text-[12px] font-normal leading-none text-[#1E293B]" title={step.title}>
-                          {step.title}
-                        </p>
-                        <p className="mt-0.5 truncate text-[10px] font-normal leading-none text-[#94A3B8]">
-                          {step.sub}
-                        </p>
-                      </div>
+                      </button>
                     </div>
-                  ))}
-                </div>
-                <Link
-                  href="/profile"
-                  className="proofy-dock-round-btn relative z-[1] flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-[80px] border border-slate-300 bg-white/60 backdrop-blur-[21px] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]"
-                  aria-label="Open profile"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <ArrowUpRight size={16} className="text-slate-600" strokeWidth={2} />
-                </Link>
+
+                    {aiCoachPanelOpen ? (
+                      <div
+                        className="relative z-[1] border-t border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.35)_0%,rgba(248,250,252,0.55)_100%)] px-4 pb-4 pt-3 animate-in fade-in duration-200"
+                        role="region"
+                        aria-label="AI coach suggestions"
+                      >
+                        <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#64748B]">
+                          Suggested next steps
+                        </p>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <div className="flex flex-col gap-2 rounded-[16px] border border-[#E2E8F0]/90 bg-white/60 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#FBEAF0] text-[#72243E]">
+                              <Users size={18} strokeWidth={2} aria-hidden />
+                            </span>
+                            <span className="text-[14px] font-semibold text-[#1E293B]">People pillar</span>
+                            <span className="text-[12px] leading-relaxed text-[#64748B]">
+                              Build collaboration, influence, and stakeholder skills with focused trainings.
+                            </span>
+                            <Link
+                              href="/trainings/driver/people"
+                              onClick={() => setAiCoachPanelOpen(false)}
+                              className="mt-1 inline-flex w-fit items-center rounded-full bg-[#0A89A9] px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+                            >
+                              Go to training
+                            </Link>
+                          </div>
+
+                          <div className="flex flex-col gap-2 rounded-[16px] border border-[#E2E8F0]/90 bg-white/60 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#E6F1FB] text-[#0087A8]">
+                              <Play size={18} strokeWidth={2} aria-hidden />
+                            </span>
+                            <span className="text-[14px] font-semibold text-[#1E293B]">People pillar mock</span>
+                            <span className="text-[12px] leading-relaxed text-[#64748B]">
+                              Run a practice interview weighted to People-style behavioral questions.
+                            </span>
+                            <Link
+                              href="/mock/setup?pillar=people"
+                              onClick={() => setAiCoachPanelOpen(false)}
+                              className="mt-1 inline-flex w-fit items-center rounded-full bg-[#0A89A9] px-3 py-1.5 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
+                            >
+                              Take mock interview
+                            </Link>
+                          </div>
+
+                          <div className="flex flex-col gap-2 rounded-[16px] border border-[#E2E8F0]/90 bg-white/60 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)]">
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#0A89A9]/10 text-[#0A89A9]">
+                              <MessageCircle size={18} strokeWidth={2} aria-hidden />
+                            </span>
+                            <span className="text-[14px] font-semibold text-[#1E293B]">Storyboard</span>
+                            <span className="text-[12px] leading-relaxed text-[#64748B]">
+                              Shape roles and STAR stories so your examples are ready for interviews.
+                            </span>
+                            <Link
+                              href="/storyboard"
+                              onClick={() => setAiCoachPanelOpen(false)}
+                              className="mt-1 inline-flex w-fit items-center rounded-full border border-[#CBD5E1] bg-white/70 px-3 py-1.5 text-[12px] font-semibold text-[#0F172A] transition-colors hover:border-[#94A3B8]"
+                            >
+                              Open storyboard
+                            </Link>
+                          </div>
+                        </div>
+
+                        <form
+                          className="relative mt-4 w-full"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            const q = coachAskDraft.trim();
+                            if (!q) return;
+                            window.dispatchEvent(
+                              new CustomEvent("proofy:open", { detail: { open: true, prefill: q } })
+                            );
+                            setCoachAskDraft("");
+                            setAiCoachPanelOpen(false);
+                          }}
+                        >
+                          <div
+                            className="relative w-full overflow-hidden rounded-[122px] border-[0.5px] border-white"
+                            style={{ boxShadow: PROOFY_DOCK_SHADOW_OUT }}
+                          >
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute inset-0 rounded-[122px] backdrop-blur-[21px]"
+                              style={{ backgroundImage: PROOFY_DOCK_GLASS_GRADIENT }}
+                            />
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute inset-[-0.5px] rounded-[122px]"
+                              style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
+                            />
+                            <div className="relative z-[1] flex w-full items-center justify-between gap-2 py-2 pl-2.5 pr-1.5">
+                              <div className="flex min-w-0 flex-1 items-center gap-4">
+                                <span
+                                  className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                                  aria-hidden
+                                >
+                                  <span
+                                    className="pointer-events-none absolute inset-0 rounded-full backdrop-blur-[21px]"
+                                    style={{ backgroundImage: PROOFY_SPARKLE_ORB_GRADIENT }}
+                                  />
+                                  <Sparkles className="relative z-[1] h-[14px] w-[14px] text-white" strokeWidth={2} />
+                                  <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0 rounded-[inherit]"
+                                    style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
+                                  />
+                                </span>
+                                <label htmlFor="dashboard-coach-ask" className="sr-only">
+                                  Ask AI Coach
+                                </label>
+                                <input
+                                  id="dashboard-coach-ask"
+                                  type="text"
+                                  value={coachAskDraft}
+                                  onChange={(e) => setCoachAskDraft(e.target.value)}
+                                  placeholder="Ask AI Coach"
+                                  autoComplete="off"
+                                  className="h-11 min-w-0 flex-1 border-0 bg-transparent text-[16px] font-normal leading-none text-slate-600 outline-none placeholder:text-slate-500"
+                                />
+                              </div>
+                              <div className="flex shrink-0 items-center gap-1">
+                                {coachSpeechSupported ? (
+                                  <button
+                                    type="button"
+                                    className="proofy-dock-round-btn relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full outline-none transition-opacity hover:opacity-90"
+                                    aria-label="Open AI coach with voice input"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      const q = coachAskDraft.trim();
+                                      window.dispatchEvent(
+                                        new CustomEvent("proofy:open", {
+                                          detail: {
+                                            open: true,
+                                            ...(q ? { prefill: q } : {}),
+                                            startVoice: true,
+                                          },
+                                        })
+                                      );
+                                      setCoachAskDraft("");
+                                      setAiCoachPanelOpen(false);
+                                    }}
+                                  >
+                                    <span
+                                      aria-hidden
+                                      className="pointer-events-none absolute inset-0 rounded-full backdrop-blur-[21px]"
+                                    />
+                                    <Mic className="relative z-[1] h-4 w-4 text-slate-600" strokeWidth={2} />
+                                    <span
+                                      aria-hidden
+                                      className="pointer-events-none absolute inset-0 rounded-[inherit]"
+                                      style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
+                                    />
+                                  </button>
+                                ) : null}
+                                <button
+                                  type="submit"
+                                  className="proofy-dock-round-btn relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white/95 outline-none transition-opacity hover:opacity-95 disabled:pointer-events-none disabled:opacity-40"
+                                  aria-label="Send to AI coach"
+                                  disabled={!coachAskDraft.trim()}
+                                >
+                                  <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-0 rounded-full backdrop-blur-[21px]"
+                                  />
+                                  <span
+                                    aria-hidden
+                                    className="pointer-events-none absolute inset-[-0.5px] rounded-[inherit]"
+                                    style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
+                                  />
+                                  <ArrowRight className="relative z-[1] h-4 w-4 text-slate-600" strokeWidth={2} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </form>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div
+                    className="relative flex h-[58px] w-full cursor-pointer items-center justify-between gap-1.5 overflow-visible rounded-[122px] border-[0.5px] border-white bg-[linear-gradient(90.56deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] pl-7 pr-2 shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px] sm:pl-7"
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Go to current experience step"
+                    onClick={() => {
+                      if (!journeySnap.active && journeySnap.completed.length === 0) startJourney("training");
+                      router.push(currentJourneyHref);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        if (!journeySnap.active && journeySnap.completed.length === 0) startJourney("training");
+                        router.push(currentJourneyHref);
+                      }
+                    }}
+                  >
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 rounded-[122px] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]"
+                    />
+                    <div className="relative z-[1] flex min-w-0 flex-1 items-center overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      {journey.map((step, index) => (
+                        <div key={step.id} className="flex min-w-0 flex-1 items-center gap-2">
+                          {index > 0 ? <span className="mx-1.5 h-7 w-px shrink-0 bg-[#DBEAFE]" aria-hidden /> : null}
+                          {step.icon === "done" ? (
+                            <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-emerald-500 shadow-[inset_-2px_-2px_100px_0px_rgba(255,255,255,0.02)]">
+                              <Check size={12} className="text-white" strokeWidth={2.5} aria-hidden />
+                            </span>
+                          ) : (
+                            <span
+                              className={[
+                                "flex h-[18px] w-[18px] shrink-0 rounded-full border-[1.143px] border-slate-300 bg-white/40 backdrop-blur-[8.4px]",
+                                step.icon === "current" ? "ring-1 ring-[#0A89A9]/30" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              aria-hidden
+                            />
+                          )}
+                          <div className="min-w-0 max-w-[9.5rem]">
+                            <p className="truncate text-[16px] font-normal leading-snug text-[#1E293B]" title={step.title}>
+                              {step.title}
+                            </p>
+                            <p className="mt-0.5 truncate text-[14px] font-normal leading-snug text-[#94A3B8]">
+                              {step.sub}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <Link
+                      href="/profile"
+                      className="proofy-dock-round-btn relative z-[1] flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-[80px] border border-slate-300 bg-white/60 backdrop-blur-[21px] shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)]"
+                      aria-label="Open profile"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <ArrowUpRight size={17} className="text-slate-600" strokeWidth={2} />
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </section>
 
         {/* Interview readiness + recent sections — Figma Insphere 869-7176 */}
-        <section className={`${glassCard} relative z-[1] mt-3 flex flex-col gap-6 border-[0.5px] p-6 xl:flex-row xl:items-start`}>
+        <section
+          className={`${glassCard} relative z-[1] mx-auto mt-3 flex w-full max-w-[960px] flex-col gap-6 border-[0.5px] p-6`}
+        >
           <article className={`${glassCard} relative w-full flex-1 border-[0.5px] p-6`}>
             <div className="flex w-full flex-col gap-3">
               <div className="flex w-full items-center gap-1.5">
                 <div className="min-w-0 flex-1">
                   <h2 className="text-[24px] font-medium text-[#1E293B]">Interview readiness</h2>
                   <p className="text-[12px] font-normal text-[#475569]">
-                    Mocks, trainings, and pillar balance at a glance.
+                    {showInterviewReadinessScores ? (
+                      <>Mocks, trainings, and pillar balance at a glance.</>
+                    ) : (
+                      <>Take your first mock interview to get your interview readiness.</>
+                    )}
                   </p>
                 </div>
                 <div className="flex shrink-0 flex-col items-center gap-3">
                   <p className="flex items-end">
-                    <span
-                      className="text-[42px] font-semibold leading-[42px]"
-                      style={{ color: scoreBandColor(overallScore) }}
+                    {showInterviewReadinessScores ? (
+                      <>
+                        <span
+                          className="text-[42px] font-semibold leading-[42px]"
+                          style={{ color: scoreBandColor(overallScore) }}
+                        >
+                          {overallScore.toFixed(1)}
+                        </span>
+                        <span className="text-[24px] font-normal leading-[42px] text-[#64748B]">/05</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[42px] font-semibold leading-[42px] tracking-[0.08em] text-[#CBD5E1]">
+                          —.–
+                        </span>
+                        <span className="text-[24px] font-normal leading-[42px] text-[#CBD5E1]">/05</span>
+                      </>
+                    )}
+                  </p>
+                  {showInterviewReadinessScores ? (
+                    <p
+                      className={[
+                        "rounded-full border px-4 py-1.5 text-[10px] shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
+                        readiness.chipClass,
+                      ].join(" ")}
                     >
-                      {overallScore.toFixed(1)}
-                    </span>
-                    <span className="text-[24px] font-normal leading-[42px] text-[#64748B]">/05</span>
-                  </p>
-                  <p
-                    className={[
-                      "rounded-full border px-4 py-1.5 text-[10px] shadow-[0_4px_20px_rgba(0,0,0,0.06)]",
-                      readiness.chipClass,
-                    ].join(" ")}
-                  >
-                    You&apos;re currently on{" "}
-                    <span className={["font-semibold", readiness.labelStrongClass].join(" ")}>{readiness.label}</span>
-                  </p>
+                      You&apos;re currently on{" "}
+                      <span className={["font-semibold", readiness.labelStrongClass].join(" ")}>{readiness.label}</span>
+                    </p>
+                  ) : (
+                    <p className="rounded-full border border-dashed border-[#CBD5E1] bg-white/40 px-4 py-1.5 text-[10px] text-[#94A3B8] shadow-[0_4px_20px_rgba(0,0,0,0.06)]">
+                      <span className="font-semibold tracking-[0.2em] text-[#CBD5E1]">— — —</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -570,20 +867,29 @@ export default function NewUserDashboard() {
                       <button
                         key={driver.id}
                         type="button"
-                        className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_3rem_auto] items-center gap-x-2 text-left"
-                        aria-label={`Open ${driver.title} details`}
+                        className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_3rem_auto] items-center gap-x-2 text-left disabled:cursor-default"
+                        aria-label={
+                          showInterviewReadinessScores ? `Open ${driver.title} details` : "Scores unlock after your journey"
+                        }
+                        disabled={!showInterviewReadinessScores}
                       >
                         <PillarIcon size={16} className="shrink-0 text-[#64748B]" strokeWidth={1.8} aria-hidden />
                         <span className="min-w-0 truncate text-[16px] font-medium text-[#475569]">
                           {`Power of ${driver.title}`}
                         </span>
                         <span className="h-[2px] w-[2px] shrink-0 rounded-full bg-[#1E293B]" aria-hidden />
-                        <span
-                          className="shrink-0 text-right text-[24px] font-semibold leading-none tabular-nums"
-                          style={{ color: scoreBandColor(driver.score) }}
-                        >
-                          {driver.score.toFixed(1)}
-                        </span>
+                        {showInterviewReadinessScores ? (
+                          <span
+                            className="shrink-0 text-right text-[24px] font-semibold leading-none tabular-nums"
+                            style={{ color: scoreBandColor(driver.score) }}
+                          >
+                            {driver.score.toFixed(1)}
+                          </span>
+                        ) : (
+                          <span className="shrink-0 text-right text-[24px] font-semibold leading-none tracking-[0.06em] text-[#CBD5E1] tabular-nums">
+                            —.–
+                          </span>
+                        )}
                         <ArrowUpRight size={14} className="shrink-0 text-[#94A3B8]" aria-hidden />
                       </button>
                     );
@@ -628,18 +934,11 @@ export default function NewUserDashboard() {
           </aside>
         </section>
 
-        <section className="relative z-[1] mt-3 grid gap-3 xl:grid-cols-[1fr_1fr]">
+        <section className="relative z-[1] mx-auto mt-3 grid w-full max-w-[960px] gap-3 xl:grid-cols-1">
           <article className={`${glassCard} p-4`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="text-[20px] font-medium text-[#1E293B]">Story Boards</h3>
+              <h3 className="text-[20px] font-medium text-[#1E293B]">Experience bank</h3>
               <div className="flex flex-wrap items-center gap-2">
-                <Link
-                  href="/storyboard"
-                  className="inline-flex items-center gap-1.5 rounded-[80px] border border-[#CBD5E1] bg-white/50 px-3 py-2 text-[13px] font-medium text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/70"
-                >
-                  <Plus size={16} strokeWidth={2} aria-hidden />
-                  Add new role
-                </Link>
                 <Link
                   href="/storyboard"
                   className="inline-flex items-center gap-1 rounded-[80px] px-3 py-2 text-[14px] font-medium text-[#64748B] backdrop-blur-[21px]"
@@ -655,7 +954,7 @@ export default function NewUserDashboard() {
             ) : (
               <>
                 {dashboardStoryRowToShow ? (
-                  <div className="mt-4">
+                  <div className="mt-4 flex flex-col gap-[18px]">
                     <div className="rounded-[16px] border border-white/90 bg-white/40 p-4 shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px]">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -672,9 +971,16 @@ export default function NewUserDashboard() {
                                     journeys.reduce((sum, j) => sum + experienceCraftProgressPercent(j.id), 0) /
                                       count,
                                   );
+                            const avgStrength =
+                              count === 0
+                                ? 0
+                                : Math.round((journeys.reduce((sum, j) => sum + hubStoryStrengthFromCraft(j.id), 0) / count) * 10) /
+                                  10;
                             return (
                               <div className="mt-1">
-                                <p className="text-[12px] text-[#64748B]">{count} journeys</p>
+                                <p className="text-[12px] text-[#64748B]">
+                                  {count} experiences{count > 0 ? ` • Story score ${avgStrength.toFixed(1)}/5` : ""}
+                                </p>
                                 <div className="mt-2 h-1 w-[220px] overflow-hidden rounded-full bg-slate-200/90">
                                   <div
                                     className="h-full rounded-full bg-[#0A89A9] transition-[width] duration-300"
@@ -687,10 +993,13 @@ export default function NewUserDashboard() {
                         </div>
                         <div className="flex shrink-0 flex-wrap items-center gap-2">
                           <Link
-                            href={`/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}`}
+                            href={
+                              dashboardRolePrimaryAction?.href ??
+                              `/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openAddExperience=1`
+                            }
                             className="inline-flex items-center gap-1.5 rounded-[80px] border border-[#CBD5E1] bg-white/60 px-3 py-2 text-[13px] font-semibold text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/75"
                           >
-                            View story
+                            {dashboardRolePrimaryAction ? craftCtaLabel(dashboardRolePrimaryAction.status) : "Craft story"}
                             <ArrowUpRight size={14} aria-hidden />
                           </Link>
                         </div>
@@ -699,19 +1008,16 @@ export default function NewUserDashboard() {
 
                     {dashboardStoryRowToShow.experiences.length === 0 ? (
                       <Link
-                        href={`/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openAddExperience=1`}
+                        href={`/storyboard/agent?role=${encodeURIComponent(dashboardStoryRowToShow.title)}`}
                         className="flex min-h-[88px] flex-col items-center justify-center rounded-[16px] border border-dashed border-[#CBD5E1] bg-white/20 p-4 text-center text-[13px] text-[#64748B] shadow-[0_4px_20px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/35"
                       >
-                        <span className="font-medium text-[#1E293B]">No journeys yet</span>
-                        <span className="mt-1 text-[12px]">Open Story Boards to add journeys for this role.</span>
+                        <span className="font-medium text-[#1E293B]">No Experience yet</span>
+                        <span className="mt-1 text-[12px]">Click here to start adding experience</span>
                       </Link>
                     ) : (
                       <div className="mt-3">
                         <ul className="space-y-2">
                         {dashboardStoryRowToShow.experiences.map((exp) => {
-                          const status = readExperienceCraftUiStatus(exp.id);
-                          const href = craftActionHref(exp.id, dashboardStoryRowToShow.title, status);
-                          const craftPct = experienceCraftProgressPercent(exp.id);
                           const editJourneyHref = `/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openPlanExperiences=1`;
                           return (
                             <li key={exp.id}>
@@ -719,13 +1025,13 @@ export default function NewUserDashboard() {
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between gap-3">
                                     <p className="min-w-0 flex-1 truncate text-[14px] font-semibold leading-snug text-[#1E293B]">
-                                      {exp.label.trim() || "Untitled journey"}
+                                      {exp.label.trim() || "Untitled experience"}
                                     </p>
                                     <Link
                                       href={editJourneyHref}
                                       className="shrink-0 text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
                                     >
-                                      Edit journey
+                                      Edit
                                     </Link>
                                   </div>
                                 </div>
@@ -738,7 +1044,7 @@ export default function NewUserDashboard() {
                           href={`/storyboard?openRoleId=${encodeURIComponent(dashboardStoryRowToShow.id)}&openAddExperience=1`}
                           className="mt-3 inline-flex items-center justify-center rounded-[16px] border border-dashed border-[#CBD5E1] bg-white/20 px-4 py-3 text-[13px] font-semibold text-[#0A89A9] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#94A3B8] hover:bg-white/35"
                         >
-                          + Add a journey
+                          + Add an experience
                         </Link>
                       </div>
                     )}

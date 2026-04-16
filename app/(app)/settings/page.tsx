@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useUser } from "@/lib/user-context";
-import { readDemoPreset, resetDemoStorage, seedFirstTime, seedReturningLight } from "@/lib/demo";
+import { readDemoPreset, resetFlowToFreshStart, seedFirstTime, seedReturningLight } from "@/lib/demo";
 
 function Toggle({
   checked,
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      resetDemoStorage();
+                      resetFlowToFreshStart();
                       resetUser();
                       window.location.assign("/login");
                     }}

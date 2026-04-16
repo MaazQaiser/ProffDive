@@ -64,7 +64,7 @@ function purposeLineFor(sectionName: string): string {
   return map[sectionName] ?? "Interviewers ask about this to see how you think and operate under pressure.";
 }
 
-export default function StoryboardReadonlyPage() {
+export default function BackupStoryboardReadonlyPage() {
   const params = useParams<{ id: string }>();
   const { user } = useUser();
   const experienceId = params?.id ? String(params.id) : "";
@@ -74,10 +74,7 @@ export default function StoryboardReadonlyPage() {
   const [draftCar, setDraftCar] = useState<CarBlock>({ context: "", action: "", result: "" });
   const [view, setView] = useState<"mindmap" | "panel">("mindmap");
 
-  const experienceCtx = useMemo(
-    () => (experienceId ? findExperienceContext(experienceId) : null),
-    [experienceId]
-  );
+  const experienceCtx = useMemo(() => (experienceId ? findExperienceContext(experienceId) : null), [experienceId]);
 
   useEffect(() => {
     const id = params?.id ? String(params.id) : "";
@@ -97,7 +94,7 @@ export default function StoryboardReadonlyPage() {
           experienceLabels: roleExperienceLabels,
         })
     );
-  }, [params?.id]);
+  }, [params?.id, user.role, user.targetRole]);
 
   const persistSections = useCallback((next: CraftSection[]) => {
     setSections(next);
@@ -160,14 +157,14 @@ export default function StoryboardReadonlyPage() {
         <header className="relative z-[1] mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
             <Link
-              href="/storyboard"
+              href="/storyboard/backup"
               className="proofy-dock-round-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-[80px] border border-slate-300 bg-white/60 shadow-[inset_-5px_-5px_250px_0px_rgba(255,255,255,0.02)] backdrop-blur-[21px] transition-colors hover:bg-white/80"
               aria-label="Back to storyboards"
             >
               <ArrowLeft size={16} className="text-slate-600" strokeWidth={2} aria-hidden />
             </Link>
             <div className="flex min-w-0 flex-wrap items-center gap-2 text-[14px] leading-tight">
-              <Link href="/storyboard" className="shrink-0 font-medium text-[#64748B] transition-colors hover:text-[#1E293B]">
+              <Link href="/storyboard/backup" className="shrink-0 font-medium text-[#64748B] transition-colors hover:text-[#1E293B]">
                 StoryBoard
               </Link>
               <span className="shrink-0 text-[#CBD5E1]" aria-hidden>
@@ -335,21 +332,9 @@ export default function StoryboardReadonlyPage() {
                         />
                       ) : (
                         <div className="flex flex-col gap-5">
-                          <StoryboardCarField
-                            label="Context"
-                            value={draftCar.context}
-                            onChange={(v) => setDraftCar((c) => ({ ...c, context: v }))}
-                          />
-                          <StoryboardCarField
-                            label="Action"
-                            value={draftCar.action}
-                            onChange={(v) => setDraftCar((c) => ({ ...c, action: v }))}
-                          />
-                          <StoryboardCarField
-                            label="Result"
-                            value={draftCar.result}
-                            onChange={(v) => setDraftCar((c) => ({ ...c, result: v }))}
-                          />
+                          <StoryboardCarField label="Context" value={draftCar.context} onChange={(v) => setDraftCar((c) => ({ ...c, context: v }))} />
+                          <StoryboardCarField label="Action" value={draftCar.action} onChange={(v) => setDraftCar((c) => ({ ...c, action: v }))} />
+                          <StoryboardCarField label="Result" value={draftCar.result} onChange={(v) => setDraftCar((c) => ({ ...c, result: v }))} />
                         </div>
                       )}
 
@@ -366,10 +351,7 @@ export default function StoryboardReadonlyPage() {
                           </div>
 
                           <div className="mt-2 flex items-start gap-2">
-                            <div
-                              aria-hidden="true"
-                              className="w-[3px] shrink-0 self-stretch rounded-full bg-[#0A89A9]"
-                            />
+                            <div aria-hidden="true" className="w-[3px] shrink-0 self-stretch rounded-full bg-[#0A89A9]" />
                             <p className="text-[12px] leading-relaxed text-[#475569]">{PROOFY_LOW_SCORE_MESSAGE}</p>
                           </div>
                         </div>
@@ -432,3 +414,4 @@ function StoryboardCarField({
     </div>
   );
 }
+

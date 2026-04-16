@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Urbanist } from "next/font/google";
 import { ArrowRight, Check, ChevronDown, Mic, Plus } from "lucide-react";
 import { Chip } from "@/components/Chip";
@@ -23,9 +23,12 @@ import {
   type WebSpeechResultEvent,
 } from "@/lib/proofy-speech";
 import {
+  craftCtaLabel,
   hubStoryStrengthFromCraft,
   readExperienceCraftUiStatus,
-  roleCraftProgressPercent,
+  readRoleCraftUiStatus,
+  resolveRoleCraftAction,
+  type ExperienceCraftUiStatus,
 } from "@/lib/storyboard-crafting";
 
 const urbanist = Urbanist({
@@ -51,17 +54,24 @@ const PLAN_EXPERIENCE_CHAR_LIMIT = 400;
 
 type PlanPhase = "role" | "experiences";
 
-export default function StoryBoardPage() {
-  return (
-    <Suspense fallback={<div className={`${urbanist.className} min-h-screen`} />}>
-      <StoryBoardPageInner />
-    </Suspense>
-  );
+/**
+ * Backup hub primary CTA: “Craft story” and “Continue crafting” always open the core-builder
+ * (`/storyboard/backup/new?experienceId=…&role=…`). Only completed stories go to the readonly mind map.
+ */
+function backupHubPrimaryCraftHref(
+  action: { experienceId: string; status: ExperienceCraftUiStatus; href: string },
+  roleTitle: string
+): string {
+  const roleQ = encodeURIComponent(roleTitle.trim() || "My role");
+  const idQ = encodeURIComponent(action.experienceId);
+  if (action.status === "ready_to_practice") {
+    return `/storyboard/backup/${action.experienceId}`;
+  }
+  return `/storyboard/backup/new?experienceId=${idQ}&role=${roleQ}`;
 }
 
-function StoryBoardPageInner() {
+export default function BackupStoryBoardPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { user } = useUser();
   const [library, setLibrary] = useState<StoryboardLibrary>({ version: 1, roles: [] });
   const [mounted, setMounted] = useState(false);
@@ -85,7 +95,6 @@ function StoryBoardPageInner() {
   const [addJourneyForRoleId, setAddJourneyForRoleId] = useState<string | null>(null);
   const [newExperienceBlocks, setNewExperienceBlocks] = useState<string[]>([""]);
   const [expandedRoleId, setExpandedRoleId] = useState<string | null>(null);
-  /** Bumps when returning to the tab so hub re-reads craft localStorage (save → mind map → back). */
   const [, setHubRefresh] = useState(0);
 
   const roleFallback = useMemo(
@@ -160,21 +169,13 @@ function StoryBoardPageInner() {
 
   useEffect(() => {
     try {
-      const openAddRole = searchParams.get("openAddRole")?.trim() ?? "";
-      const openRoleId = searchParams.get("openRoleId")?.trim() ?? "";
-      const openAdd = searchParams.get("openAddExperience")?.trim() ?? "";
-      const openPlan = searchParams.get("openPlanExperiences")?.trim() ?? "";
-      const shouldOpenAddRole =
-        openAddRole === "1" || openAddRole.toLowerCase() === "true";
-      if (shouldOpenAddRole) {
-        setDraftRole("");
-        setPlanOpen(true);
-        setPlanPhase("role");
-        queueMicrotask(() => planRoleInputRef.current?.focus());
-        return;
-      }
-
+      const params = new URLSearchParams(window.location.search);
+      const openRoleId = params.get("openRoleId")?.trim() ?? "";
+      const openAdd = params.get("openAddExperience")?.trim() ?? "";
+      const openPlan = params.get("openPlanExperiences")?.trim() ?? "";
       if (!openRoleId) return;
+      // Expand the role accordion so journeys are visible.
+      setExpandedRoleId(openRoleId);
       const shouldOpenPlan =
         openPlan === "1" ||
         openPlan.toLowerCase() === "true" ||
@@ -187,7 +188,7 @@ function StoryBoardPageInner() {
     } catch {
       /* ignore */
     }
-  }, [openPlanForRoleId, searchParams]);
+  }, [openPlanForRoleId]);
 
   useEffect(() => {
     const h = (e: MouseEvent) => {
@@ -226,7 +227,7 @@ function StoryBoardPageInner() {
       experienceId,
       role: roleTitle.trim(),
     });
-    router.push(`/storyboard/new?${q.toString()}`);
+    router.push(`/storyboard/backup/new?${q.toString()}`);
   };
 
   const resetPlanForm = () => {
@@ -720,183 +721,202 @@ function StoryBoardPageInner() {
                 ) : null}
 
                 {!planOpen && library.roles.length > 0 ? (
-                <div className="grid w-full gap-5 xl:grid-cols-1">
-                  {(() => {
-                    const targetKey = roleFallback.trim().toLowerCase();
-                    const active =
-                      library.roles.find((r) => r.title.trim().toLowerCase() === targetKey) ??
-                      library.roles[0] ??
-                      null;
-                    const rolesToShow = active ? [active] : [];
-                    return rolesToShow.map((role, roleIdx) => {
-                    const hasCompleteStory =
-                      mounted && role.experiences.some((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice");
-                    const hubPct = mounted
-                      ? hasCompleteStory
-                        ? 100
-                        : roleCraftProgressPercent(role)
-                      : 10;
-                    const storyScore =
-                      mounted && role.experiences.length > 0
-                        ? Math.max(0, ...role.experiences.map((e) => hubStoryStrengthFromCraft(e.id)))
-                        : 0;
-                    const viewStoryHref = mounted
-                      ? role.experiences.find((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice")
-                      : undefined;
-                    const journeysOpen = expandedRoleId === role.id;
-                    const ghostAddClass =
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[14px] font-semibold text-[#0A89A9] transition-colors hover:bg-[#0A89A9]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A89A9]/25";
+                  <div className="grid w-full gap-5 xl:grid-cols-1">
+                    {library.roles.map((role, roleIdx) => {
+                      const hasCompleteStory =
+                        mounted && role.experiences.some((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice");
+                      const storyScore =
+                        mounted && role.experiences.length > 0
+                          ? Math.max(0, ...role.experiences.map((e) => hubStoryStrengthFromCraft(e.id)))
+                          : 0;
+                      const viewStoryExp = mounted
+                        ? role.experiences.find((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice")
+                        : undefined;
+                      const journeysOpen = expandedRoleId === role.id;
+                      const roleCraftStatus = mounted ? readRoleCraftUiStatus(role) : "ready_to_craft";
+                      const roleCraftAction = mounted ? resolveRoleCraftAction(role, role.title) : null;
+                      const ghostAddClass =
+                        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-semibold text-[#0A89A9] transition-colors hover:bg-[#0A89A9]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A89A9]/25";
 
-                    return (
-                      <div key={role.id} className={roleHubCard}>
-                        <div className="flex flex-wrap items-center justify-between gap-4 p-4">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[18px] font-semibold text-[#1E293B]">{role.title}</p>
-                            <div className="mt-3 h-1.5 w-full max-w-[280px] rounded-full bg-[#E2E8F0]">
-                              <div
-                                className="h-full max-w-full rounded-full bg-[#0A89A9] transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                                style={{ width: `${hubPct}%` }}
-                              />
-                            </div>
-                            <p className="mt-1.5 text-[14px] font-medium text-[#64748B]">
-                              {hubPct}% done
-                              {role.experiences.length > 0
-                                ? ` · ${role.experiences.length} experience${role.experiences.length === 1 ? "" : "s"}`
-                                : " · add your first experience"}
+                      return (
+                        <div key={role.id} className={roleHubCard}>
+                          <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-[18px] font-semibold text-[#1E293B]">{role.title}</p>
                               {hasCompleteStory ? (
-                                <>
-                                  {" "}
-                                  · Story strength{" "}
+                                <p className="mt-1.5 text-[12px] font-medium text-[#64748B]">
+                                  Story strength{" "}
                                   <span className="font-semibold text-[#0F172A] tabular-nums">
                                     {storyScore.toFixed(1)}
                                   </span>
                                   /5
-                                </>
+                                </p>
+                              ) : role.experiences.length > 0 ? (
+                                <p className="mt-1.5 text-[12px] font-medium text-[#64748B]">
+                                  {role.experiences.length} experience{role.experiences.length === 1 ? "" : "s"}
+                                </p>
                               ) : null}
-                            </p>
-                          </div>
-                          <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:flex-row sm:flex-wrap sm:justify-end">
-                            {viewStoryHref ? (
-                              <Link
-                                href={`/storyboard/${viewStoryHref.id}`}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#0A89A9] px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-[filter,opacity] hover:brightness-105"
+                            </div>
+                            <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end">
+                              <div className="flex flex-wrap items-center justify-end gap-2">
+                                {viewStoryExp ? (
+                                  <Link
+                                    href={`/storyboard/backup/${viewStoryExp.id}`}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-[#0A89A9] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-[filter,opacity] hover:brightness-105"
+                                  >
+                                    View story
+                                    <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                                  </Link>
+                                ) : roleCraftAction ? (
+                                  <Link
+                                    href={backupHubPrimaryCraftHref(roleCraftAction, role.title)}
+                                    data-journey-id={
+                                      roleIdx === 0 && role.experiences.length > 0 ? "story-start" : undefined
+                                    }
+                                    className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                                  >
+                                    {craftCtaLabel(roleCraftStatus)}
+                                    <ArrowRight size={14} className="opacity-70" aria-hidden />
+                                  </Link>
+                                ) : null}
+                              </div>
+                              <button
+                                type="button"
+                                data-journey-id={
+                                  role.experiences.length === 0 && roleIdx === 0 ? "story-start" : undefined
+                                }
+                                onClick={() => {
+                                  openPlanForRoleId(role.id);
+                                }}
+                                className={`${ghostAddClass} justify-center sm:justify-end`}
                               >
-                                View story
-                                <ArrowRight size={14} strokeWidth={2} aria-hidden />
-                              </Link>
-                            ) : null}
-                            <button
-                              type="button"
-                              data-journey-id={
-                                role.experiences.length === 0 && roleIdx === 0 ? "story-start" : undefined
-                              }
-                              onClick={() => {
-                                router.push("/storyboard/agent");
-                              }}
-                              className={`${ghostAddClass} justify-center sm:justify-end`}
-                            >
-                              {role.experiences.length === 0 ? (
-                                "Get started"
-                              ) : (
-                                <>
-                                  <Plus size={14} strokeWidth={2} aria-hidden />
-                                  Add experience
-                                </>
-                              )}
-                            </button>
+                                {role.experiences.length === 0 ? (
+                                  "Add experiences"
+                                ) : (
+                                  <>
+                                    <Plus size={14} strokeWidth={2} aria-hidden />
+                                    Add experience
+                                  </>
+                                )}
+                              </button>
+                            </div>
                           </div>
-                        </div>
 
-                        {addJourneyForRoleId === role.id ? (
-                          <div className="border-t border-[#E2E8F0]/80 px-4 py-4">
-                            <p className="text-[13px] text-[#64748B]">
-                              <span className="text-[#475569]">At least one experience.</span> Add more if you need
-                              them.
-                            </p>
-                            <div className="mt-3 flex flex-col gap-3">
-                              {newExperienceBlocks.map((block, idx) => (
-                                <textarea
-                                  key={idx}
-                                  value={block}
-                                  onChange={(e) =>
-                                    setNewExperienceBlocks((rows) =>
-                                      rows.map((x, i) => (i === idx ? e.target.value : x))
-                                    )
-                                  }
-                                  rows={3}
-                                  placeholder="Describe this experience…"
-                                  className={textareaFlat}
+                          {addJourneyForRoleId === role.id ? (
+                            <div className="border-t border-[#E2E8F0]/80 px-4 py-4">
+                              <p className="text-[13px] text-[#64748B]">
+                                <span className="text-[#475569]">At least one experience.</span> Add more if you need
+                                them.
+                              </p>
+                              <div className="mt-3 flex flex-col gap-3">
+                                {newExperienceBlocks.map((block, idx) => (
+                                  <textarea
+                                    key={idx}
+                                    value={block}
+                                    onChange={(e) =>
+                                      setNewExperienceBlocks((rows) =>
+                                        rows.map((x, i) => (i === idx ? e.target.value : x))
+                                      )
+                                    }
+                                    rows={3}
+                                    placeholder="Describe this experience…"
+                                    className={textareaFlat}
+                                  />
+                                ))}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setNewExperienceBlocks((rows) => [...rows, ""])}
+                                className="mt-2 text-[13px] font-medium text-[#64748B] hover:text-[#0A89A9]"
+                              >
+                                + Add another experience
+                              </button>
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleAddJourneyToRole(role)}
+                                  disabled={!newExperienceBlocks.some((b) => b.trim())}
+                                  className="rounded-full bg-[#0A89A9] px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40"
+                                >
+                                  Start building
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setAddJourneyForRoleId(null)}
+                                  className="rounded-full border border-[#E2E8F0] px-4 py-2 text-[13px] font-medium text-[#64748B]"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {role.experiences.length > 0 ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRoleId((id) => (id === role.id ? null : role.id))}
+                                className="flex w-full items-center justify-between gap-3 border-t border-[#E2E8F0]/80 px-4 py-2.5 text-left text-[13px] font-medium text-[#64748B] transition-colors hover:bg-slate-500/[0.06] motion-reduce:transition-none"
+                                aria-expanded={journeysOpen}
+                              >
+                                <span>Experiences ({role.experiences.length})</span>
+                                <ChevronDown
+                                  size={18}
+                                  strokeWidth={2}
+                                  className={`shrink-0 text-slate-500 transition-transform duration-300 ease-out motion-reduce:transition-none ${
+                                    journeysOpen ? "rotate-180" : ""
+                                  }`}
+                                  aria-hidden
                                 />
-                              ))}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setNewExperienceBlocks((rows) => [...rows, ""])}
-                              className="mt-2 text-[13px] font-medium text-[#64748B] hover:text-[#0A89A9]"
-                            >
-                              + Add another experience
-                            </button>
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleAddJourneyToRole(role)}
-                                disabled={!newExperienceBlocks.some((b) => b.trim())}
-                                className="rounded-full bg-[#0A89A9] px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40"
-                              >
-                                Start building
                               </button>
-                              <button
-                                type="button"
-                                onClick={() => setAddJourneyForRoleId(null)}
-                                className="rounded-full border border-[#E2E8F0] px-4 py-2 text-[13px] font-medium text-[#64748B]"
+                              <div
+                                className={`grid transition-[grid-template-rows] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] motion-reduce:transition-none ${
+                                  journeysOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+                                }`}
                               >
-                                Cancel
-                              </button>
-                            </div>
-                          </div>
-                        ) : null}
-
-                        {role.experiences.length > 0 ? (
-                          <div className="border-t border-[#E2E8F0]/80 px-4 pb-4 pt-3">
-                            <p className="text-[14px] font-semibold text-[#64748B]">
-                              Experiences ({role.experiences.length})
-                            </p>
-                            <ul className="mt-2 space-y-1">
-                              {role.experiences.map((exp) => {
-                                const editHref = `/storyboard?openRoleId=${encodeURIComponent(role.id)}&openPlanExperiences=1`;
-                                return (
-                                  <li key={exp.id}>
-                                    <div className="flex flex-col gap-2 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                                      <p className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-[#1E293B]">
-                                        {exp.label}
-                                      </p>
-                                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                                        <Link
-                                          href={editHref}
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            openPlanForRoleId(role.id);
-                                          }}
-                                          className="text-[14px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
-                                        >
-                                          Edit
-                                        </Link>
-                                      </div>
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                    });
-                  })()}
-                </div>
+                                <div className="min-h-0 overflow-hidden">
+                                  <ul className="space-y-1 border-t border-[#E2E8F0]/60 px-4 pb-4 pt-2">
+                                    {role.experiences.map((exp) => {
+                                      const editHref = `/storyboard/backup?openRoleId=${encodeURIComponent(role.id)}&openPlanExperiences=1`;
+                                      return (
+                                        <li key={exp.id}>
+                                          <div className="flex flex-col gap-2 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                            <p className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-[#1E293B]">
+                                              {exp.label}
+                                            </p>
+                                            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                              <Link
+                                                href={editHref}
+                                                onClick={(e) => {
+                                                  e.preventDefault();
+                                                  openPlanForRoleId(role.id);
+                                                }}
+                                                className="text-[12px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                                              >
+                                                Edit experience
+                                              </Link>
+                                            </div>
+                                          </div>
+                                        </li>
+                                      );
+                                    })}
+                                  </ul>
+                                </div>
+                              </div>
+                            </>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
                 ) : null}
 
-                {/* Single-role storyboard hub: do not show multi-role affordances here. */}
+                {!planOpen && library.roles.length > 0 ? (
+                  <button type="button" onClick={openPlanNewRole} className={`${dashedCtaInner} w-full`}>
+                    <p className="text-[14px] font-medium text-[#64748B]">Add another role</p>
+                    <p className="mt-1 text-[12px] text-[#64748B]">Same simple steps: role, then experiences</p>
+                  </button>
+                ) : null}
 
                 <div className="pb-2" aria-hidden />
               </div>
@@ -907,3 +927,4 @@ function StoryBoardPageInner() {
     </div>
   );
 }
+

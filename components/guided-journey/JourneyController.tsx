@@ -327,7 +327,7 @@ function ProofyGuideWidget({
                   marginBottom: 0,
                 }}
               >
-                Your guide lives here to track your journey.
+                Your guide lives here to track your experience.
               </p>
             </div>
           )}
@@ -434,7 +434,7 @@ function ProofyGuideWidget({
                 margin: 0,
               }}
             >
-              Your journey
+              Your experience
             </p>
             <div className="mt-2 space-y-1.5">
               {order.map((s, i) => {
@@ -794,7 +794,7 @@ function JourneySpotlight({
                     className="pointer-events-auto h-8 px-3 text-[12px] font-semibold text-white transition-opacity hover:opacity-90"
                     style={{ borderRadius: 10, background: BRAND }}
                   >
-                    End journey
+                    End experience
                   </button>
                 ) : (
                   <button

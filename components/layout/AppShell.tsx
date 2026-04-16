@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Urbanist } from "next/font/google";
-import { ClipboardList, GraduationCap, Home, Mic } from "lucide-react";
+import { ClipboardList, GraduationCap, Home, Mic, Plus } from "lucide-react";
 import { useMemo, useState, useEffect, type ReactNode } from "react";
 import { JourneyController } from "@/components/guided-journey/JourneyController";
 import { readDemoPreset, seedFirstTime, seedReturningLight } from "@/lib/demo";
@@ -66,7 +66,7 @@ function TopNav() {
         data-font-var="urbanist"
       >
         <div className="flex min-w-0 shrink-0 items-center">
-          <Link href="/dashboard" className="flex items-center gap-2 sm:gap-2.5">
+          <Link href="/login" className="flex items-center gap-2 sm:gap-2.5">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#0087A8] to-[#006785] text-[12px] font-bold text-white shadow-sm ring-2 ring-white">
               {initial}
             </span>
@@ -120,6 +120,14 @@ function TopNav() {
         </div>
 
         <div className="flex shrink-0 items-center gap-3 sm:gap-3">
+          <Link
+            href="/storyboard?openAddRole=1"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/70 bg-white/35 px-2.5 py-1.5 text-[12px] font-medium text-[#0f172a] shadow-[0_2px_8px_rgba(0,0,0,0.06)] transition-colors hover:bg-white/55 sm:px-3"
+            aria-label="Add new role"
+          >
+            <Plus size={14} strokeWidth={STROKE} className="shrink-0" aria-hidden />
+            <span className="hidden whitespace-nowrap sm:inline">New role</span>
+          </Link>
           <Link
             href="/profile"
             className="group flex items-center gap-2.5 rounded-full pr-0.5 transition hover:bg-white/35"

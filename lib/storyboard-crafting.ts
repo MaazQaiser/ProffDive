@@ -11,6 +11,10 @@ export function craftStorageKeyForExperience(experienceId: string): string {
   return `${STORYBOARD_CRAFTING_STORAGE_KEY}:${experienceId}`;
 }
 
+export function craftStorageKeyForRole(roleId: string): string {
+  return `${STORYBOARD_CRAFTING_STORAGE_KEY}:role:${roleId}`;
+}
+
 /** Scoped key when building a journey; falls back to legacy global key. */
 export function getCraftStorageKeyForSession(experienceId: string | null | undefined): string {
   return experienceId ? craftStorageKeyForExperience(experienceId) : STORYBOARD_CRAFTING_STORAGE_KEY;
@@ -37,6 +41,8 @@ export type CraftSection = {
   history: CarBlock[];
   prompt: string;
   regenerationsUsed: number;
+  /** When true, crafting UI treats the section as read-only until unlocked */
+  locked?: boolean;
 };
 
 export const INTRO_SECTION_ID = "intro";
@@ -53,18 +59,18 @@ export function normalizeIntroBlock(car: CarBlock): CarBlock {
 
 export const SECTION_DEFS: { id: string; pillar: string; title: string }[] = [
   { id: INTRO_SECTION_ID, pillar: "Introduction", title: "Core Introduction" },
-  { id: "thinking-analytical", pillar: "Power of Thinking (Strategic)", title: "ThinkProof Labs" },
-  { id: "thinking-prioritization", pillar: "Power of Thinking (Strategic)", title: "ClarityCore" },
-  { id: "thinking-decision", pillar: "Power of Thinking (Strategic)", title: "DecisionCraft" },
-  { id: "action-ownership", pillar: "Power of Action (Leadership)", title: "ActionProof" },
-  { id: "action-initiative", pillar: "Power of Action (Leadership)", title: "ExecuteLab" },
-  { id: "action-change", pillar: "Power of Action (Leadership)", title: "MomentumWorks" },
-  { id: "people-influence", pillar: "Power of People (People)", title: "PeopleProof" },
-  { id: "people-collaboration", pillar: "Power of People (People)", title: "AlignWorks" },
-  { id: "people-capability", pillar: "Power of People (People)", title: "InfluenceCore" },
-  { id: "mastery-functional", pillar: "Power of Mastery (Technical)", title: "MasteryProof" },
-  { id: "mastery-execution", pillar: "Power of Mastery (Technical)", title: "CraftCore" },
-  { id: "mastery-innovation", pillar: "Power of Mastery (Technical)", title: "SkillForge" },
+  { id: "thinking-analytical", pillar: "Power of Thinking", title: "Analytical Thinking" },
+  { id: "thinking-prioritization", pillar: "Power of Thinking", title: "Prioritization" },
+  { id: "thinking-decision", pillar: "Power of Thinking", title: "Decision-Making Agility" },
+  { id: "action-ownership", pillar: "Power of Action", title: "Ownership" },
+  { id: "action-initiative", pillar: "Power of Action", title: "Initiative & Follow-through" },
+  { id: "action-change", pillar: "Power of Action", title: "Embraces Change" },
+  { id: "people-influence", pillar: "Power of People", title: "Influence" },
+  { id: "people-collaboration", pillar: "Power of People", title: "Collaboration & Inclusion" },
+  { id: "people-capability", pillar: "Power of People", title: "Grows Capability" },
+  { id: "mastery-functional", pillar: "Power of Mastery", title: "Functional Knowledge" },
+  { id: "mastery-execution", pillar: "Power of Mastery", title: "Execution" },
+  { id: "mastery-innovation", pillar: "Power of Mastery", title: "Innovation" },
 ];
 
 export type StorySeedContext = {
@@ -118,6 +124,7 @@ export function buildInitialSections(journeyLabel?: string): CraftSection[] {
     history: [],
     prompt: "",
     regenerationsUsed: 0,
+    locked: false,
   }));
 }
 
@@ -129,6 +136,7 @@ export function buildInitialSectionsForRole(ctx?: StorySeedContext): CraftSectio
     history: [],
     prompt: "",
     regenerationsUsed: 0,
+    locked: false,
   }));
 }
 
@@ -145,6 +153,38 @@ export function mockStoryScore(sectionId: string): number {
   return 3.0 + (sectionId.length % 6) * 0.12;
 }
 
+/** Pillar order for score UI — matches non-intro rows in SECTION_DEFS. */
+export const CRAFT_PILLAR_ORDER: readonly string[] = SECTION_DEFS.filter((d) => !isIntroSection(d.id)).reduce<
+  string[]
+>((acc, d) => {
+  if (!acc.includes(d.pillar)) acc.push(d.pillar);
+  return acc;
+}, []);
+
+/** Mean mock strength across competency sections (excludes Core Introduction). */
+export function averageMockStoryStrength(sections: CraftSection[]): number {
+  const nonIntro = sections.filter((s) => !isIntroSection(s.id));
+  if (nonIntro.length === 0) return 0;
+  const sum = nonIntro.reduce((acc, s) => acc + mockStoryScore(s.id), 0);
+  return Math.round((sum / nonIntro.length) * 10) / 10;
+}
+
+/** One row per pillar: mean of the three competency section scores (mock). */
+export function pillarMockScoreBreakdown(sections: CraftSection[]): { pillar: string; score: number }[] {
+  const byPillar = new Map<string, number[]>();
+  for (const s of sections) {
+    if (isIntroSection(s.id)) continue;
+    const list = byPillar.get(s.pillar) ?? [];
+    list.push(mockStoryScore(s.id));
+    byPillar.set(s.pillar, list);
+  }
+  return CRAFT_PILLAR_ORDER.map((pillar) => {
+    const scores = byPillar.get(pillar) ?? [];
+    const raw = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    return { pillar, score: Math.round(raw * 10) / 10 };
+  });
+}
+
 export const PROOFY_LOW_SCORE_MESSAGE =
   "Proofy suggests adding a more impactful story that showcases your decision-making power, clear ownership, and measurable outcomes.";
 
@@ -154,6 +194,7 @@ function normalizeSectionRow(s: CraftSection): CraftSection {
     history: Array.isArray(s.history) ? s.history : [],
     regenerationsUsed: typeof s.regenerationsUsed === "number" ? s.regenerationsUsed : 0,
     prompt: typeof s.prompt === "string" ? s.prompt : "",
+    locked: s.locked === true,
   };
   if (!isIntroSection(s.id) || !s.car) return base;
   return {
@@ -183,6 +224,31 @@ export type ExperienceCraftUiStatus = "ready_to_craft" | "drafted" | "ready_to_p
 
 const CRAFT_COMPLETE_MIN_CHARS = 40;
 
+/** Set when the user saves from crafting — hub treats the story as created (mind map) even if CAR fields are under the draft threshold. */
+const CRAFT_SAVED_MARKER_PREFIX = "proofdive_craft_saved";
+
+export function craftSavedMarkerKeyForExperience(experienceId: string): string {
+  return `${CRAFT_SAVED_MARKER_PREFIX}:${experienceId}`;
+}
+
+export function markExperienceCraftSaved(experienceId: string): void {
+  if (typeof window === "undefined" || !experienceId) return;
+  try {
+    window.localStorage.setItem(craftSavedMarkerKeyForExperience(experienceId), String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+}
+
+function hasExperienceCraftSaved(experienceId: string): boolean {
+  if (typeof window === "undefined" || !experienceId) return false;
+  try {
+    return Boolean(window.localStorage.getItem(craftSavedMarkerKeyForExperience(experienceId))?.trim());
+  } catch {
+    return false;
+  }
+}
+
 export function readExperienceCraftUiStatus(experienceId: string): ExperienceCraftUiStatus {
   if (typeof window === "undefined" || !experienceId) return "ready_to_craft";
   const key = craftStorageKeyForExperience(experienceId);
@@ -192,6 +258,7 @@ export function readExperienceCraftUiStatus(experienceId: string): ExperienceCra
   if (!sections) return "drafted";
   const nonIntro = sections.filter((s) => !isIntroSection(s.id));
   if (nonIntro.length === 0) return "drafted";
+  if (hasExperienceCraftSaved(experienceId)) return "ready_to_practice";
   const allComplete = nonIntro.every(
     (s) =>
       s.car.context.trim().length >= CRAFT_COMPLETE_MIN_CHARS &&
@@ -241,7 +308,9 @@ export function craftActionHref(experienceId: string, roleTitle: string, status:
   const idQ = encodeURIComponent(experienceId);
   if (status === "ready_to_practice") return `/storyboard/${experienceId}`;
   if (status === "drafted") return `/storyboard/crafting?experienceId=${idQ}`;
-  return `/storyboard/new?experienceId=${idQ}&role=${roleQ}`;
+  // New flow: collect/enrich experiences via the Storyboard Agent first.
+  // We still carry role in the URL so the agent can align to the user’s selection.
+  return `/storyboard/agent?role=${roleQ}`;
 }
 
 function sortExperiencesByCreatedAsc<T extends { createdAt: number }>(experiences: T[]): T[] {
@@ -282,6 +351,17 @@ export function journeyReadinessFromCraft(experienceId: string): number {
   return Math.min(5, Math.max(0, Math.round((pct / 100) * 5 * 10) / 10));
 }
 
+/** Hub “Story strength X.X/5” — use mock section scores when craft JSON exists; else progress-derived readiness. */
+export function hubStoryStrengthFromCraft(experienceId: string): number {
+  if (typeof window === "undefined" || !experienceId) return 0;
+  const key = craftStorageKeyForExperience(experienceId);
+  const sections = hydrateCraftSectionsFromLocalStorage(key);
+  if (sections && sections.length > 0) {
+    return averageMockStoryStrength(sections);
+  }
+  return journeyReadinessFromCraft(experienceId);
+}
+
 /** 0 experiences → 10% placeholder; otherwise average of per-journey progress weights. */
 export function roleCraftProgressPercent(role: { experiences: { id: string }[] }): number {
   if (role.experiences.length === 0) return 10;
@@ -294,7 +374,7 @@ export function roleCraftProgressPercent(role: { experiences: { id: string }[] }
 
 export function buildResumeExportText(sections: CraftSection[], storyboardId: string): string {
   const lines: string[] = [
-    `ProofDive resume export`,
+    `ProofDive story export`,
     `Storyboard ID: ${storyboardId}`,
     ``,
   ];

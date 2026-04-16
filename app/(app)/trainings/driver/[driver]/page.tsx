@@ -60,7 +60,7 @@ const DRIVER_META: Record<
     badgeText: "#0C447C",
     courses: [
       {
-        badge: "Analytical thinking",
+        badge: "Analytical Thinking",
         title: "Breaking down any problem — the CAR way",
         outcome:
           "After this you'll know how to structure any answer so your reasoning is clear, traceable, and impossible to argue with.",
@@ -68,14 +68,14 @@ const DRIVER_META: Record<
         active: true,
       },
       {
-        badge: "Strategic thinking",
+        badge: "Prioritization",
         title: "How to think ahead — spotting second-order effects",
         outcome:
           "After this you'll be able to show interviewers you think beyond the obvious — which is exactly what separates strong candidates.",
         duration: "~10 min",
       },
       {
-        badge: "Creative thinking",
+        badge: "Decision-Making Agility",
         title: "Finding the angle no one else sees",
         outcome:
           "After this you'll know how to reframe a question in a way that makes your answer memorable — not just correct.",
@@ -94,7 +94,7 @@ const DRIVER_META: Record<
     badgeText: "#085041",
     courses: [
       {
-        badge: "Drive & initiative",
+        badge: "Ownership",
         title: "Starting without permission — creating momentum",
         outcome:
           "After this you'll know how to show ownership and initiative without sounding reckless — the exact signal interviewers reward.",
@@ -102,14 +102,14 @@ const DRIVER_META: Record<
         active: true,
       },
       {
-        badge: "Resilience",
+        badge: "Initiative & Follow-through",
         title: "Staying sharp under pressure and setbacks",
         outcome:
           "After this you'll be able to describe setbacks in a way that highlights composure, learning, and forward progress.",
         duration: "~10 min",
       },
       {
-        badge: "Delivery",
+        badge: "Embraces Change",
         title: "Turning effort into outcomes interviewers believe",
         outcome:
           "After this you'll know how to present execution with clarity — scope, trade-offs, and results — so it feels undeniable.",
@@ -136,14 +136,14 @@ const DRIVER_META: Record<
         active: true,
       },
       {
-        badge: "Empathy",
+        badge: "Collaboration & Inclusion",
         title: "Reading the room — and adapting in real time",
         outcome:
           "After this you'll be able to show empathy as a performance skill: sharper decisions, better collaboration, fewer rework loops.",
         duration: "~10 min",
       },
       {
-        badge: "Leadership",
+        badge: "Grows Capability",
         title: "Leading without the title",
         outcome:
           "After this you'll know how to frame leadership as lifting team performance — not just managing people.",
@@ -162,7 +162,7 @@ const DRIVER_META: Record<
     badgeText: "#633806",
     courses: [
       {
-        badge: "Technical expertise",
+        badge: "Functional Knowledge",
         title: "Showing depth without drowning in details",
         outcome:
           "After this you'll know how to explain expertise with precision and clarity — without rambling or over-technical jargon.",
@@ -170,14 +170,14 @@ const DRIVER_META: Record<
         active: true,
       },
       {
-        badge: "Craft & quality",
+        badge: "Execution",
         title: "Your bar — how great work actually gets shipped",
         outcome:
           "After this you'll be able to describe quality as a system: decisions, trade-offs, and standards that lead to reliable outcomes.",
         duration: "~10 min",
       },
       {
-        badge: "Learning agility",
+        badge: "Innovation",
         title: "Learning fast — and applying it under constraints",
         outcome:
           "After this you'll know how to frame learning as speed-to-impact — not just curiosity.",

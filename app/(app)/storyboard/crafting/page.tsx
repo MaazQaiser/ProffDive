@@ -5,18 +5,38 @@ import Image from "next/image";
 import Link from "next/link";
 import { Urbanist } from "next/font/google";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Edit3, Info, Loader2, Save } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowUpRight,
+  Brain,
+  ChevronDown,
+  Edit3,
+  Info,
+  Loader2,
+  Lock,
+  Save,
+  Target,
+  Unlock,
+  Users,
+  Zap,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import { StoryGenerationLoadingScreen } from "@/components/StoryGenerationLoadingScreen";
 import { Chip } from "@/components/Chip";
 import {
   TEAL,
+  averageMockStoryStrength,
   buildInitialSections,
   buildInitialSectionsForRole,
+  craftStorageKeyForExperience,
+  craftStorageKeyForRole,
+  markExperienceCraftSaved,
   hydrateCraftSectionsFromLocalStorage,
   isIntroSection,
   mockStoryScore,
   normalizeIntroBlock,
+  pillarMockScoreBreakdown,
   type CarBlock,
   type CraftSection,
 } from "@/lib/storyboard-crafting";
@@ -24,8 +44,9 @@ import {
   findExperienceContext,
   listExperienceLabelsForRole,
   resolveCraftStorageKeyForExperienceId,
+  readLibraryWithMigration,
 } from "@/lib/storyboard-library";
-import { readJourneyState, completeJourneyStep } from "@/lib/guided-journey";
+import { readEnrichmentAnswers } from "@/lib/storyboard-enrichment";
 
 const urbanist = Urbanist({
   subsets: ["latin"],
@@ -37,6 +58,55 @@ const BORDER_HALF = "0.5px solid var(--color-border-tertiary)";
 const CARD_RADIUS = 10;
 const BTN_RADIUS = 8;
 const CONTENT_MAX_W = 840;
+
+/** Matches dashboard `glassCard` — Interview readiness style */
+const glassScoreStrip =
+  "relative overflow-hidden rounded-[24px] border-[0.5px] border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+const CRAFT_PILLAR_ICONS: Record<string, LucideIcon> = {
+  "Power of Thinking": Brain,
+  "Power of Action": Zap,
+  "Power of People": Users,
+  "Power of Mastery": Target,
+};
+
+/** Dashboard-aligned score heat */
+function scoreBandColor(v: number): string {
+  if (v < 2.5) return "#EF4444";
+  if (v < 3.5) return "#D97706";
+  return "#059669";
+}
+
+/** Same bands as dashboard Interview readiness chip */
+function readinessBand(v: number): {
+  label: string;
+  chipClass: string;
+  labelStrongClass: string;
+} {
+  if (v < 2.5) {
+    return {
+      label: "Not ready",
+      chipClass:
+        "border-white/90 bg-[linear-gradient(90.31deg,rgba(254,226,226,0.65)_0%,rgba(254,242,242,0.65)_99.92%)] text-[#B91C1C]",
+      labelStrongClass: "text-[#B91C1C]",
+    };
+  }
+  if (v < 3.5) {
+    return {
+      label: "Borderline",
+      chipClass:
+        "border-white/90 bg-[linear-gradient(90.31deg,rgba(255,233,197,0.6)_0%,rgba(255,242,221,0.6)_99.92%)] text-[#B45309]",
+      labelStrongClass: "text-[#B45309]",
+    };
+  }
+  return {
+    label: "Competent",
+    chipClass:
+      "border-white/90 bg-[linear-gradient(90.31deg,rgba(209,250,229,0.65)_0%,rgba(236,253,245,0.7)_99.92%)] text-[#047857]",
+    labelStrongClass: "text-[#047857]",
+  };
+}
+
 /** Storyboard hub / dashboard — top tool row */
 const CRAFT_TOPBAR_ROW =
   "relative flex w-full items-center justify-between gap-3 rounded-[16px] bg-transparent p-0";
@@ -93,36 +163,34 @@ const PROMPT_CHIPS: { label: string; text: string }[] = [
 ];
 
 function strengthColor(score: number): string {
-  if (score >= 3.5) return "#059669";
-  if (score >= 2.5) return "#D97706";
-  return "#EF4444";
+  return scoreBandColor(score);
 }
 
 function purposeLineFor(sectionName: string): string {
   const map: Record<string, string> = {
     "Core introduction": "Interviewers use this to decide if they want to hear more. First impressions compound.",
-    "ThinkProof Labs": "Interviewers ask about this to see if you diagnose before you act.",
-    ClarityCore:
+    "Analytical Thinking": "Interviewers ask about this to see if you diagnose before you act.",
+    Prioritization:
       "Interviewers ask about this to see how you decide what matters when everything feels urgent.",
-    DecisionCraft: "Interviewers ask about this to see if you can make calls with imperfect information.",
-    ActionProof: "Interviewers ask about this to see if you move without being told.",
-    ExecuteLab: "Interviewers ask about this to see if you actually finish what you start.",
-    MomentumWorks: "Interviewers ask about this to see how you respond when things go wrong.",
-    PeopleProof: "Interviewers ask about this to see if you can move people without authority.",
-    AlignWorks: "Interviewers ask about this to see if you understand the people around you.",
-    InfluenceCore: "Interviewers ask about this to see if others move better because of you.",
-    MasteryProof: "Interviewers ask about this to see if your knowledge holds up under pressure.",
-    CraftCore: "Interviewers ask about this to see if you hold a high bar for your own work.",
-    SkillForge: "Interviewers ask about this to see if you improve fast when the situation demands it.",
+    "Decision-Making Agility": "Interviewers ask about this to see if you can make calls with imperfect information.",
+    Ownership: "Interviewers ask about this to see if you move without being told.",
+    "Initiative & Follow-through": "Interviewers ask about this to see if you actually finish what you start.",
+    "Embraces Change": "Interviewers ask about this to see how you respond when things go wrong.",
+    Influence: "Interviewers ask about this to see if you can move people without authority.",
+    "Collaboration & Inclusion": "Interviewers ask about this to see if you understand the people around you.",
+    "Grows Capability": "Interviewers ask about this to see if others move better because of you.",
+    "Functional Knowledge": "Interviewers ask about this to see if your knowledge holds up under pressure.",
+    Execution: "Interviewers ask about this to see if you hold a high bar for your own work.",
+    Innovation: "Interviewers ask about this to see if you improve fast when the situation demands it.",
   };
   return map[sectionName] ?? "Interviewers ask about this to see how you think and operate under pressure.";
 }
 
 function proofySuggestion(sectionName: string): string {
   const map: Record<string, string> = {
-    "ThinkProof Labs":
+    "Analytical Thinking":
       "Your action is strong but your context has no stakes. What would have gone wrong if this problem wasn't solved? Add that one line and this answer moves to a 3.5.",
-    ActionProof:
+    Ownership:
       "There's no moment here where you started something without being asked. Can you add one line that shows you spotted the gap before anyone told you to?",
   };
   return (
@@ -136,6 +204,7 @@ export default function CraftingPage() {
   const { user } = useUser();
   const craftKeyRef = useRef<string>(resolveCraftStorageKeyForExperienceId(null));
   const experienceIdRef = useRef<string | null>(null);
+  const roleIdRef = useRef<string | null>(null);
   const [showAnalyzing, setShowAnalyzing] = useState(false);
 
   useEffect(() => {
@@ -151,22 +220,81 @@ export default function CraftingPage() {
 
   const [sections, setSections] = useState<CraftSection[]>(() => buildInitialSections());
 
+  const buildDraftFromEnrichment = useCallback(
+    (opts: { roleTitle: string; roleId: string; experiences: { id: string; label: string }[] }): CraftSection[] => {
+      const { roleTitle, roleId, experiences } = opts;
+      const base = buildInitialSectionsForRole({
+        roleTitle,
+        experienceLabels: experiences.map((e) => e.label),
+      });
+
+      const intro = base.find((s) => s.id === "intro");
+      if (intro) {
+        const bullets = experiences.slice(0, 5).map((e) => `- ${e.label}`).join("\n");
+        intro.car = normalizeIntroBlock({
+          context: `I’m a ${roleTitle}. Here are a few real experiences I can confidently speak to:\n${bullets}\n\nI’ll walk you through how I set goals, break down problems, prioritize, execute, align stakeholders, and deliver outcomes.`,
+          action: "",
+          result: "",
+        });
+      }
+
+      const nonIntro = base.filter((s) => !isIntroSection(s.id));
+      if (experiences.length === 0) return base;
+
+      for (let i = 0; i < nonIntro.length; i++) {
+        const sec = nonIntro[i]!;
+        const exp = experiences[i % experiences.length]!;
+        const a = readEnrichmentAnswers(exp.id);
+        const car: CarBlock = {
+          context: [
+            a[1]?.trim() ? `Goal: ${a[1].trim()}` : "",
+            a[2]?.trim() ? `Breakdown: ${a[2].trim()}` : "",
+            a[3]?.trim() ? `Prioritization: ${a[3].trim()}` : "",
+          ]
+            .filter(Boolean)
+            .join("\n\n") || `Experience: ${exp.label}`,
+          action: [a[4]?.trim() ? a[4].trim() : "", a[5]?.trim() ? a[5].trim() : ""].filter(Boolean).join("\n\n") || "",
+          result: a[6]?.trim() ? a[6].trim() : "",
+        };
+        sec.car = car;
+      }
+
+      // persist role metadata via prompt so it can be re-derived later if needed
+      for (const s of base) {
+        s.prompt = s.prompt || "";
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _ = roleId;
+      return base;
+    },
+    []
+  );
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const exp = params.get("experienceId")?.trim() || null;
+    const roleId = params.get("roleId")?.trim() || null;
     experienceIdRef.current = exp;
-    const key = resolveCraftStorageKeyForExperienceId(exp);
+    roleIdRef.current = roleId;
+    const key = roleId ? craftStorageKeyForRole(roleId) : resolveCraftStorageKeyForExperienceId(exp);
     craftKeyRef.current = key;
     const ctx = exp ? findExperienceContext(exp) : null;
-    const roleExperienceLabels = ctx?.roleId ? listExperienceLabelsForRole(ctx.roleId) : [];
+    const resolvedRoleId = roleId ?? ctx?.roleId ?? null;
+    const lib = readLibraryWithMigration((user.targetRole || user.role || "My role").trim());
+    const roleRow = resolvedRoleId ? lib.roles.find((r) => r.id === resolvedRoleId) ?? null : null;
+    const roleTitle = roleRow?.title ?? ctx?.roleTitle ?? user.targetRole ?? user.role ?? "My role";
+    const experiences = roleRow?.experiences ?? [];
+    const roleExperienceLabels = resolvedRoleId ? listExperienceLabelsForRole(resolvedRoleId) : [];
     const hydrated = hydrateCraftSectionsFromLocalStorage(key);
     setSections(
       hydrated ??
-        buildInitialSectionsForRole({
-          roleTitle: ctx?.roleTitle ?? user.targetRole ?? user.role ?? undefined,
-          experienceLabel: ctx?.experienceLabel ?? undefined,
-          experienceLabels: roleExperienceLabels,
-        })
+        (roleId && experiences.length > 0
+          ? buildDraftFromEnrichment({ roleTitle, roleId, experiences })
+          : buildInitialSectionsForRole({
+              roleTitle: roleTitle ?? undefined,
+              experienceLabel: ctx?.experienceLabel ?? undefined,
+              experienceLabels: roleExperienceLabels,
+            }))
     );
   }, []);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -176,6 +304,7 @@ export default function CraftingPage() {
   const regenBusyRef = useRef(false);
   const regenGenRef = useRef(0);
   const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [pillarBreakdownOpen, setPillarBreakdownOpen] = useState(false);
 
   const persistAll = useCallback((updater: CraftSection[] | ((prev: CraftSection[]) => CraftSection[])) => {
     setSections((prev) => {
@@ -189,13 +318,6 @@ export default function CraftingPage() {
     });
   }, []);
 
-  const openEdit = (id: string) => {
-    const s = sections.find((x) => x.id === id);
-    if (!s) return;
-    setEditingId(id);
-    setDraftPrompt(s.prompt || "");
-  };
-
   const closeEdit = () => {
     regenGenRef.current += 1;
     regenBusyRef.current = false;
@@ -204,10 +326,29 @@ export default function CraftingPage() {
     setRegeneratingSectionId(null);
   };
 
+  const openEdit = (id: string) => {
+    const s = sections.find((x) => x.id === id);
+    if (!s || s.locked) return;
+    setEditingId(id);
+    setDraftPrompt(s.prompt || "");
+  };
+
+  const toggleSectionLock = (id: string) => {
+    const s = sections.find((x) => x.id === id);
+    if (!s) return;
+    const nextLocked = !s.locked;
+    if (nextLocked && editingId === id) {
+      closeEdit();
+    }
+    persistAll((prev) =>
+      prev.map((x) => (x.id === id ? { ...x, locked: nextLocked } : x))
+    );
+  };
+
   const applyRegenerate = (id: string, promptText: string) => {
     if (regenBusyRef.current) return;
     const s = sections.find((x) => x.id === id);
-    if (!s || s.regenerationsUsed >= MAX_REGENS_PER_SECTION) return;
+    if (!s || s.locked || s.regenerationsUsed >= MAX_REGENS_PER_SECTION) return;
     regenBusyRef.current = true;
     const gen = ++regenGenRef.current;
     setRegeneratingSectionId(id);
@@ -239,17 +380,33 @@ export default function CraftingPage() {
 
   const saveStoryboard = () => {
     try {
-      localStorage.setItem(craftKeyRef.current, JSON.stringify(sections));
-      const st = readJourneyState();
-      if (st.active && !st.skipped && st.stepId === "story") {
-        completeJourneyStep("story");
-        router.push("/mock");
-      } else {
-        setSaveToast("Storyboard saved");
-        setTimeout(() => setSaveToast(null), 2500);
-        const exp = experienceIdRef.current;
-        router.push(exp ? `/storyboard/${exp}` : "/storyboard");
+      const payload = JSON.stringify(sections);
+      localStorage.setItem(craftKeyRef.current, payload);
+
+      /** Target experience for /storyboard/[id] (mind map + panel). Role-scoped craft uses a different key — mirror so the final screen loads. */
+      let navExperienceId: string | null = experienceIdRef.current;
+      const rid = roleIdRef.current;
+      if (!navExperienceId && rid) {
+        const lib = readLibraryWithMigration((user.targetRole || user.role || "My role").trim());
+        const role = lib.roles.find((r) => r.id === rid);
+        navExperienceId = role?.experiences[0]?.id ?? null;
       }
+      if (navExperienceId) {
+        try {
+          localStorage.setItem(craftStorageKeyForExperience(navExperienceId), payload);
+          markExperienceCraftSaved(navExperienceId);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (navExperienceId) {
+        router.push(`/storyboard/${navExperienceId}`);
+        return;
+      }
+      setSaveToast("Storyboard saved");
+      setTimeout(() => setSaveToast(null), 2500);
+      router.push("/storyboard");
     } catch {
       setSaveToast("Could not save");
       setTimeout(() => setSaveToast(null), 2500);
@@ -258,6 +415,8 @@ export default function CraftingPage() {
 
   const roleTitle = user.role?.trim() || "Your storyboard";
   const roleStoryLabel = `${roleTitle} story`;
+  const agentRoleQuery = (user.targetRole || user.role || "My role").trim();
+  const storyboardAgentHref = `/storyboard/agent?role=${encodeURIComponent(agentRoleQuery)}`;
   const firstName = useMemo(() => user.name?.trim().split(" ")[0] || "Maaz", [user.name]);
 
   const sectionMeta = useMemo(() => {
@@ -267,23 +426,36 @@ export default function CraftingPage() {
       return { id: s.id, name, score };
     });
     const weakest = [...items].sort((a, b) => a.score - b.score)[0];
+    const competencyItems = items.filter((x) => !isIntroSection(x.id));
+    const weakestCompetency = competencyItems.length
+      ? [...competencyItems].sort((a, b) => a.score - b.score)[0]
+      : undefined;
     const needsAttention = items.filter((x) => x.score < 3.5).length;
-    return { items, weakest, needsAttention };
+    return { items, weakest, weakestCompetency, needsAttention };
   }, [sections]);
 
-  const overallScore = 2.9;
+  const overallScore = useMemo(() => averageMockStoryStrength(sections), [sections]);
+  const pillarScores = useMemo(() => pillarMockScoreBreakdown(sections), [sections]);
   const overallLabel =
     sectionMeta.needsAttention === 1
       ? "Borderline — 1 section needs attention"
       : `Borderline — ${sectionMeta.needsAttention} sections need attention`;
 
+  const readiness = useMemo(() => readinessBand(overallScore), [overallScore]);
+
   const jumpToWeakest = () => {
-    const id = sectionMeta.weakest?.id;
+    const id = sectionMeta.weakestCompetency?.id ?? sectionMeta.weakest?.id;
     if (!id) return;
     const el = sectionRefs.current[id];
     if (!el) return;
     el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const jumpToPillarFirst = useCallback((pillar: string) => {
+    const s = sections.find((sec) => !isIntroSection(sec.id) && sec.pillar === pillar);
+    if (!s) return;
+    sectionRefs.current[s.id]?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [sections]);
 
   if (showAnalyzing) {
     return (
@@ -333,15 +505,23 @@ export default function CraftingPage() {
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={saveStoryboard}
-              data-journey-id="story-save"
-              className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#0A89A9] px-5 py-2.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
-            >
-              <Save size={16} aria-hidden />
-              Save storyboard
-            </button>
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+              <Link
+                href={storyboardAgentHref}
+                className="inline-flex items-center gap-2 rounded-full border border-[#E2E8F0] bg-white/90 px-4 py-2.5 text-[14px] font-medium text-[#0F172A] shadow-sm transition-colors hover:border-[#0A89A9]/40 hover:text-[#0A89A9]"
+              >
+                Add another experience
+              </Link>
+              <button
+                type="button"
+                onClick={saveStoryboard}
+                data-journey-id="story-save"
+                className="inline-flex shrink-0 items-center gap-2 rounded-full bg-[#0A89A9] px-5 py-2.5 text-[14px] font-medium text-white transition-opacity hover:opacity-90"
+              >
+                <Save size={16} aria-hidden />
+                Save storyboard
+              </button>
+            </div>
           </div>
         </div>
 
@@ -371,35 +551,99 @@ export default function CraftingPage() {
         </div>
       </section>
 
-      {/* Overall score strip */}
-      <div className="relative z-[1] mx-auto w-full" style={{ maxWidth: CONTENT_MAX_W, padding: "0 0 0.75rem" }}>
-        <div
-          data-journey-id="story-score-strip"
-          className="bg-white flex items-center justify-between gap-3"
-          style={{ border: BORDER_HALF, borderRadius: CARD_RADIUS, padding: "12px 16px" }}
-        >
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="text-[14px]" style={{ color: "var(--color-text-secondary)" }}>
-                Overall story strength
-              </span>
-              <span className="text-[18px] font-bold tabular-nums" style={{ color: "#BA7517" }}>
-                {overallScore.toFixed(1)} / 5
-              </span>
-              <span className="text-[14px]" style={{ color: "var(--color-text-tertiary)" }}>
-                {overallLabel}
-              </span>
+      {/* Story strength — dashboard Interview readiness style */}
+      <div className="relative z-[1] mx-auto w-full" style={{ maxWidth: CONTENT_MAX_W, padding: "0 0 1rem" }}>
+        <section className={`${glassScoreStrip} p-6 md:p-8`} data-journey-id="story-score-strip">
+          <div className="flex w-full flex-col gap-6 lg:flex-row lg:items-start lg:justify-between lg:gap-10">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-[24px] font-medium leading-tight tracking-tight text-[#1E293B] md:text-[26px]">
+                Story strength
+              </h2>
+              <p className="mt-2 text-[15px] font-normal leading-relaxed text-[#475569] md:text-[16px]">{overallLabel}</p>
+              <p className="mt-1.5 text-[13px] leading-relaxed text-[#94A3B8] md:text-[14px]">
+                Mock scores by section — pillar balance at a glance.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPillarBreakdownOpen((o) => !o)}
+                  aria-expanded={pillarBreakdownOpen}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#CBD5E1] bg-white/70 px-4 py-2.5 text-[14px] font-semibold text-[#334155] shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[21px] transition-colors hover:border-[#0A89A9]/40 hover:text-[#0A89A9]"
+                >
+                  <ChevronDown
+                    size={16}
+                    className={`shrink-0 transition-transform duration-200 ${pillarBreakdownOpen ? "rotate-180" : ""}`}
+                    aria-hidden
+                  />
+                  {pillarBreakdownOpen ? "Hide pillar breakdown" : "Breakdown by pillar"}
+                </button>
+                <button
+                  type="button"
+                  onClick={jumpToWeakest}
+                  className="text-[14px] font-semibold text-[#0A89A9] transition-opacity hover:opacity-80"
+                >
+                  Jump to weakest section →
+                </button>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-center gap-4 sm:flex-row sm:items-end sm:gap-8 lg:flex-col lg:items-end">
+              <p className="flex items-end tabular-nums">
+                <span
+                  className="text-[42px] font-semibold leading-none md:text-[48px]"
+                  style={{ color: scoreBandColor(overallScore) }}
+                >
+                  {overallScore.toFixed(1)}
+                </span>
+                <span className="pb-1.5 text-[22px] font-normal leading-none text-[#64748B] md:text-[24px]">/05</span>
+              </p>
+              <p
+                className={[
+                  "max-w-[280px] rounded-full border px-4 py-2 text-center text-[11px] font-medium shadow-[0_4px_20px_rgba(0,0,0,0.06)] sm:text-left md:text-[12px]",
+                  readiness.chipClass,
+                ].join(" ")}
+              >
+                You&apos;re currently on{" "}
+                <span className={["font-semibold", readiness.labelStrongClass].join(" ")}>{readiness.label}</span>
+              </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={jumpToWeakest}
-            className="shrink-0 text-[12px] font-medium"
-            style={{ color: TEAL }}
-          >
-            Jump to weakest section →
-          </button>
-        </div>
+
+          {pillarBreakdownOpen ? (
+            <>
+              <div className="my-8 h-px w-full bg-[#E2E8F0]" role="separator" />
+              <div className="w-full" role="region" aria-label="Scores by competency pillar">
+                <p className="mb-5 text-[16px] font-medium text-[#475569] md:text-[17px]">Pillar scores</p>
+                <div className="grid grid-cols-1 gap-y-6 md:grid-cols-2 md:gap-x-6 md:gap-y-6">
+                  {pillarScores.map(({ pillar, score }) => {
+                    const PillarIcon = CRAFT_PILLAR_ICONS[pillar] ?? Brain;
+                    return (
+                      <button
+                        key={pillar}
+                        type="button"
+                        onClick={() => jumpToPillarFirst(pillar)}
+                        className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto_3.5rem_auto] items-center gap-x-2.5 text-left transition-opacity hover:opacity-90"
+                        aria-label={`Go to first ${pillar} section`}
+                      >
+                        <PillarIcon size={18} className="shrink-0 text-[#64748B]" strokeWidth={1.8} aria-hidden />
+                        <span className="min-w-0 truncate text-[16px] font-medium text-[#475569] md:text-[17px]">
+                          {pillar}
+                        </span>
+                        <span className="h-[2px] w-[2px] shrink-0 rounded-full bg-[#1E293B]" aria-hidden />
+                        <span
+                          className="shrink-0 text-right text-[24px] font-semibold leading-none tabular-nums md:text-[26px]"
+                          style={{ color: scoreBandColor(score) }}
+                        >
+                          {score.toFixed(1)}
+                        </span>
+                        <ArrowUpRight size={15} className="shrink-0 text-[#94A3B8]" aria-hidden />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          ) : null}
+        </section>
       </div>
 
       {/* Section cards */}
@@ -407,7 +651,7 @@ export default function CraftingPage() {
         <div className="flex flex-col" style={{ gap: 12 }}>
           {sections.map((section, idx) => {
             const sectionNumber = idx + 1;
-            const isEditing = editingId === section.id;
+            const isEditing = editingId === section.id && !section.locked;
             const creditsLeft = MAX_REGENS_PER_SECTION - section.regenerationsUsed;
             const isRegenerating = regeneratingSectionId === section.id;
             const score = mockStoryScore(section.id);
@@ -419,6 +663,7 @@ export default function CraftingPage() {
               .replace(/\s*\(.*?\)\s*/g, " ")
               .trim()
               .toLowerCase();
+            const sectionLocked = section.locked === true;
 
             return (
               <div
@@ -428,7 +673,12 @@ export default function CraftingPage() {
                 }}
                 data-journey-id={idx === 0 ? "story-first-card" : undefined}
                 className="bg-white"
-                style={{ ...GLASS, borderRadius: CARD_RADIUS }}
+                style={{
+                  ...GLASS,
+                  borderRadius: CARD_RADIUS,
+                  ...(sectionLocked ? { boxShadow: "0 2px 12px rgba(0,0,0,0.04), inset 0 0 0 1px rgba(10,137,169,0.12)" } : {}),
+                }}
+                aria-disabled={sectionLocked}
               >
                 {/* Header row */}
                 <div
@@ -504,9 +754,26 @@ export default function CraftingPage() {
 
                     <button
                       type="button"
+                      onClick={() => toggleSectionLock(section.id)}
+                      aria-pressed={sectionLocked}
+                      aria-label={sectionLocked ? "Unlock section" : "Lock section"}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-[12px] font-medium bg-white transition-colors"
+                      style={{
+                        border: "0.5px solid var(--color-border-secondary)",
+                        borderRadius: BTN_RADIUS,
+                        color: sectionLocked ? TEAL : "var(--color-text-primary)",
+                      }}
+                    >
+                      {sectionLocked ? <Unlock size={14} aria-hidden /> : <Lock size={14} aria-hidden />}
+                      {sectionLocked ? "Unlock" : "Lock"}
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={sectionLocked}
                       onClick={() => (isEditing ? closeEdit() : openEdit(section.id))}
                       data-journey-id={idx === 0 ? "story-edit-btn" : undefined}
-                      className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium bg-white"
+                      className="inline-flex items-center gap-2 px-3 py-2 text-[12px] font-medium bg-white disabled:cursor-not-allowed disabled:opacity-45"
                       style={{
                         border: "0.5px solid var(--color-border-secondary)",
                         borderRadius: BTN_RADIUS,
@@ -522,7 +789,7 @@ export default function CraftingPage() {
                 {/* Interview purpose line */}
                 <div
                   data-journey-id={idx === 0 ? "story-purpose-line" : undefined}
-                  className="text-[12px] italic flex items-start gap-2"
+                  className={["text-[12px] italic flex items-start gap-2", sectionLocked ? "pointer-events-none select-none opacity-[0.88]" : ""].join(" ")}
                   style={{
                     padding: "10px 16px",
                     borderTop: BORDER_HALF,
@@ -543,7 +810,7 @@ export default function CraftingPage() {
                 {/* Generated content (always visible) */}
                 <div
                   data-journey-id={idx === 1 ? "story-car-blocks" : undefined}
-                  className="flex flex-col"
+                  className={["flex flex-col", sectionLocked ? "pointer-events-none select-none opacity-[0.92]" : ""].join(" ")}
                   style={{ padding: "12px 16px 14px", gap: 12 }}
                 >
                   {isIntroSection(section.id) ? (

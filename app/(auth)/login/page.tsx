@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { resetFlowToFreshStart } from "@/lib/demo";
 /**
  * Email sign-in: onboarded users → `/dashboard`. New / incomplete accounts → onboarding.
  */
@@ -130,6 +131,23 @@ export default function LoginPage() {
                 Sign In with Email
               </span>
             </button>
+          </div>
+
+          <div className="mt-5 w-full max-w-[636px]">
+            <button
+              type="button"
+              onClick={() => {
+                resetFlowToFreshStart();
+                router.push("/onboarding");
+              }}
+              className="w-full rounded-[12px] border border-[#CBD5E1] bg-white/35 px-4 py-3 text-left text-[14px] font-medium text-[#253D47] shadow-[0_1px_0_rgba(255,255,255,0.6)] transition-colors hover:bg-white/55"
+            >
+              Reset flow
+            </button>
+            <p className="mt-2 text-[12px] leading-relaxed text-[#64748B]">
+              Clear saved onboarding and storyboard data and start your project from scratch, as if you just signed
+              in on a new device.
+            </p>
           </div>
 
           {/* Ghost entry — AI-native Proofy flow (does not change default sign-in) */}

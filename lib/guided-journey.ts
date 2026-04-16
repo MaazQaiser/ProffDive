@@ -213,10 +213,38 @@ export function syncJourneyToRoute(pathname: string): GuidedJourneyState {
   const currentIdx = order.indexOf(st.stepId);
   const desiredIdx = order.indexOf(desired);
 
+  // If user reaches the report module, we treat the journey as complete on entry.
+  if (isReport) {
+    const completed: GuidedJourneyStepId[] = [
+      ...new Set<GuidedJourneyStepId>([...st.completed, "training", "story", "mock", "report"]),
+    ].filter((x): x is GuidedJourneyStepId => x !== "done");
+    const next: GuidedJourneyState = {
+      ...st,
+      stepId: "done",
+      completed,
+      active: false,
+      updatedAt: Date.now(),
+    };
+    writeJourneyState(next);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent<GuidedJourneyStepEventDetail>("journey:step", {
+          detail: { stepId: next.stepId, reason: "route_advance" },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent<GuidedJourneyCompleteDetail>("journey:complete", {
+          detail: { completedStepId: "report" },
+        })
+      );
+    }
+    return next;
+  }
+
   if (desiredIdx > currentIdx) {
-    const completed = [...new Set([...st.completed, ...order.slice(currentIdx, desiredIdx)])].filter(
-      (x) => x !== "done"
-    );
+    const completed: GuidedJourneyStepId[] = [
+      ...new Set<GuidedJourneyStepId>([...st.completed, ...order.slice(currentIdx, desiredIdx)]),
+    ].filter((x): x is GuidedJourneyStepId => x !== "done");
     const next: GuidedJourneyState = {
       ...st,
       stepId: desired,

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Urbanist } from "next/font/google";
@@ -51,15 +51,7 @@ const PLAN_EXPERIENCE_CHAR_LIMIT = 400;
 
 type PlanPhase = "role" | "experiences";
 
-export default function StoryBoardPage() {
-  return (
-    <Suspense fallback={<div className={`${urbanist.className} min-h-screen`} />}>
-      <StoryBoardPageInner />
-    </Suspense>
-  );
-}
-
-function StoryBoardPageInner() {
+export default function StoryBoardPageClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useUser();
@@ -164,8 +156,7 @@ function StoryBoardPageInner() {
       const openRoleId = searchParams.get("openRoleId")?.trim() ?? "";
       const openAdd = searchParams.get("openAddExperience")?.trim() ?? "";
       const openPlan = searchParams.get("openPlanExperiences")?.trim() ?? "";
-      const shouldOpenAddRole =
-        openAddRole === "1" || openAddRole.toLowerCase() === "true";
+      const shouldOpenAddRole = openAddRole === "1" || openAddRole.toLowerCase() === "true";
       if (shouldOpenAddRole) {
         setDraftRole("");
         setPlanOpen(true);
@@ -325,8 +316,7 @@ function StoryBoardPageInner() {
     const recognition = new SR() as WebSpeechRecognition;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang =
-      typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
+    recognition.lang = typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US";
     const base = planComposer;
     recognition.onresult = (event: WebSpeechResultEvent) => {
       let interim = "",
@@ -381,7 +371,10 @@ function StoryBoardPageInner() {
   return (
     <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden pb-20`}>
       <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
-        <div className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45" aria-hidden>
+        <div
+          className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45"
+          aria-hidden
+        >
           <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
         </div>
 
@@ -438,7 +431,9 @@ function StoryBoardPageInner() {
                   <div className="w-full">
                     {planPhase === "role" ? (
                       <div
-                        className={`transition-opacity duration-500 ease-out ${roleConfirmPulse ? "pointer-events-none opacity-40" : "opacity-100"}`}
+                        className={`transition-opacity duration-500 ease-out ${
+                          roleConfirmPulse ? "pointer-events-none opacity-40" : "opacity-100"
+                        }`}
                       >
                         <div className="storyboard-plan-role-wrap relative z-10 w-full text-left">
                           <label htmlFor="storyboard-plan-role-input" className="sr-only">
@@ -523,7 +518,11 @@ function StoryBoardPageInner() {
                           </p>
                           <div className="flex flex-wrap justify-start gap-2">
                             {SUGGESTIVE_ROLE_CHIPS.map((chip) => (
-                              <Chip key={`plan-${chip}`} selected={draftRole.trim() === chip} onClick={() => pickPlanRole(chip)}>
+                              <Chip
+                                key={`plan-${chip}`}
+                                selected={draftRole.trim() === chip}
+                                onClick={() => pickPlanRole(chip)}
+                              >
                                 {chip}
                               </Chip>
                             ))}
@@ -690,8 +689,8 @@ function StoryBoardPageInner() {
                                 {planComposer.length}/{PLAN_EXPERIENCE_CHAR_LIMIT}
                               </p>
                               <p className="w-full text-right text-[14px] leading-snug text-[#6D7888]">
-                                Add at least {MIN_PLAN_EXPERIENCES} experiences to enable Save experiences. Add as many as you
-                                want (up to {MAX_PLAN_EXPERIENCES} per role).
+                                Add at least {MIN_PLAN_EXPERIENCES} experiences to enable Save experiences. Add as many as
+                                you want (up to {MAX_PLAN_EXPERIENCES} per role).
                               </p>
                             </div>
                           )}
@@ -720,183 +719,178 @@ function StoryBoardPageInner() {
                 ) : null}
 
                 {!planOpen && library.roles.length > 0 ? (
-                <div className="grid w-full gap-5 xl:grid-cols-1">
-                  {(() => {
-                    const targetKey = roleFallback.trim().toLowerCase();
-                    const active =
-                      library.roles.find((r) => r.title.trim().toLowerCase() === targetKey) ??
-                      library.roles[0] ??
-                      null;
-                    const rolesToShow = active ? [active] : [];
-                    return rolesToShow.map((role, roleIdx) => {
-                    const hasCompleteStory =
-                      mounted && role.experiences.some((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice");
-                    const hubPct = mounted
-                      ? hasCompleteStory
-                        ? 100
-                        : roleCraftProgressPercent(role)
-                      : 10;
-                    const storyScore =
-                      mounted && role.experiences.length > 0
-                        ? Math.max(0, ...role.experiences.map((e) => hubStoryStrengthFromCraft(e.id)))
-                        : 0;
-                    const viewStoryHref = mounted
-                      ? role.experiences.find((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice")
-                      : undefined;
-                    const journeysOpen = expandedRoleId === role.id;
-                    const ghostAddClass =
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[14px] font-semibold text-[#0A89A9] transition-colors hover:bg-[#0A89A9]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A89A9]/25";
+                  <div className="grid w-full gap-5 xl:grid-cols-1">
+                    {(() => {
+                      const targetKey = roleFallback.trim().toLowerCase();
+                      const active =
+                        library.roles.find((r) => r.title.trim().toLowerCase() === targetKey) ??
+                        library.roles[0] ??
+                        null;
+                      const rolesToShow = active ? [active] : [];
+                      return rolesToShow.map((role, roleIdx) => {
+                        const hasCompleteStory =
+                          mounted &&
+                          role.experiences.some((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice");
+                        const hubPct = mounted ? (hasCompleteStory ? 100 : roleCraftProgressPercent(role)) : 10;
+                        const storyScore =
+                          mounted && role.experiences.length > 0
+                            ? Math.max(0, ...role.experiences.map((e) => hubStoryStrengthFromCraft(e.id)))
+                            : 0;
+                        const viewStoryHref = mounted
+                          ? role.experiences.find((e) => readExperienceCraftUiStatus(e.id) === "ready_to_practice")
+                          : undefined;
+                        const ghostAddClass =
+                          "inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-[14px] font-semibold text-[#0A89A9] transition-colors hover:bg-[#0A89A9]/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0A89A9]/25";
 
-                    return (
-                      <div key={role.id} className={roleHubCard}>
-                        <div className="flex flex-wrap items-center justify-between gap-4 p-4">
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[18px] font-semibold text-[#1E293B]">{role.title}</p>
-                            <div className="mt-3 h-1.5 w-full max-w-[280px] rounded-full bg-[#E2E8F0]">
-                              <div
-                                className="h-full max-w-full rounded-full bg-[#0A89A9] transition-[width] duration-500 ease-out motion-reduce:transition-none"
-                                style={{ width: `${hubPct}%` }}
-                              />
+                        return (
+                          <div key={role.id} className={roleHubCard}>
+                            <div className="flex flex-wrap items-center justify-between gap-4 p-4">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[18px] font-semibold text-[#1E293B]">{role.title}</p>
+                                <div className="mt-3 h-1.5 w-full max-w-[280px] rounded-full bg-[#E2E8F0]">
+                                  <div
+                                    className="h-full max-w-full rounded-full bg-[#0A89A9] transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                                    style={{ width: `${hubPct}%` }}
+                                  />
+                                </div>
+                                <p className="mt-1.5 text-[14px] font-medium text-[#64748B]">
+                                  {hubPct}% done
+                                  {role.experiences.length > 0
+                                    ? ` · ${role.experiences.length} experience${
+                                        role.experiences.length === 1 ? "" : "s"
+                                      }`
+                                    : " · add your first experience"}
+                                  {hasCompleteStory ? (
+                                    <>
+                                      {" "}
+                                      · Story strength{" "}
+                                      <span className="font-semibold text-[#0F172A] tabular-nums">
+                                        {storyScore.toFixed(1)}
+                                      </span>
+                                      /5
+                                    </>
+                                  ) : null}
+                                </p>
+                              </div>
+                              <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:flex-row sm:flex-wrap sm:justify-end">
+                                {viewStoryHref ? (
+                                  <Link
+                                    href={`/storyboard/${viewStoryHref.id}`}
+                                    className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#0A89A9] px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-[filter,opacity] hover:brightness-105"
+                                  >
+                                    View story
+                                    <ArrowRight size={14} strokeWidth={2} aria-hidden />
+                                  </Link>
+                                ) : null}
+                                <button
+                                  type="button"
+                                  data-journey-id={role.experiences.length === 0 && roleIdx === 0 ? "story-start" : undefined}
+                                  onClick={() => {
+                                    router.push("/storyboard/agent");
+                                  }}
+                                  className={`${ghostAddClass} justify-center sm:justify-end`}
+                                >
+                                  {role.experiences.length === 0 ? (
+                                    "Get started"
+                                  ) : (
+                                    <>
+                                      <Plus size={14} strokeWidth={2} aria-hidden />
+                                      Add experience
+                                    </>
+                                  )}
+                                </button>
+                              </div>
                             </div>
-                            <p className="mt-1.5 text-[14px] font-medium text-[#64748B]">
-                              {hubPct}% done
-                              {role.experiences.length > 0
-                                ? ` · ${role.experiences.length} experience${role.experiences.length === 1 ? "" : "s"}`
-                                : " · add your first experience"}
-                              {hasCompleteStory ? (
-                                <>
-                                  {" "}
-                                  · Story strength{" "}
-                                  <span className="font-semibold text-[#0F172A] tabular-nums">
-                                    {storyScore.toFixed(1)}
-                                  </span>
-                                  /5
-                                </>
-                              ) : null}
-                            </p>
-                          </div>
-                          <div className="flex w-full min-w-0 flex-col items-stretch gap-2 sm:w-auto sm:items-end sm:flex-row sm:flex-wrap sm:justify-end">
-                            {viewStoryHref ? (
-                              <Link
-                                href={`/storyboard/${viewStoryHref.id}`}
-                                className="inline-flex items-center justify-center gap-1.5 rounded-full bg-[#0A89A9] px-5 py-2.5 text-[14px] font-semibold text-white shadow-[0_4px_20px_rgba(10,137,169,0.25)] transition-[filter,opacity] hover:brightness-105"
-                              >
-                                View story
-                                <ArrowRight size={14} strokeWidth={2} aria-hidden />
-                              </Link>
+
+                            {addJourneyForRoleId === role.id ? (
+                              <div className="border-t border-[#E2E8F0]/80 px-4 py-4">
+                                <p className="text-[13px] text-[#64748B]">
+                                  <span className="text-[#475569]">At least one experience.</span> Add more if you need them.
+                                </p>
+                                <div className="mt-3 flex flex-col gap-3">
+                                  {newExperienceBlocks.map((block, idx) => (
+                                    <textarea
+                                      key={idx}
+                                      value={block}
+                                      onChange={(e) =>
+                                        setNewExperienceBlocks((rows) =>
+                                          rows.map((x, i) => (i === idx ? e.target.value : x))
+                                        )
+                                      }
+                                      rows={3}
+                                      placeholder="Describe this experience…"
+                                      className={textareaFlat}
+                                    />
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setNewExperienceBlocks((rows) => [...rows, ""])}
+                                  className="mt-2 text-[13px] font-medium text-[#64748B] hover:text-[#0A89A9]"
+                                >
+                                  + Add another experience
+                                </button>
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleAddJourneyToRole(role)}
+                                    disabled={!newExperienceBlocks.some((b) => b.trim())}
+                                    className="rounded-full bg-[#0A89A9] px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40"
+                                  >
+                                    Start building
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setAddJourneyForRoleId(null)}
+                                    className="rounded-full border border-[#E2E8F0] px-4 py-2 text-[13px] font-medium text-[#64748B]"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              </div>
                             ) : null}
-                            <button
-                              type="button"
-                              data-journey-id={
-                                role.experiences.length === 0 && roleIdx === 0 ? "story-start" : undefined
-                              }
-                              onClick={() => {
-                                router.push("/storyboard/agent");
-                              }}
-                              className={`${ghostAddClass} justify-center sm:justify-end`}
-                            >
-                              {role.experiences.length === 0 ? (
-                                "Get started"
-                              ) : (
-                                <>
-                                  <Plus size={14} strokeWidth={2} aria-hidden />
-                                  Add experience
-                                </>
-                              )}
-                            </button>
-                          </div>
-                        </div>
 
-                        {addJourneyForRoleId === role.id ? (
-                          <div className="border-t border-[#E2E8F0]/80 px-4 py-4">
-                            <p className="text-[13px] text-[#64748B]">
-                              <span className="text-[#475569]">At least one experience.</span> Add more if you need
-                              them.
-                            </p>
-                            <div className="mt-3 flex flex-col gap-3">
-                              {newExperienceBlocks.map((block, idx) => (
-                                <textarea
-                                  key={idx}
-                                  value={block}
-                                  onChange={(e) =>
-                                    setNewExperienceBlocks((rows) =>
-                                      rows.map((x, i) => (i === idx ? e.target.value : x))
-                                    )
-                                  }
-                                  rows={3}
-                                  placeholder="Describe this experience…"
-                                  className={textareaFlat}
-                                />
-                              ))}
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => setNewExperienceBlocks((rows) => [...rows, ""])}
-                              className="mt-2 text-[13px] font-medium text-[#64748B] hover:text-[#0A89A9]"
-                            >
-                              + Add another experience
-                            </button>
-                            <div className="mt-4 flex flex-wrap gap-2">
-                              <button
-                                type="button"
-                                onClick={() => handleAddJourneyToRole(role)}
-                                disabled={!newExperienceBlocks.some((b) => b.trim())}
-                                className="rounded-full bg-[#0A89A9] px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40"
-                              >
-                                Start building
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setAddJourneyForRoleId(null)}
-                                className="rounded-full border border-[#E2E8F0] px-4 py-2 text-[13px] font-medium text-[#64748B]"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                            {role.experiences.length > 0 ? (
+                              <div className="border-t border-[#E2E8F0]/80 px-4 pb-4 pt-3">
+                                <p className="text-[14px] font-semibold text-[#64748B]">
+                                  Experiences ({role.experiences.length})
+                                </p>
+                                <ul className="mt-2 space-y-1">
+                                  {role.experiences.map((exp) => {
+                                    const editHref = `/storyboard?openRoleId=${encodeURIComponent(
+                                      role.id
+                                    )}&openPlanExperiences=1`;
+                                    return (
+                                      <li key={exp.id}>
+                                        <div className="flex flex-col gap-2 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                                          <p className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-[#1E293B]">
+                                            {exp.label}
+                                          </p>
+                                          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                                            <Link
+                                              href={editHref}
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                openPlanForRoleId(role.id);
+                                              }}
+                                              className="text-[14px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
+                                            >
+                                              Edit
+                                            </Link>
+                                          </div>
+                                        </div>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            ) : null}
                           </div>
-                        ) : null}
-
-                        {role.experiences.length > 0 ? (
-                          <div className="border-t border-[#E2E8F0]/80 px-4 pb-4 pt-3">
-                            <p className="text-[14px] font-semibold text-[#64748B]">
-                              Experiences ({role.experiences.length})
-                            </p>
-                            <ul className="mt-2 space-y-1">
-                              {role.experiences.map((exp) => {
-                                const editHref = `/storyboard?openRoleId=${encodeURIComponent(role.id)}&openPlanExperiences=1`;
-                                return (
-                                  <li key={exp.id}>
-                                    <div className="flex flex-col gap-2 rounded-xl px-2 py-2.5 transition-colors hover:bg-white/50 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                                      <p className="min-w-0 flex-1 text-[14px] font-medium leading-snug text-[#1E293B]">
-                                        {exp.label}
-                                      </p>
-                                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-                                        <Link
-                                          href={editHref}
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            openPlanForRoleId(role.id);
-                                          }}
-                                          className="text-[14px] font-semibold text-[#0A89A9] transition-colors hover:text-[#088299]"
-                                        >
-                                          Edit
-                                        </Link>
-                                      </div>
-                                    </div>
-                                  </li>
-                                );
-                              })}
-                            </ul>
-                          </div>
-                        ) : null}
-                      </div>
-                    );
-                    });
-                  })()}
-                </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 ) : null}
-
-                {/* Single-role storyboard hub: do not show multi-role affordances here. */}
 
                 <div className="pb-2" aria-hidden />
               </div>
@@ -907,3 +901,4 @@ function StoryBoardPageInner() {
     </div>
   );
 }
+

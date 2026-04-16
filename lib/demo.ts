@@ -16,14 +16,6 @@ function nowIso() {
   return new Date().toISOString();
 }
 
-function safeRemove(key: string) {
-  try {
-    localStorage.removeItem(key);
-  } catch {
-    /* ignore */
-  }
-}
-
 function safeSet(key: string, value: unknown) {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -32,12 +24,46 @@ function safeSet(key: string, value: unknown) {
   }
 }
 
+/** Removes every localStorage key used by ProofDive (prefix `proofdive`), including scoped storyboard keys. */
 export function resetDemoStorage() {
-  safeRemove(LS_KEYS.user);
-  safeRemove(LS_KEYS.guidedJourney);
-  safeRemove(LS_KEYS.storyboardCrafting);
-  safeRemove(LS_KEYS.demoPreset);
-  safeRemove(LS_KEYS.loginMethod);
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("proofdive")) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      localStorage.removeItem(key);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Clears short-lived flow flags (e.g. crafter UI) in sessionStorage. */
+export function clearProofDiveSessionStorage() {
+  try {
+    const keys: string[] = [];
+    for (let i = 0; i < sessionStorage.length; i++) {
+      const key = sessionStorage.key(i);
+      if (key && key.startsWith("pd:")) {
+        keys.push(key);
+      }
+    }
+    for (const key of keys) {
+      sessionStorage.removeItem(key);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Empty all client-side app data so the next visit matches a brand-new account. */
+export function resetFlowToFreshStart() {
+  resetDemoStorage();
+  clearProofDiveSessionStorage();
 }
 
 export function seedFirstTime() {

@@ -235,9 +235,7 @@ function DriverPillarCard({ d }: { d: DriverDef }) {
 
       <div>
         <h3 className="mb-1 text-[16px] font-medium text-[#1E293B]">{d.title}</h3>
-        <p className="text-[11px] text-[#475569]/55 font-semibold tracking-wide">
-          {det.pillar} · {det.subtitle}
-        </p>
+        <p className="text-[11px] text-[#475569]/55 font-semibold tracking-wide">{det.pillar}</p>
       </div>
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -523,10 +521,7 @@ export default function ReportPage() {
                 return (
                   <div key={d.id} className="rounded-[14px] border border-[#E2E8F0] bg-white/55 p-5">
                     <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="text-[15px] font-semibold text-[#1E293B]">
-                        {det.pillar}{" "}
-                        <span className="text-[#475569]/60 font-semibold text-[13px]">({det.subtitle})</span>
-                      </h3>
+                      <h3 className="text-[15px] font-semibold text-[#1E293B]">{det.pillar}</h3>
                       <span className="text-[14px] font-bold tabular-nums" style={{ color: getScoreColor(d.score) }}>
                         {d.score.toFixed(1)} / 5
                       </span>

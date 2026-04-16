@@ -1,7 +1,7 @@
 import { Suspense } from "react";
-import StoryboardNewRedirectClient from "./redirect-client";
+import { StoryboardAgentChat } from "@/components/storyboard/StoryboardAgentChat";
 
-export default function NewStoryBoardFlow() {
+export default function StoryboardAgentPage() {
   return (
     <Suspense
       fallback={
@@ -12,7 +12,8 @@ export default function NewStoryBoardFlow() {
         </div>
       }
     >
-      <StoryboardNewRedirectClient />
+      <StoryboardAgentChat />
     </Suspense>
   );
 }
+

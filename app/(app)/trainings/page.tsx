@@ -43,7 +43,7 @@ const DRIVERS: {
     pillLabel: "Power of Thinking",
     title: "How you think",
     desc: "Structure, logic and decisions under pressure",
-    competencies: ["Analytical", "Strategic", "Creative"],
+    competencies: ["Analytical Thinking", "Prioritization", "Decision-Making Agility"],
     Icon: Brain,
   },
   {
@@ -54,7 +54,7 @@ const DRIVERS: {
     pillLabel: "Power of Action",
     title: "How you act",
     desc: "Drive, resilience and getting things done",
-    competencies: ["Drive", "Resilience", "Delivery"],
+    competencies: ["Ownership", "Initiative & Follow-through", "Embraces Change"],
     Icon: Zap,
   },
   {
@@ -65,7 +65,7 @@ const DRIVERS: {
     pillLabel: "Power of People",
     title: "How you work with people",
     desc: "Influence, empathy and leading others",
-    competencies: ["Influence", "Empathy", "Leadership"],
+    competencies: ["Influence", "Collaboration & Inclusion", "Grows Capability"],
     Icon: Users,
   },
   {
@@ -76,7 +76,7 @@ const DRIVERS: {
     pillLabel: "Power of Mastery",
     title: "How you master your craft",
     desc: "Domain knowledge, expertise and growth",
-    competencies: ["Technical", "Expertise", "Growth"],
+    competencies: ["Functional Knowledge", "Execution", "Innovation"],
     Icon: Wrench,
   },
 ];

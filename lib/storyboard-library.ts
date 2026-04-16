@@ -31,6 +31,10 @@ export function generateStoryboardId(): string {
   return `pd_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+function normalizeTitleKey(title: string): string {
+  return title.trim().toLowerCase();
+}
+
 function defaultLibrary(): StoryboardLibrary {
   return { version: 1, roles: [] };
 }
@@ -63,7 +67,7 @@ function migrateLegacyCraftIntoLibrary(lib: StoryboardLibrary, roleTitleFallback
           id: roleId,
           title: roleTitleFallback.trim() || "My role",
           createdAt: now,
-          experiences: [{ id: expId, label: "My journey", createdAt: now }],
+          experiences: [{ id: expId, label: "My experience", createdAt: now }],
         },
       ],
     };
@@ -107,6 +111,38 @@ export function readLibraryWithMigration(roleTitleFallback: string): StoryboardL
   const migrated = migrateLegacyCraftIntoLibrary(base, roleTitleFallback);
   if (migrated !== base) return migrated;
   return ensureOnboardingDefaultRole(migrated, roleTitleFallback);
+}
+
+export function findRoleByTitle(lib: StoryboardLibrary, title: string): StoryRole | null {
+  const key = normalizeTitleKey(title);
+  if (!key) return null;
+  return lib.roles.find((r) => normalizeTitleKey(r.title) === key) ?? null;
+}
+
+export function addEmptyRole(title: string): { library: StoryboardLibrary; roleId: string } {
+  const lib = readLibrary();
+  const now = Date.now();
+  const roleId = generateStoryboardId();
+  const next: StoryboardLibrary = {
+    version: 1,
+    roles: [...lib.roles, { id: roleId, title: title.trim(), experiences: [], createdAt: now }],
+  };
+  writeLibrary(next);
+  return { library: next, roleId };
+}
+
+/**
+ * Resolve a single role for the given title. Creates one if missing.
+ * This is the canonical entrypoint for the storyboard hub in the single-role UX.
+ */
+export function ensureRoleForTitle(roleTitle: string): StoryRole | null {
+  const t = roleTitle.trim();
+  if (!t) return null;
+  const lib = readLibraryWithMigration(t);
+  const existing = findRoleByTitle(lib, t);
+  if (existing) return existing;
+  const created = addEmptyRole(t);
+  return created.library.roles.find((r) => r.id === created.roleId) ?? null;
 }
 
 export function writeLibrary(lib: StoryboardLibrary): void {
@@ -153,7 +189,7 @@ export function addExperienceToRole(roleId: string, label: string): StoryExperie
 }
 
 /**
- * Replace a role's experience list (used by the "Add a journey" editor screen).
+ * Replace a role's experience list (used by the "Add an experience" editor screen).
  * - Reuses existing ids by index where possible so crafted data stays attached.
  * - Generates ids for newly added experiences.
  */

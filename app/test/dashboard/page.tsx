@@ -100,7 +100,7 @@ export default function TestDashboard() {
           </Link>
         </div>
 
-        {/* Row 1 — Success Drivers | Journey — ONE surface each, touching sides */}
+        {/* Row 1 — Success Drivers | Experience — ONE surface each, touching sides */}
         <div className="grid grid-cols-[1fr_240px] gap-3 flex-1 min-h-0">
 
           {/* Success Drivers */}
@@ -133,10 +133,10 @@ export default function TestDashboard() {
             </div>
           </div>
 
-          {/* Journey — dark glass */}
+          {/* Experience — dark glass */}
           <div style={{ ...GD, borderRadius: 20, overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div className="px-5 py-4" style={{ borderBottom: `1px solid ${DIVd}` }}>
-              <p className="text-[13px] font-bold" style={{ color: "#FFF" }}>Your Journey</p>
+              <p className="text-[13px] font-bold" style={{ color: "#FFF" }}>Your Experience</p>
               <p className="text-[12px] mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>Step 3 of 5</p>
             </div>
             <div className="flex-1 flex flex-col justify-center px-5 gap-4 py-5">

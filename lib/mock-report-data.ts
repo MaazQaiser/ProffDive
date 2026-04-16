@@ -46,27 +46,23 @@ export interface DriverDef {
 /** Pillar labels + sub-skills shown in competency breakdown modals */
 export const COMPETENCY_DETAILS: Record<
   DriverDef["id"],
-  { pillar: string; subtitle: string; skills: string[] }
+  { pillar: string; skills: string[] }
 > = {
   thinking: {
     pillar: "Power of Thinking",
-    subtitle: "Strategic",
-    skills: ["ThinkProof Labs", "ClarityCore", "DecisionCraft"],
+    skills: ["Analytical Thinking", "Prioritization", "Decision-Making Agility"],
   },
   action: {
     pillar: "Power of Action",
-    subtitle: "Leadership",
-    skills: ["ActionProof", "ExecuteLab", "MomentumWorks"],
+    skills: ["Ownership", "Initiative & Follow-through", "Embraces Change"],
   },
   people: {
     pillar: "Power of People",
-    subtitle: "People",
-    skills: ["PeopleProof", "AlignWorks", "InfluenceCore"],
+    skills: ["Influence", "Collaboration & Inclusion", "Grows Capability"],
   },
   mastery: {
     pillar: "Power of Mastery",
-    subtitle: "Technical",
-    skills: ["MasteryProof", "CraftCore", "SkillForge"],
+    skills: ["Functional Knowledge", "Execution", "Innovation"],
   },
 };
 

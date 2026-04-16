@@ -15,6 +15,7 @@ const EXCLUDE_PATTERNS: RegExp[] = [
   /^\/reset-password(\/|$)/,
   /^\/mock\/live(\/|$)/,
   /^\/storyboard\/new(\/|$)/,
+  /^\/storyboard\/agent(\/|$)/,
   /^\/storyboard\/crafting(\/|$)/,
 ];
 

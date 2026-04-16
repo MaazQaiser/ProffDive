@@ -154,18 +154,30 @@ function MockSetupInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode");
+  const pillarParam = searchParams.get("pillar");
   const { user, updateUser } = useUser();
 
-  // Default: all pillars; Proofy "specific" mode pre-selects a focused subset
+  // Default: all pillars; Proofy "specific" mode pre-selects a focused subset; ?pillar=people (etc.) focuses one driver
   const [pillars, setPillars] = useState<Set<P>>(new Set(["thinking", "action", "people", "mastery"]));
 
   useEffect(() => {
+    const single =
+      pillarParam === "thinking" ||
+      pillarParam === "action" ||
+      pillarParam === "people" ||
+      pillarParam === "mastery"
+        ? pillarParam
+        : null;
+    if (single) {
+      setPillars(new Set([single]));
+      return;
+    }
     if (mode === "full") {
       setPillars(new Set(["thinking", "action", "people", "mastery"]));
     } else if (mode === "specific") {
       setPillars(new Set(["thinking", "action"]));
     }
-  }, [mode]);
+  }, [mode, pillarParam]);
   const [story, setStory]     = useState<string | null>("a");
   const [isEditingStory, setIsEditingStory] = useState(false);
   const [jd, setJd]           = useState(user.jd || "");

@@ -401,7 +401,7 @@ export default function OnboardingPage() {
                   <h1 className="text-[24px] font-semibold leading-[1.2] tracking-tight text-[#0F172A] sm:text-[28px]">
                     Pick up your{" "}
                     <span className="bg-gradient-to-r from-[#0087A8] to-[#00A3C4] bg-clip-text text-transparent">
-                      career journey
+                      career experience
                     </span>{" "}
                     stage
                   </h1>

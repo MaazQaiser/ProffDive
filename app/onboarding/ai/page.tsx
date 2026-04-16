@@ -213,7 +213,7 @@ export default function ProofyOnboardingPage() {
     if (phase === "hero" || phase === "intro" || phase === "guidance") return;
     cancelProofySpeech();
     const script: Partial<Record<ProofyPhase, string>> = {
-      qualification: "Tell me where you are in your journey.",
+      qualification: "Tell me where you are in your experience.",
       experience_years: "How many years of experience do you have?",
       target_role:
         "Which role are you preparing for? Say it out loud, or type it in the field below.",
@@ -491,7 +491,7 @@ export default function ProofyOnboardingPage() {
           {phase === "qualification" && (
             <motion.section key="qualification" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-6">
               <FlatCopy>
-                <p>Tell me where you are in your journey.</p>
+                <p>Tell me where you are in your experience.</p>
               </FlatCopy>
               {speechHint && <p className="text-center text-sm text-amber-800">{speechHint}</p>}
               <OptionsStack>
