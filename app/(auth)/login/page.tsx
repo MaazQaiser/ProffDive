@@ -133,6 +133,19 @@ export default function LoginPage() {
             </button>
           </div>
 
+          {/* Super Admin — CTA + demo session */}
+          <div className="mt-5 w-full max-w-[636px] overflow-hidden rounded-[12px] border border-[#CBD5E1]/80 bg-white/25 px-4 py-3 shadow-[0px_2px_12px_0px_rgba(0,0,0,0.04)]">
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <button
+                type="button"
+                onClick={() => router.push("/superadmin/overview")}
+                className="text-left text-[14px] font-medium text-[#0087A8] underline decoration-[#0087A8]/30 underline-offset-4 transition-colors hover:decoration-[#0087A8]"
+              >
+                Go to Super Admin →
+              </button>
+            </div>
+          </div>
+
           <div className="mt-5 w-full max-w-[636px]">
             <button
               type="button"
