@@ -14,6 +14,7 @@ import {
   MessageCircle,
   Mic,
   Play,
+  Plus,
   Sparkles,
   Target,
   Users,
@@ -422,6 +423,11 @@ export default function NewUserDashboard() {
     [updateUser]
   );
 
+  const goAddRoleFromMenu = useCallback(() => {
+    setPrepareDropdownOpen(false);
+    router.push("/storyboard?openAddRole=1");
+  }, [router]);
+
   return (
     <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden`}>
       <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
@@ -473,7 +479,9 @@ export default function NewUserDashboard() {
                       className="absolute right-0 top-[calc(100%+10px)] z-[20] min-w-[240px] overflow-hidden rounded-[16px] border border-slate-200/80 bg-white/90 p-1 shadow-[0_18px_60px_rgba(15,23,42,0.18)] backdrop-blur-[18px]"
                     >
                       {storyLib.roles.length === 0 ? (
-                        <div className="px-3 py-2 text-[13px] text-slate-500">No roles yet</div>
+                        <p className="px-3 py-2 text-[12px] leading-snug text-slate-500">
+                          No roles in your library yet — add one to prepare here.
+                        </p>
                       ) : (
                         storyLib.roles.map((r) => {
                           const active = r.id === effectivePrepareRoleId;
@@ -494,6 +502,23 @@ export default function NewUserDashboard() {
                           );
                         })
                       )}
+                      <div
+                        className={
+                          storyLib.roles.length > 0
+                            ? "mt-0.5 border-t border-slate-200/70 pt-0.5"
+                            : undefined
+                        }
+                      >
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="flex w-full items-center gap-2 rounded-[12px] px-3 py-2 text-left text-[13px] font-semibold text-[#0087A8] hover:bg-[#0087A8]/10"
+                          onClick={goAddRoleFromMenu}
+                        >
+                          <Plus size={16} className="shrink-0" aria-hidden />
+                          Add role
+                        </button>
+                      </div>
                     </div>
                   ) : null}
                 </div>
