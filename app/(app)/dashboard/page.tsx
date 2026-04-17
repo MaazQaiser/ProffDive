@@ -23,6 +23,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useUser } from "@/lib/user-context";
 import {
+  COMPETENCY_DETAILS,
   MOCK_DRIVERS,
   getOverallScore,
   type DriverDef,
@@ -69,6 +70,10 @@ const urbanist = Urbanist({
 
 const glassCard =
   "relative overflow-hidden rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
+
+/** Same glass as `glassCard` but allows vertical overflow for hover popovers (e.g. Recent sections). */
+const glassCardSection =
+  "relative overflow-x-clip overflow-y-visible rounded-[24px] border border-white/90 bg-[linear-gradient(90deg,rgba(255,255,255,0.24)_0%,rgba(255,255,255,0.6)_99.92%)] shadow-[0_4px_20px_rgba(0,0,0,0.06)] backdrop-blur-[21px]";
 
 /** Proofy dock bar — match `ProofyChatDock` closed chrome (Figma 866-5433) */
 const PROOFY_DOCK_GLASS_GRADIENT =
@@ -160,6 +165,16 @@ function mockDriversForPrepareRole(
   return MOCK_DRIVERS.map((d) => {
     const j = (frac(roleTitle, d.id) - 0.5) * 0.95;
     const score = Math.min(5, Math.max(1, Math.round((anchor + j + (d.score - 3.1) * 0.1) * 10) / 10));
+    const pct = Math.min(100, Math.max(8, Math.round(score * 20)));
+    return { ...d, score, pct };
+  });
+}
+
+/** Slight per-session score drift so Recent section columns differ like distinct mocks. */
+function jitterSessionDrivers(base: DriverDef[], sessionIndex: number): DriverDef[] {
+  return base.map((d) => {
+    const j = ((hashSeed(`${d.id}:${sessionIndex}`) % 13) - 6) * 0.05;
+    const score = Math.min(5, Math.max(1, Math.round((d.score + j) * 10) / 10));
     const pct = Math.min(100, Math.max(8, Math.round(score * 20)));
     return { ...d, score, pct };
   });
@@ -352,6 +367,15 @@ export default function NewUserDashboard() {
     return Array.from({ length: count }, (_, i) => RECENT_SECTION_BAR_SEGMENTS[(o + i) % count]!);
   }, [effectivePrepareRoleId, roleLabel]);
 
+  const recentSessionsDetail = useMemo(
+    () =>
+      [0, 1, 2, 3].map((sessionIndex) => {
+        const drivers = jitterSessionDrivers(driversForPrepare, sessionIndex);
+        return { drivers, overall: getOverallScore(drivers) };
+      }),
+    [driversForPrepare]
+  );
+
   const effectiveStoryRoleId = useMemo(() => {
     const roles = storyLib.roles;
     if (roles.length === 0) return null;
@@ -429,7 +453,7 @@ export default function NewUserDashboard() {
   }, [router]);
 
   return (
-    <div className={`${urbanist.className} relative min-h-screen overflow-x-hidden`}>
+    <div className={`${urbanist.className} relative min-h-screen overflow-x-clip`}>
       <div className="relative z-[2] mx-auto w-full max-w-[1440px] px-6 py-6">
         <div className="pointer-events-none invisible absolute left-[-251px] top-[66px] z-[1] h-[1127px] w-[1127px] opacity-45" aria-hidden>
           <Image src="/figma-dashboard/bg-orb.png" alt="" fill className="object-contain" />
@@ -458,10 +482,10 @@ export default function NewUserDashboard() {
             </div>
 
             <div className="relative z-[1] w-full">
-              <div className="mb-0 flex w-full items-center justify-center gap-3 px-2 sm:px-8">
+              <div className="relative z-30 mb-0 flex w-full items-center justify-center gap-3 px-2 sm:px-8">
                 <p className="text-[16px] font-normal leading-none text-[#64748B]">Currently preparing for</p>
 
-                <div className="relative" ref={prepareMenuRef}>
+                <div className="relative isolate" ref={prepareMenuRef}>
                   <button
                     type="button"
                     className="inline-flex items-center gap-2 text-[16px] font-semibold leading-none text-[#0F172A]"
@@ -828,7 +852,7 @@ export default function NewUserDashboard() {
 
         {/* Interview readiness + recent sections — Figma Insphere 869-7176 */}
         <section
-          className={`${glassCard} relative z-[1] mx-auto mt-3 flex w-full max-w-[960px] flex-col gap-6 border-[0.5px] p-6`}
+          className={`${glassCardSection} relative z-[1] mx-auto mt-3 flex w-full max-w-[960px] flex-col gap-6 border-[0.5px] p-6`}
         >
           <article className={`${glassCard} relative w-full flex-1 border-[0.5px] p-6`}>
             <div className="flex w-full flex-col gap-3">
@@ -929,32 +953,70 @@ export default function NewUserDashboard() {
               <p className="text-[16px] font-medium text-[#475569]">Recent sections</p>
             </div>
             <div
-              className="mt-auto grid h-[54px] grid-cols-4 items-end gap-1 rounded-[12px]"
-              role="img"
-              aria-label="Recent session activity across four sessions"
+              className="mt-auto grid grid-cols-4 divide-x divide-[#E2E8F0] rounded-[12px]"
+              role="group"
+              aria-label="Recent session activity across four sessions; hover a column for scores"
             >
-              {recentBarSegments.map((segmentClass, i) => (
-                <div
-                  key={`${effectivePrepareRoleId ?? "x"}-${i}`}
-                  className={[
-                    "pd-dashboard-bar-segment min-h-0 cursor-default",
-                    "origin-bottom transition-[transform,filter] duration-200 ease-out",
-                    "hover:scale-y-[1.08] hover:brightness-[1.08]",
-                    segmentClass,
-                  ].join(" ")}
-                  style={{ animationDelay: `${i * 75}ms` }}
-                  title={`Session ${String(i + 1).padStart(2, "0")}`}
-                />
-              ))}
-            </div>
-            <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-center gap-1 py-0.5">
-              <span className="text-center text-[10px] font-medium text-[#475569]">Session 01</span>
-              <span className="h-6 w-px bg-[#E2E8F0]" aria-hidden />
-              <span className="text-center text-[10px] font-medium text-[#475569]">Session 02</span>
-              <span className="h-6 w-px bg-[#E2E8F0]" aria-hidden />
-              <span className="text-center text-[10px] font-medium text-[#475569]">Session 03</span>
-              <span className="h-6 w-px bg-[#E2E8F0]" aria-hidden />
-              <span className="text-center text-[10px] font-medium text-[#475569]">Session 04</span>
+              {recentBarSegments.map((segmentClass, i) => {
+                const sessionLabel = `Session ${String(i + 1).padStart(2, "0")}`;
+                const { drivers: sessionDrivers, overall } = recentSessionsDetail[i]!;
+                const srSummary = `${sessionLabel}. Overall ${overall.toFixed(1)} of 5. ${sessionDrivers
+                  .map((d) => `${COMPETENCY_DETAILS[d.id].pillar} ${d.score.toFixed(1)}`)
+                  .join(", ")}.`;
+                return (
+                  <div
+                    key={`${effectivePrepareRoleId ?? "x"}-${i}`}
+                    className="group relative flex min-w-0 flex-col items-stretch px-1 first:pl-0 last:pr-0"
+                    aria-label={srSummary}
+                  >
+                    <div
+                      className="pointer-events-none invisible absolute bottom-[calc(100%+10px)] left-1/2 z-30 w-[min(268px,calc(100vw-2rem))] -translate-x-1/2 rounded-[14px] border border-slate-200/90 bg-white/95 p-3 text-left opacity-0 shadow-[0_18px_50px_rgba(15,23,42,0.14)] backdrop-blur-[14px] transition duration-150 ease-out group-hover:visible group-hover:opacity-100"
+                      role="tooltip"
+                    >
+                      <p className="text-[11px] font-semibold text-[#0F172A]">{sessionLabel}</p>
+                      <p className="mt-1 text-[11px] text-[#64748B]">
+                        Overall{" "}
+                        <span className="font-semibold tabular-nums" style={{ color: scoreBandColor(overall) }}>
+                          {overall.toFixed(1)}
+                        </span>
+                        <span className="font-medium text-[#94A3B8]">/5</span>
+                        <span className="text-[#94A3B8]"> · pillar breakdown</span>
+                      </p>
+                      <ul className="mt-2 space-y-1.5 border-t border-slate-200/70 pt-2">
+                        {sessionDrivers.map((d) => (
+                          <li key={d.id}>
+                            <div className="flex items-baseline justify-between gap-2 text-[11px]">
+                              <span className="min-w-0 truncate font-medium text-[#334155]">
+                                {COMPETENCY_DETAILS[d.id].pillar}
+                              </span>
+                              <span
+                                className="shrink-0 tabular-nums text-[11px] font-semibold"
+                                style={{ color: scoreBandColor(d.score) }}
+                              >
+                                {d.score.toFixed(1)}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="grid h-[54px] grid-cols-1 items-end">
+                      <div
+                        className={[
+                          "pd-dashboard-bar-segment min-h-0 w-full cursor-default",
+                          "origin-bottom transition-[transform,filter] duration-200 ease-out",
+                          "group-hover:scale-y-[1.08] group-hover:brightness-[1.08]",
+                          segmentClass,
+                        ].join(" ")}
+                        style={{ animationDelay: `${i * 75}ms` }}
+                        aria-hidden
+                      />
+                    </div>
+                    <p className="py-0.5 text-center text-[10px] font-medium text-[#475569]">{sessionLabel}</p>
+                  </div>
+                );
+              })}
             </div>
           </aside>
         </section>

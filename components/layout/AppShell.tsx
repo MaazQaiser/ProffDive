@@ -257,7 +257,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="flex flex-col min-h-screen relative overflow-x-hidden">
+    <div className="flex flex-col min-h-screen relative overflow-x-clip">
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden>
         <Image
           src="/figma-dashboard/insphere-saas-page-bg.png"
