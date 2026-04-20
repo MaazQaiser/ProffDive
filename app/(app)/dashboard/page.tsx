@@ -6,13 +6,11 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Urbanist } from "next/font/google";
 import {
-  ArrowRight,
   ArrowUpRight,
   Brain,
   Check,
   ChevronDown,
   MessageCircle,
-  Mic,
   Play,
   Plus,
   Sparkles,
@@ -43,7 +41,6 @@ import {
   type StoryboardLibrary,
   type StoryExperience,
 } from "@/lib/storyboard-library";
-import { getSpeechRecognition } from "@/lib/proofy-speech";
 
 /** One row per role title — merges duplicate titles (same name, different ids) for dashboard Story Boards. */
 type DashboardStoryRoleRow = {
@@ -199,8 +196,6 @@ export default function NewUserDashboard() {
   const [storyLib, setStoryLib] = useState<StoryboardLibrary>({ version: 1, roles: [] });
   const [selectedStoryRoleId, setSelectedStoryRoleId] = useState<string | null>(null);
   const [aiCoachPanelOpen, setAiCoachPanelOpen] = useState(false);
-  const [coachAskDraft, setCoachAskDraft] = useState("");
-  const [coachSpeechSupported] = useState(() => !!getSpeechRecognition());
   const aiCoachRailRef = useRef<HTMLDivElement>(null);
 
   const refreshStoryLib = useCallback(() => {
@@ -305,7 +300,6 @@ export default function NewUserDashboard() {
   useEffect(() => {
     if (!journeyIsDone) {
       setAiCoachPanelOpen(false);
-      setCoachAskDraft("");
     }
   }, [journeyIsDone]);
 
@@ -667,119 +661,6 @@ export default function NewUserDashboard() {
                             </Link>
                           </div>
                         </div>
-
-                        <form
-                          className="relative mt-4 w-full"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            const q = coachAskDraft.trim();
-                            if (!q) return;
-                            window.dispatchEvent(
-                              new CustomEvent("proofy:open", { detail: { open: true, prefill: q } })
-                            );
-                            setCoachAskDraft("");
-                            setAiCoachPanelOpen(false);
-                          }}
-                        >
-                          <div
-                            className="relative w-full overflow-hidden rounded-[122px] border-[0.5px] border-white"
-                            style={{ boxShadow: PROOFY_DOCK_SHADOW_OUT }}
-                          >
-                            <span
-                              aria-hidden
-                              className="pointer-events-none absolute inset-0 rounded-[122px] backdrop-blur-[21px]"
-                              style={{ backgroundImage: PROOFY_DOCK_GLASS_GRADIENT }}
-                            />
-                            <span
-                              aria-hidden
-                              className="pointer-events-none absolute inset-[-0.5px] rounded-[122px]"
-                              style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
-                            />
-                            <div className="relative z-[1] flex w-full items-center justify-between gap-2 py-2 pl-2.5 pr-1.5">
-                              <div className="flex min-w-0 flex-1 items-center gap-4">
-                                <span
-                                  className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                                  aria-hidden
-                                >
-                                  <span
-                                    className="pointer-events-none absolute inset-0 rounded-full backdrop-blur-[21px]"
-                                    style={{ backgroundImage: PROOFY_SPARKLE_ORB_GRADIENT }}
-                                  />
-                                  <Sparkles className="relative z-[1] h-[14px] w-[14px] text-white" strokeWidth={2} />
-                                  <span
-                                    aria-hidden
-                                    className="pointer-events-none absolute inset-0 rounded-[inherit]"
-                                    style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
-                                  />
-                                </span>
-                                <label htmlFor="dashboard-coach-ask" className="sr-only">
-                                  Ask AI Coach
-                                </label>
-                                <input
-                                  id="dashboard-coach-ask"
-                                  type="text"
-                                  value={coachAskDraft}
-                                  onChange={(e) => setCoachAskDraft(e.target.value)}
-                                  placeholder="Ask AI Coach"
-                                  autoComplete="off"
-                                  className="h-11 min-w-0 flex-1 border-0 bg-transparent text-[16px] font-normal leading-none text-slate-600 outline-none placeholder:text-slate-500"
-                                />
-                              </div>
-                              <div className="flex shrink-0 items-center gap-1">
-                                {coachSpeechSupported ? (
-                                  <button
-                                    type="button"
-                                    className="proofy-dock-round-btn relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full outline-none transition-opacity hover:opacity-90"
-                                    aria-label="Open AI coach with voice input"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      const q = coachAskDraft.trim();
-                                      window.dispatchEvent(
-                                        new CustomEvent("proofy:open", {
-                                          detail: {
-                                            open: true,
-                                            ...(q ? { prefill: q } : {}),
-                                            startVoice: true,
-                                          },
-                                        })
-                                      );
-                                      setCoachAskDraft("");
-                                      setAiCoachPanelOpen(false);
-                                    }}
-                                  >
-                                    <span
-                                      aria-hidden
-                                      className="pointer-events-none absolute inset-0 rounded-full backdrop-blur-[21px]"
-                                    />
-                                    <Mic className="relative z-[1] h-4 w-4 text-slate-600" strokeWidth={2} />
-                                    <span
-                                      aria-hidden
-                                      className="pointer-events-none absolute inset-0 rounded-[inherit]"
-                                      style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
-                                    />
-                                  </button>
-                                ) : null}
-                                <button
-                                  type="submit"
-                                  className="proofy-dock-round-btn relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-300 bg-white/95 outline-none transition-opacity hover:opacity-95 disabled:pointer-events-none disabled:opacity-40"
-                                  aria-label="Send to AI coach"
-                                  disabled={!coachAskDraft.trim()}
-                                >
-                                  <span
-                                    aria-hidden
-                                    className="pointer-events-none absolute inset-0 rounded-full backdrop-blur-[21px]"
-                                  />
-                                  <span
-                                    aria-hidden
-                                    className="pointer-events-none absolute inset-[-0.5px] rounded-[inherit]"
-                                    style={{ boxShadow: PROOFY_DOCK_INSET_HIGHLIGHT }}
-                                  />
-                                  <ArrowRight className="relative z-[1] h-4 w-4 text-slate-600" strokeWidth={2} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </form>
                       </div>
                     ) : null}
                   </div>
