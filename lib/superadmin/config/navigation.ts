@@ -5,7 +5,6 @@ import {
   BookOpen,
   Handshake,
   CreditCard,
-  Settings,
   ShieldCheck,
 } from "lucide-react";
 
@@ -23,5 +22,4 @@ export const SUPERADMIN_NAV: SuperAdminNavItem[] = [
   { href: "/superadmin/partners", label: "Partners", Icon: Handshake },
   { href: "/superadmin/billing/plans", label: "Billing (Plans)", Icon: CreditCard },
   { href: "/superadmin/competency-engine", label: "Competency Engine", Icon: ShieldCheck },
-  { href: "/superadmin/settings", label: "Settings", Icon: Settings },
 ];

@@ -13,11 +13,10 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-[var(--bg-app)] text-[var(--text-1)]">
       <aside className="flex h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-[var(--border)] bg-[var(--bg-surface)]">
-        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-surface)] px-4 py-4">
+        <div className="sticky top-0 z-10 flex h-12 items-center border-b border-[var(--border)] bg-[var(--bg-surface)] px-4">
           <Link href="/superadmin/overview" className="text-sm font-semibold tracking-tight text-[var(--primary)]">
             ProofDive
           </Link>
-          <p className="text-xs text-[var(--text-2)]">Super Admin</p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2">
           {SUPERADMIN_NAV.map(({ href, label, Icon }) => {
