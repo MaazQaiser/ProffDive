@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { KpiCard } from "@/components/superadmin/KpiCard";
 import { BackLink, PageHeader } from "@/components/superadmin/PageHeader";
 import { Field, Select } from "@/components/superadmin/Field";
-import { useOrganizations, usePlans } from "@/lib/superadmin/hooks";
+import { useCompetencyEngines, useOrganizations, usePlans } from "@/lib/superadmin/hooks";
 import { getOrgUsage } from "@/lib/superadmin/seed";
 
 export default function OrganizationDetailPage() {
@@ -14,6 +14,7 @@ export default function OrganizationDetailPage() {
   const id = String(params.id);
   const { orgs, loaded, update } = useOrganizations();
   const { plans, loaded: pLoaded } = usePlans();
+  const { versions: competencyEngines, loaded: ceLoaded } = useCompetencyEngines();
   const org = orgs.find((o) => o.id === id);
   const plan = plans.find((p) => p.id === org?.planId);
   const usage = org ? getOrgUsage(org.id) : null;
@@ -25,8 +26,12 @@ export default function OrganizationDetailPage() {
     [plans, effectivePlanId]
   );
 
-  if (!loaded || !pLoaded) return <p className="text-sm text-[var(--text-2)]">Loading…</p>;
+  if (!loaded || !pLoaded || !ceLoaded) return <p className="text-sm text-[var(--text-2)]">Loading…</p>;
   if (!org) return <p className="text-sm text-[var(--accent-error)]">Organization not found.</p>;
+
+  const competencyEngineName =
+    competencyEngines.find((v) => v.id === org.competencyEngineId)?.name ??
+    (org.competencyEngineId ? org.competencyEngineId : "Default");
 
   return (
     <>
@@ -59,6 +64,10 @@ export default function OrganizationDetailPage() {
             <div className="flex justify-between gap-4">
               <dt className="text-[var(--text-2)]">Plan</dt>
               <dd className="font-medium">{plan?.name ?? org.planId}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-[var(--text-2)]">Competency engine</dt>
+              <dd className="font-medium">{competencyEngineName}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-[var(--text-2)]">Last invite</dt>

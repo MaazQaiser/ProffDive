@@ -10,6 +10,19 @@ export type CheckpointType = "mcq" | "ai_practice";
 
 export type OrgLimits = Record<string, number | string>;
 
+export type CompetencyCard = {
+  id: string;
+  title: string;
+  description: string;
+};
+
+export type CompetencyEngineVersion = {
+  id: string;
+  name: string;
+  createdAt: string;
+  competencies: CompetencyCard[]; // exactly 12 in UI
+};
+
 export interface OrgInvite {
   email: string;
   sentAt: string;
@@ -20,6 +33,7 @@ export interface Organization {
   id: string;
   name: string;
   planId: string;
+  competencyEngineId?: string;
   status: OrgStatus;
   userCount: number;
   limits: OrgLimits;

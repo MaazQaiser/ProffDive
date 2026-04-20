@@ -1,5 +1,7 @@
 import { defaultModuleAccess } from "./config/product-modules";
+import { COMPETENCY_TITLES_12 } from "./competency-engine";
 import type {
+  CompetencyEngineVersion,
   EvaluationConfig,
   FunnelStep,
   Organization,
@@ -216,6 +218,19 @@ export const SEED_SETTINGS: PlatformSettings = {
     ai_coach_experimental: true,
   },
 };
+
+export const SEED_COMPETENCY_ENGINES: CompetencyEngineVersion[] = [
+  {
+    id: "cev_default",
+    name: "Default",
+    createdAt: "2026-04-20T00:00:00.000Z",
+    competencies: COMPETENCY_TITLES_12.map((title, i) => ({
+      id: `cc_${i + 1}`,
+      title,
+      description: "Edit this competency description (rubric / rules).",
+    })),
+  },
+];
 
 export const SEED_FUNNEL: FunnelStep[] = [
   { stage: "Build", count: 4200 },

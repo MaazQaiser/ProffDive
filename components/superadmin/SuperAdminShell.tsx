@@ -12,8 +12,8 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-app)] text-[var(--text-1)]">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-surface)]">
-        <div className="border-b border-[var(--border)] px-4 py-4">
+      <aside className="flex h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-[var(--border)] bg-[var(--bg-surface)]">
+        <div className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-surface)] px-4 py-4">
           <Link href="/superadmin/overview" className="text-sm font-semibold tracking-tight text-[var(--primary)]">
             ProofDive
           </Link>
@@ -59,11 +59,11 @@ export function SuperAdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
         <header className="sticky top-0 z-10 flex h-12 items-center border-b border-[var(--border)] bg-[var(--bg-surface)]/95 px-6 backdrop-blur-sm">
           <span className="text-sm font-medium text-[var(--text-2)]">Administration</span>
         </header>
-        <main className="min-h-[calc(100vh-3rem)] p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-0">{children}</main>
       </div>
     </div>
   );

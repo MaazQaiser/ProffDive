@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { readJson, writeJson } from "./storage";
+import { COMPETENCY_TITLES_12 } from "./competency-engine";
 import {
   SEED_MODULES,
   SEED_ORGS,
   SEED_OVERVIEW,
   SEED_PARTNERS,
   SEED_PLANS,
+  SEED_COMPETENCY_ENGINES,
   SEED_SETTINGS,
 } from "./seed";
 import type {
+  CompetencyCard,
+  CompetencyEngineVersion,
   Organization,
   OverviewMetrics,
   Partner,
@@ -26,6 +30,7 @@ const K = {
   modules: "training_modules",
   overview: "overview_metrics",
   settings: "platform_settings",
+  competencyEngines: "competency_engines",
 } as const;
 
 function uid(prefix: string) {
@@ -202,4 +207,65 @@ export function usePlatformSettings() {
   }, []);
 
   return { settings, loaded, setSettings, patch };
+}
+
+function ceUid(prefix: string) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function normalizeCompetencies(input: CompetencyCard[] | undefined): CompetencyCard[] {
+  const base = (input ?? []).slice(0, 12);
+  while (base.length < 12) {
+    base.push({ id: ceUid("cc"), title: `Competency ${base.length + 1}`, description: "" });
+  }
+  return base.map((c, idx) => ({
+    id: c.id || ceUid("cc"),
+    title: COMPETENCY_TITLES_12[idx] ?? `Competency ${idx + 1}`,
+    description: c.description ?? "",
+  }));
+}
+
+export function useCompetencyEngines() {
+  const [versions, setVersions] = useState<CompetencyEngineVersion[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      setVersions(readJson(K.competencyEngines, SEED_COMPETENCY_ENGINES));
+      setLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    writeJson(K.competencyEngines, versions);
+  }, [versions, loaded]);
+
+  const create = useCallback((input: Omit<CompetencyEngineVersion, "id" | "createdAt">) => {
+    const id = ceUid("cev");
+    const row: CompetencyEngineVersion = {
+      id,
+      name: input.name.trim(),
+      createdAt: new Date().toISOString(),
+      competencies: normalizeCompetencies(input.competencies),
+    };
+    setVersions((prev) => [row, ...prev]);
+    return id;
+  }, []);
+
+  const update = useCallback((id: string, patch: Partial<Omit<CompetencyEngineVersion, "id" | "createdAt">>) => {
+    setVersions((prev) =>
+      prev.map((v) =>
+        v.id === id
+          ? {
+              ...v,
+              ...(patch.name !== undefined ? { name: patch.name.trim() } : null),
+              ...(patch.competencies !== undefined ? { competencies: normalizeCompetencies(patch.competencies) } : null),
+            }
+          : v
+      )
+    );
+  }, []);
+
+  return { versions, loaded, create, update };
 }
