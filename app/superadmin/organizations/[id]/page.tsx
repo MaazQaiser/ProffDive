@@ -57,6 +57,18 @@ export default function OrganizationDetailPage() {
               <dt className="text-[var(--text-2)]">Status</dt>
               <dd className="font-medium capitalize">{org.status}</dd>
             </div>
+            {org.subdomain ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--text-2)]">Subdomain</dt>
+                <dd className="font-medium">{org.subdomain}</dd>
+              </div>
+            ) : null}
+            {org.contactEmail ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--text-2)]">POC email</dt>
+                <dd className="font-medium">{org.contactEmail}</dd>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4">
               <dt className="text-[var(--text-2)]">Users</dt>
               <dd className="font-medium tabular-nums">{org.userCount}</dd>
@@ -69,6 +81,12 @@ export default function OrganizationDetailPage() {
               <dt className="text-[var(--text-2)]">Competency engine</dt>
               <dd className="font-medium">{competencyEngineName}</dd>
             </div>
+            {org.candidates && org.candidates.length > 0 ? (
+              <div className="flex justify-between gap-4">
+                <dt className="text-[var(--text-2)]">Candidates</dt>
+                <dd className="font-medium tabular-nums">{org.candidates.length}</dd>
+              </div>
+            ) : null}
             <div className="flex justify-between gap-4">
               <dt className="text-[var(--text-2)]">Last invite</dt>
               <dd className="font-medium">

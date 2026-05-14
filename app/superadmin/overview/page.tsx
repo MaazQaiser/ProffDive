@@ -2,6 +2,7 @@
 
 import { KpiCard } from "@/components/superadmin/KpiCard";
 import { PageHeader } from "@/components/superadmin/PageHeader";
+import { SuperAdminPanel } from "@/components/superadmin/SuperAdminPanel";
 import { SuperAdminBarChart, SuperAdminLineChart, SuperAdminPieChart } from "@/components/superadmin/SuperAdminChart";
 import { useOrganizations, useOverviewMetrics } from "@/lib/superadmin/hooks";
 
@@ -10,7 +11,7 @@ export default function SuperAdminOverviewPage() {
   const { metrics, loaded: mLoaded } = useOverviewMetrics();
 
   if (!orgsLoaded || !mLoaded) {
-    return <p className="text-sm text-[var(--text-2)]">Loading…</p>;
+    return <p className="text-sm text-[#64748B]">Loading…</p>;
   }
 
   const trend = metrics.interviewReadinessTrend.map((d) => ({
@@ -45,30 +46,24 @@ export default function SuperAdminOverviewPage() {
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[var(--r-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--text-1)]">Interview / readiness trend</h2>
-          <p className="mb-4 text-xs text-[var(--text-2)]">Rolling daily index</p>
+        <SuperAdminPanel title="Interview / readiness trend" description="Rolling daily index">
           <SuperAdminLineChart
             data={trend}
             xKey="date"
             series={[{ key: "readiness", name: "Readiness" }]}
           />
-        </div>
-        <div className="rounded-[var(--r-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--text-1)]">Mock interview volume</h2>
-          <p className="mb-4 text-xs text-[var(--text-2)]">Sessions per day</p>
+        </SuperAdminPanel>
+        <SuperAdminPanel title="Mock interview volume" description="Sessions per day">
           <SuperAdminLineChart
             data={mockVol}
             xKey="date"
             series={[{ key: "interviews", name: "Volume" }]}
           />
-        </div>
+        </SuperAdminPanel>
       </div>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <div className="rounded-[var(--r-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--text-1)]">Report generations</h2>
-          <p className="mb-4 text-xs text-[var(--text-2)]">Last 7 days</p>
+        <SuperAdminPanel title="Report generations" description="Last 7 days">
           <SuperAdminBarChart
             data={metrics.reportGenerations.map((d) => ({
               day: d.date.slice(5),
@@ -78,12 +73,10 @@ export default function SuperAdminOverviewPage() {
             barKey="reports"
             name="Reports"
           />
-        </div>
-        <div className="rounded-[var(--r-card)] border border-[var(--border)] bg-[var(--bg-surface)] p-4">
-          <h2 className="text-sm font-semibold text-[var(--text-1)]">Feature usage breakdown</h2>
-          <p className="mb-4 text-xs text-[var(--text-2)]">Relative volume</p>
+        </SuperAdminPanel>
+        <SuperAdminPanel title="Feature usage breakdown" description="Relative volume">
           <SuperAdminPieChart data={featurePie} />
-        </div>
+        </SuperAdminPanel>
       </div>
     </>
   );

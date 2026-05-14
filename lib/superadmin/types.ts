@@ -29,15 +29,28 @@ export interface OrgInvite {
   status: "sent" | "failed";
 }
 
+export type OrgCandidate = {
+  name: string;
+  email: string;
+};
+
 export interface Organization {
   id: string;
   name: string;
+  contactEmail?: string;
+  /**
+   * Stored as a data URL for this demo admin console (localStorage-backed).
+   * In production this would typically be an object key / CDN URL.
+   */
+  logoDataUrl?: string;
+  subdomain?: string;
   planId: string;
   competencyEngineId?: string;
   status: OrgStatus;
   userCount: number;
   limits: OrgLimits;
   invites?: OrgInvite[];
+  candidates?: OrgCandidate[];
   subscription?: {
     status: string;
     renewsAt?: string;

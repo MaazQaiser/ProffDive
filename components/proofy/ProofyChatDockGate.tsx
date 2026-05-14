@@ -5,6 +5,7 @@ import { ProofyChatDock } from "./ProofyChatDock";
 
 /** Routes where the floating Proofy entry point should not appear. */
 const EXCLUDE_PATTERNS: RegExp[] = [
+  /^\/superadmin(\/|$)/,
   /^\/report(\/|$)/,
   /^\/onboarding(\/|$)/,
   /^\/login(\/|$)/,

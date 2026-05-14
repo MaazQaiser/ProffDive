@@ -14,17 +14,21 @@ type TabsProps = {
 export function Tabs({ tabs, active, onChange, children }: TabsProps) {
   return (
     <div>
-      <div className="flex gap-1 border-b border-[var(--border)]">
+      <div
+        className={clsx(
+          "inline-flex flex-wrap gap-0.5 rounded-2xl border border-white/80 bg-white/35 p-1 shadow-[0_2px_12px_rgba(0,0,0,0.04)] backdrop-blur-[12px]"
+        )}
+      >
         {tabs.map((t) => (
           <button
             key={t.id}
             type="button"
             onClick={() => onChange(t.id)}
             className={clsx(
-              "-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors",
+              "rounded-xl px-4 py-2 text-sm font-medium transition-all",
               active === t.id
-                ? "border-[var(--primary)] text-[var(--primary)]"
-                : "border-transparent text-[var(--text-2)] hover:text-[var(--text-1)]"
+                ? "bg-white/80 text-[#0A89A9] shadow-sm"
+                : "text-[#64748B] hover:bg-white/50 hover:text-[#1E293B]"
             )}
           >
             {t.label}

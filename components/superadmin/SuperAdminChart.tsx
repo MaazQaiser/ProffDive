@@ -16,7 +16,7 @@ import {
   Legend,
 } from "recharts";
 
-const COLORS = ["#0087A8", "#34D399", "#FBBF24", "#A5B4FC", "#F87171", "#818CF8"];
+const COLORS = ["#0A89A9", "#34D399", "#FBBF24", "#A5B4FC", "#F87171", "#818CF8"];
 
 type LineChartProps = {
   data: Record<string, string | number | undefined>[];
@@ -29,14 +29,16 @@ export function SuperAdminLineChart({ data, xKey, series }: LineChartProps) {
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} stroke="var(--text-3)" />
-          <YAxis tick={{ fontSize: 11 }} stroke="var(--text-3)" />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.35)" />
+          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} stroke="#94A3B8" tickLine={false} />
+          <YAxis tick={{ fontSize: 11 }} stroke="#94A3B8" tickLine={false} />
           <Tooltip
             contentStyle={{
-              borderRadius: 8,
-              border: "1px solid var(--border)",
+              borderRadius: 12,
+              border: "0.5px solid rgba(255,255,255,0.9)",
+              background: "rgba(255,255,255,0.92)",
               fontSize: 12,
+              boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
             }}
           />
           {series.map((s, i) => (
@@ -71,11 +73,18 @@ export function SuperAdminBarChart({
     <div className="h-64 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} stroke="var(--text-3)" />
-          <YAxis tick={{ fontSize: 11 }} stroke="var(--text-3)" />
-          <Tooltip />
-          <Bar dataKey={barKey} name={name ?? barKey} fill="var(--primary)" radius={[4, 4, 0, 0]} />
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.35)" />
+          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} stroke="#94A3B8" tickLine={false} />
+          <YAxis tick={{ fontSize: 11 }} stroke="#94A3B8" tickLine={false} />
+          <Tooltip
+            contentStyle={{
+              borderRadius: 12,
+              border: "0.5px solid rgba(255,255,255,0.9)",
+              background: "rgba(255,255,255,0.92)",
+              fontSize: 12,
+            }}
+          />
+          <Bar dataKey={barKey} name={name ?? barKey} fill="#0A89A9" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
